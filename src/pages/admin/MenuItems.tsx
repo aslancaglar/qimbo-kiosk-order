@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+
+import React, { useState, useEffect } from 'react';
 import AdminLayout from '../../components/admin/AdminLayout';
 import { Input } from "@/components/ui/input";
 import { 
@@ -32,6 +33,8 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 
 interface MenuItem {
   id: number;
@@ -42,17 +45,6 @@ interface MenuItem {
   hasToppings: boolean;
   availableToppings?: number[];
 }
-
-const initialMenuItems: MenuItem[] = [
-  { id: 1, name: "Cheeseburger", category: "Burgers", price: "$10.99", status: "Active", hasToppings: true, availableToppings: [] },
-  { id: 2, name: "Chicken Wings", category: "Appetizers", price: "$12.50", status: "Active", hasToppings: false, availableToppings: [] },
-  { id: 3, name: "Caesar Salad", category: "Salads", price: "$8.99", status: "Active", hasToppings: false, availableToppings: [] },
-  { id: 4, name: "Margherita Pizza", category: "Pizza", price: "$14.99", status: "Active", hasToppings: true, availableToppings: [] },
-  { id: 5, name: "French Fries", category: "Sides", price: "$4.99", status: "Active", hasToppings: false, availableToppings: [] },
-  { id: 6, name: "Chocolate Cake", category: "Desserts", price: "$6.99", status: "Inactive", hasToppings: false, availableToppings: [] },
-  { id: 7, name: "Soda", category: "Drinks", price: "$2.99", status: "Active", hasToppings: false, availableToppings: [] },
-  { id: 8, name: "Fish & Chips", category: "Mains", price: "$15.99", status: "Inactive", hasToppings: false, availableToppings: [] },
-];
 
 const mockToppings = [
   { id: 1, name: "Cheese", price: 1.50, available: true, category: "Dairy" },
@@ -77,9 +69,12 @@ const menuItemFormSchema = z.object({
 type MenuItemFormValues = z.infer<typeof menuItemFormSchema>;
 
 const MenuItems = () => {
-  const [menuItems, setMenuItems] = useState<MenuItem[]>(initialMenuItems);
+  const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
   const [editItem, setEditItem] = useState<MenuItem | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState('');
+  const { toast } = useToast();
   
   const form = useForm<MenuItemFormValues>({
     resolver: zodResolver(menuItemFormSchema),
@@ -92,6 +87,62 @@ const MenuItems = () => {
       availableToppings: [],
     },
   });
+
+  // Fetch menu items from the database
+  const fetchMenuItems = async () => {
+    try {
+      setIsLoading(true);
+      const { data, error } = await supabase
+        .from('menu_items')
+        .select('*');
+        
+      if (error) {
+        throw error;
+      }
+      
+      // Transform database data to match the MenuItem interface
+      const transformedItems: MenuItem[] = data.map(item => ({
+        id: item.id,
+        name: item.name,
+        category: item.category,
+        price: `$${item.price}`,
+        status: item.status as "Active" | "Inactive",
+        hasToppings: item.has_toppings,
+        availableToppings: item.available_toppings || []
+      }));
+      
+      setMenuItems(transformedItems);
+    } catch (error) {
+      console.error('Error fetching menu items:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to load menu items. Please try again.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+  
+  useEffect(() => {
+    fetchMenuItems();
+    
+    // Set up real-time subscription
+    const channel = supabase
+      .channel('menu-items-changes')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'menu_items' },
+        () => {
+          fetchMenuItems();
+        }
+      )
+      .subscribe();
+      
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [toast]);
 
   const getStatusClass = (status: string) => {
     switch (status) {
@@ -130,40 +181,104 @@ const MenuItems = () => {
     setIsDialogOpen(true);
   };
 
-  const handleDeleteItem = (id: number) => {
-    setMenuItems(menuItems.filter(item => item.id !== id));
+  const handleDeleteItem = async (id: number) => {
+    try {
+      const { error } = await supabase
+        .from('menu_items')
+        .delete()
+        .eq('id', id);
+        
+      if (error) {
+        throw error;
+      }
+      
+      toast({
+        title: 'Success',
+        description: 'Menu item deleted successfully.',
+      });
+      
+      // The UI will be updated via the real-time subscription
+    } catch (error) {
+      console.error('Error deleting menu item:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to delete menu item. Please try again.',
+        variant: 'destructive',
+      });
+    }
   };
 
-  const onSubmit = (data: MenuItemFormValues) => {
-    const formattedPrice = data.price.startsWith('$') ? data.price : `$${data.price}`;
-    
-    if (editItem) {
-      setMenuItems(menuItems.map(item => 
-        item.id === editItem.id ? { 
-          ...item, 
-          name: data.name,
-          category: data.category,
-          price: formattedPrice,
-          status: data.status,
-          hasToppings: data.hasToppings,
-          availableToppings: data.hasToppings ? data.availableToppings || [] : []
-        } : item
-      ));
-    } else {
-      const newItem: MenuItem = {
-        id: Math.max(0, ...menuItems.map(item => item.id)) + 1,
+  const onSubmit = async (data: MenuItemFormValues) => {
+    try {
+      const priceValue = parseFloat(data.price.replace('$', ''));
+      
+      if (isNaN(priceValue)) {
+        toast({
+          title: 'Error',
+          description: 'Invalid price format. Please enter a valid number.',
+          variant: 'destructive',
+        });
+        return;
+      }
+      
+      // Prepare the data for Supabase
+      const menuItemData = {
         name: data.name,
         category: data.category,
-        price: formattedPrice,
+        price: priceValue,
         status: data.status,
-        hasToppings: data.hasToppings,
-        availableToppings: data.hasToppings ? data.availableToppings || [] : []
+        has_toppings: data.hasToppings,
+        available_toppings: data.hasToppings ? data.availableToppings : []
       };
-      setMenuItems([...menuItems, newItem]);
+      
+      if (editItem) {
+        // Update existing item
+        const { error } = await supabase
+          .from('menu_items')
+          .update(menuItemData)
+          .eq('id', editItem.id);
+          
+        if (error) {
+          throw error;
+        }
+        
+        toast({
+          title: 'Success',
+          description: 'Menu item updated successfully.',
+        });
+      } else {
+        // Insert new item
+        const { error } = await supabase
+          .from('menu_items')
+          .insert([menuItemData]);
+          
+        if (error) {
+          throw error;
+        }
+        
+        toast({
+          title: 'Success',
+          description: 'Menu item added successfully.',
+        });
+      }
+      
+      setIsDialogOpen(false);
+      // The UI will be updated via the real-time subscription
+    } catch (error) {
+      console.error('Error saving menu item:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to save menu item. Please try again.',
+        variant: 'destructive',
+      });
     }
-    
-    setIsDialogOpen(false);
   };
+  
+  // Filter menu items based on search query
+  const filteredMenuItems = menuItems.filter(item => 
+    item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    item.category.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
   return (
     <AdminLayout>
@@ -182,6 +297,8 @@ const MenuItems = () => {
             type="search" 
             placeholder="Search menu items..." 
             className="pl-8" 
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
           />
         </div>
         
@@ -199,41 +316,57 @@ const MenuItems = () => {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {menuItems.map((item) => (
-                <TableRow key={item.id}>
-                  <TableCell className="font-medium">#{item.id}</TableCell>
-                  <TableCell>{item.name}</TableCell>
-                  <TableCell>{item.category}</TableCell>
-                  <TableCell>{item.price}</TableCell>
-                  <TableCell>
-                    <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusClass(item.status)}`}>
-                      {item.status}
-                    </span>
-                  </TableCell>
-                  <TableCell>
-                    {item.hasToppings ? (
-                      <span className="bg-blue-100 text-blue-800 text-xs font-medium px-2.5 py-0.5 rounded-full">
-                        Has Toppings
-                      </span>
-                    ) : (
-                      <span className="text-gray-500 text-xs">None</span>
-                    )}
-                  </TableCell>
-                  <TableCell className="text-right space-x-2">
-                    <Button variant="outline" size="sm" className="h-8 w-8 p-0" onClick={() => handleEditItem(item)}>
-                      <Edit className="h-4 w-4" />
-                    </Button>
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
-                      className="h-8 w-8 p-0 text-red-500 hover:text-red-700"
-                      onClick={() => handleDeleteItem(item.id)}
-                    >
-                      <Trash className="h-4 w-4" />
-                    </Button>
+              {isLoading ? (
+                <TableRow>
+                  <TableCell colSpan={7} className="text-center py-8">
+                    <div className="flex justify-center">
+                      <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary"></div>
+                    </div>
                   </TableCell>
                 </TableRow>
-              ))}
+              ) : filteredMenuItems.length > 0 ? (
+                filteredMenuItems.map((item) => (
+                  <TableRow key={item.id}>
+                    <TableCell className="font-medium">#{item.id}</TableCell>
+                    <TableCell>{item.name}</TableCell>
+                    <TableCell>{item.category}</TableCell>
+                    <TableCell>{item.price}</TableCell>
+                    <TableCell>
+                      <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusClass(item.status)}`}>
+                        {item.status}
+                      </span>
+                    </TableCell>
+                    <TableCell>
+                      {item.hasToppings ? (
+                        <span className="bg-blue-100 text-blue-800 text-xs font-medium px-2.5 py-0.5 rounded-full">
+                          Has Toppings
+                        </span>
+                      ) : (
+                        <span className="text-gray-500 text-xs">None</span>
+                      )}
+                    </TableCell>
+                    <TableCell className="text-right space-x-2">
+                      <Button variant="outline" size="sm" className="h-8 w-8 p-0" onClick={() => handleEditItem(item)}>
+                        <Edit className="h-4 w-4" />
+                      </Button>
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        className="h-8 w-8 p-0 text-red-500 hover:text-red-700"
+                        onClick={() => handleDeleteItem(item.id)}
+                      >
+                        <Trash className="h-4 w-4" />
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))
+              ) : (
+                <TableRow>
+                  <TableCell colSpan={7} className="text-center py-8">
+                    No menu items found
+                  </TableCell>
+                </TableRow>
+              )}
             </TableBody>
           </Table>
         </div>

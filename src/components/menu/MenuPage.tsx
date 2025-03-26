@@ -9,91 +9,21 @@ import CartSidebar from '../cart/CartSidebar';
 import { CartItemType, ToppingItem } from '../cart/types';
 import Button from '../common/Button';
 import { ShoppingBag, Home } from 'lucide-react';
-
-// Mock data - in a real app this would come from an API
-const MOCK_CATEGORIES = ['All', 'Appetizers', 'Main Courses', 'Drinks', 'Desserts'];
-
-const MOCK_PRODUCTS: Product[] = [
-  {
-    id: '1',
-    name: 'Classic Burger',
-    description: 'Juicy beef patty with lettuce, tomato, and special sauce on a brioche bun',
-    price: 12.99,
-    image: 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80',
-    category: 'Main Courses',
-    hasToppings: true,
-    availableToppings: [1, 4, 5, 6]
-  },
-  {
-    id: '2',
-    name: 'Caesar Salad',
-    description: 'Crisp romaine lettuce with creamy Caesar dressing, parmesan, and croutons',
-    price: 9.99,
-    image: 'https://images.unsplash.com/photo-1546793665-c74683f339c1?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80',
-    category: 'Appetizers',
-  },
-  {
-    id: '3',
-    name: 'Fresh Lemonade',
-    description: 'Freshly squeezed lemons with a hint of mint and honey',
-    price: 4.99,
-    image: 'https://images.unsplash.com/photo-1621417719197-3e52d2e42dbf?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80',
-    category: 'Drinks',
-  },
-  {
-    id: '4',
-    name: 'Chocolate Brownie',
-    description: 'Rich chocolate brownie with vanilla ice cream and caramel sauce',
-    price: 7.99,
-    image: 'https://images.unsplash.com/photo-1564355808539-22fda35bed7e?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80',
-    category: 'Desserts',
-  },
-  {
-    id: '5',
-    name: 'Margherita Pizza',
-    description: 'Classic pizza with tomato sauce, fresh mozzarella, and basil',
-    price: 14.99,
-    image: 'https://images.unsplash.com/photo-1604382354936-07c5d9983bd3?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80',
-    category: 'Main Courses',
-    hasToppings: true,
-    availableToppings: [1, 2, 3, 4, 7, 8]
-  },
-  {
-    id: '6',
-    name: 'French Fries',
-    description: 'Crispy golden fries served with ketchup and aioli',
-    price: 5.99,
-    image: 'https://images.unsplash.com/photo-1573080496219-bb080dd4f877?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80',
-    category: 'Appetizers',
-    hasToppings: true,
-    availableToppings: [1, 5, 6]
-  },
-  {
-    id: '7',
-    name: 'Iced Coffee',
-    description: 'Cold brew coffee with your choice of milk and sweetener',
-    price: 4.49,
-    image: 'https://images.unsplash.com/photo-1517959105821-eaf2591984ca?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80',
-    category: 'Drinks',
-  },
-  {
-    id: '8',
-    name: 'Cheesecake',
-    description: 'Creamy New York style cheesecake with berry compote',
-    price: 8.99,
-    image: 'https://images.unsplash.com/photo-1533134242443-d4fd215305ad?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80',
-    category: 'Desserts',
-  },
-];
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from '@/hooks/use-toast';
 
 const MenuPage: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const { orderType, tableNumber } = location.state || {};
+  const { toast } = useToast();
   
   const [activeCategory, setActiveCategory] = useState('All');
   const [cartItems, setCartItems] = useState<CartItemType[]>([]);
   const [isCartOpen, setIsCartOpen] = useState(true);
+  const [products, setProducts] = useState<Product[]>([]);
+  const [categories, setCategories] = useState(['All']);
+  const [isLoading, setIsLoading] = useState(true);
   
   useEffect(() => {
     if (!orderType) {
@@ -101,9 +31,73 @@ const MenuPage: React.FC = () => {
     }
   }, [orderType, navigate]);
   
+  // Fetch menu items from the database
+  useEffect(() => {
+    const fetchMenuItems = async () => {
+      setIsLoading(true);
+      try {
+        const { data, error } = await supabase
+          .from('menu_items')
+          .select('*')
+          .eq('status', 'Active');
+          
+        if (error) {
+          throw error;
+        }
+        
+        // Transform data to match Product type
+        const transformedProducts: Product[] = data.map(item => ({
+          id: item.id.toString(),
+          name: item.name,
+          description: item.description || '',  // Handle potentially missing description
+          price: parseFloat(item.price),
+          image: item.image_url || 'https://images.unsplash.com/photo-1546793665-c74683f339c1?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80', // Default image if none is provided
+          category: item.category,
+          hasToppings: item.has_toppings,
+          availableToppings: item.available_toppings || []
+        }));
+        
+        setProducts(transformedProducts);
+        
+        // Extract unique categories
+        const uniqueCategories = ['All', ...new Set(data.map(item => item.category))];
+        setCategories(uniqueCategories);
+      } catch (error) {
+        console.error('Error fetching menu items:', error);
+        toast({
+          title: 'Error',
+          description: 'Failed to load menu items. Please try again.',
+          variant: 'destructive',
+        });
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    fetchMenuItems();
+    
+    // Set up real-time subscription for menu items
+    const channel = supabase
+      .channel('menu-updates')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'menu_items' },
+        (payload) => {
+          console.log('Menu item change detected:', payload);
+          // Refresh menu items when a change is detected
+          fetchMenuItems();
+        }
+      )
+      .subscribe();
+      
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [toast]);
+  
   const filteredProducts = activeCategory === 'All'
-    ? MOCK_PRODUCTS
-    : MOCK_PRODUCTS.filter(product => product.category === activeCategory);
+    ? products
+    : products.filter(product => product.category === activeCategory);
   
   const handleProductSelect = (product: Product, selectedToppings?: ToppingItem[]) => {
     const newItem: CartItemType = {
@@ -154,21 +148,31 @@ const MenuPage: React.FC = () => {
         </header>
         
         <CategorySelector 
-          categories={MOCK_CATEGORIES} 
+          categories={categories} 
           activeCategory={activeCategory} 
           onChange={setActiveCategory} 
         />
         
         <div className="flex-1 overflow-y-auto p-6 pr-[350px]">
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-            {filteredProducts.map((product) => (
-              <ProductCard 
-                key={product.id} 
-                product={product} 
-                onSelect={handleProductSelect} 
-              />
-            ))}
-          </div>
+          {isLoading ? (
+            <div className="flex justify-center items-center h-full">
+              <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
+            </div>
+          ) : filteredProducts.length > 0 ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+              {filteredProducts.map((product) => (
+                <ProductCard 
+                  key={product.id} 
+                  product={product} 
+                  onSelect={handleProductSelect} 
+                />
+              ))}
+            </div>
+          ) : (
+            <div className="flex flex-col items-center justify-center h-64">
+              <p className="text-gray-500 text-lg">No items found in this category</p>
+            </div>
+          )}
         </div>
         
         <CartSidebar 
