@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import AdminLayout from '../../components/admin/AdminLayout';
 import { Input } from "@/components/ui/input";
@@ -34,19 +33,27 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
 
-// Mock menu items data - in a real app this would come from an API
-const initialMenuItems = [
-  { id: 1, name: "Cheeseburger", category: "Burgers", price: "$10.99", status: "Active", hasToppings: true },
-  { id: 2, name: "Chicken Wings", category: "Appetizers", price: "$12.50", status: "Active", hasToppings: false },
-  { id: 3, name: "Caesar Salad", category: "Salads", price: "$8.99", status: "Active", hasToppings: false },
-  { id: 4, name: "Margherita Pizza", category: "Pizza", price: "$14.99", status: "Active", hasToppings: true },
-  { id: 5, name: "French Fries", category: "Sides", price: "$4.99", status: "Active", hasToppings: false },
-  { id: 6, name: "Chocolate Cake", category: "Desserts", price: "$6.99", status: "Inactive", hasToppings: false },
-  { id: 7, name: "Soda", category: "Drinks", price: "$2.99", status: "Active", hasToppings: false },
-  { id: 8, name: "Fish & Chips", category: "Mains", price: "$15.99", status: "Inactive", hasToppings: false },
+interface MenuItem {
+  id: number;
+  name: string;
+  category: string;
+  price: string;
+  status: "Active" | "Inactive";
+  hasToppings: boolean;
+  availableToppings?: number[];
+}
+
+const initialMenuItems: MenuItem[] = [
+  { id: 1, name: "Cheeseburger", category: "Burgers", price: "$10.99", status: "Active", hasToppings: true, availableToppings: [] },
+  { id: 2, name: "Chicken Wings", category: "Appetizers", price: "$12.50", status: "Active", hasToppings: false, availableToppings: [] },
+  { id: 3, name: "Caesar Salad", category: "Salads", price: "$8.99", status: "Active", hasToppings: false, availableToppings: [] },
+  { id: 4, name: "Margherita Pizza", category: "Pizza", price: "$14.99", status: "Active", hasToppings: true, availableToppings: [] },
+  { id: 5, name: "French Fries", category: "Sides", price: "$4.99", status: "Active", hasToppings: false, availableToppings: [] },
+  { id: 6, name: "Chocolate Cake", category: "Desserts", price: "$6.99", status: "Inactive", hasToppings: false, availableToppings: [] },
+  { id: 7, name: "Soda", category: "Drinks", price: "$2.99", status: "Active", hasToppings: false, availableToppings: [] },
+  { id: 8, name: "Fish & Chips", category: "Mains", price: "$15.99", status: "Inactive", hasToppings: false, availableToppings: [] },
 ];
 
-// Mock toppings data
 const mockToppings = [
   { id: 1, name: "Cheese", price: 1.50, available: true, category: "Dairy" },
   { id: 2, name: "Pepperoni", price: 2.00, available: true, category: "Meat" },
@@ -58,7 +65,6 @@ const mockToppings = [
   { id: 8, name: "Pineapple", price: 1.25, available: false, category: "Fruits" },
 ];
 
-// Item form schema
 const menuItemFormSchema = z.object({
   name: z.string().min(2, { message: "Name must be at least 2 characters." }),
   category: z.string().min(2, { message: "Category is required." }),
@@ -71,8 +77,8 @@ const menuItemFormSchema = z.object({
 type MenuItemFormValues = z.infer<typeof menuItemFormSchema>;
 
 const MenuItems = () => {
-  const [menuItems, setMenuItems] = useState(initialMenuItems);
-  const [editItem, setEditItem] = useState<any | null>(null);
+  const [menuItems, setMenuItems] = useState<MenuItem[]>(initialMenuItems);
+  const [editItem, setEditItem] = useState<MenuItem | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   
   const form = useForm<MenuItemFormValues>({
@@ -98,7 +104,7 @@ const MenuItems = () => {
     }
   };
 
-  const handleEditItem = (item: any) => {
+  const handleEditItem = (item: MenuItem) => {
     setEditItem(item);
     form.reset({
       name: item.name,
@@ -132,21 +138,26 @@ const MenuItems = () => {
     const formattedPrice = data.price.startsWith('$') ? data.price : `$${data.price}`;
     
     if (editItem) {
-      // Update existing item
       setMenuItems(menuItems.map(item => 
         item.id === editItem.id ? { 
           ...item, 
-          ...data, 
-          price: formattedPrice 
+          name: data.name,
+          category: data.category,
+          price: formattedPrice,
+          status: data.status,
+          hasToppings: data.hasToppings,
+          availableToppings: data.hasToppings ? data.availableToppings || [] : []
         } : item
       ));
     } else {
-      // Add new item
-      const newItem = {
+      const newItem: MenuItem = {
         id: Math.max(0, ...menuItems.map(item => item.id)) + 1,
-        ...data,
+        name: data.name,
+        category: data.category,
         price: formattedPrice,
-        availableToppings: data.hasToppings ? data.availableToppings : [],
+        status: data.status,
+        hasToppings: data.hasToppings,
+        availableToppings: data.hasToppings ? data.availableToppings || [] : []
       };
       setMenuItems([...menuItems, newItem]);
     }

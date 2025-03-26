@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import AdminLayout from '../../components/admin/AdminLayout';
 import { 
@@ -110,13 +109,22 @@ const Toppings = () => {
     if (editTopping) {
       // Update existing topping
       setToppings(toppings.map(t => 
-        t.id === editTopping.id ? { ...t, ...data } : t
+        t.id === editTopping.id ? { 
+          ...t, 
+          name: data.name,
+          price: data.price,
+          category: data.category,
+          available: data.available
+        } : t
       ));
     } else {
       // Add new topping
       const newTopping: Topping = {
         id: Math.max(0, ...toppings.map(t => t.id)) + 1,
-        ...data,
+        name: data.name,
+        price: data.price,
+        category: data.category,
+        available: data.available
       };
       setToppings([...toppings, newTopping]);
     }
