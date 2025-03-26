@@ -7,18 +7,37 @@ import { supabase } from "@/integrations/supabase/client";
  */
 export const enableRealtimeForTables = async () => {
   try {
-    // Enable real-time for orders table
-    const { error } = await supabase.rpc('supabase_realtime', {
-      table_name: 'orders',
-      action: 'insert,update,delete'
-    });
+    // Enable real-time for orders table by listening to the relevant channel
+    const channel = supabase
+      .channel('orders-changes')
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'orders' },
+        (payload) => {
+          console.log('Real-time notification received:', payload);
+        }
+      )
+      .on(
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'orders' },
+        (payload) => {
+          console.log('Order updated:', payload);
+        }
+      )
+      .on(
+        'postgres_changes',
+        { event: 'DELETE', schema: 'public', table: 'orders' },
+        (payload) => {
+          console.log('Order deleted:', payload);
+        }
+      )
+      .subscribe();
     
-    if (error) {
-      console.error('Error enabling real-time for orders:', error);
-    } else {
-      console.log('Successfully enabled real-time for orders table');
-    }
+    console.log('Successfully enabled real-time for orders table');
+    
+    return channel; // Return the channel so it can be unsubscribed if needed
   } catch (error) {
     console.error('Error setting up real-time:', error);
+    return null;
   }
 };
