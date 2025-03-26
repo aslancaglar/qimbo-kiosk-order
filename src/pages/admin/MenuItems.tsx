@@ -48,41 +48,14 @@ interface MenuItem {
   availableToppingCategories?: number[];
 }
 
-// Mock topping categories data - this would come from the database in a real app
-const MOCK_TOPPING_CATEGORIES = [
-  {
-    id: 1,
-    name: "Sauces",
-    minSelection: 1,
-    maxSelection: 2,
-    description: "Choose your favorite sauce",
-    required: true
-  },
-  {
-    id: 2,
-    name: "Vegetables",
-    minSelection: 0,
-    maxSelection: 5,
-    description: "Add some veggies",
-    required: false
-  },
-  {
-    id: 3,
-    name: "Cheese",
-    minSelection: 0,
-    maxSelection: 3,
-    description: "Extra cheese options",
-    required: false
-  },
-  {
-    id: 4,
-    name: "Meat",
-    minSelection: 0,
-    maxSelection: 3,
-    description: "Premium meat toppings",
-    required: false
-  }
-];
+interface ToppingCategory {
+  id: number;
+  name: string;
+  minSelection: number;
+  maxSelection: number;
+  description: string;
+  required: boolean;
+}
 
 const menuItemFormSchema = z.object({
   name: z.string().min(2, { message: "Name must be at least 2 characters." }),
@@ -101,6 +74,7 @@ const MenuItems = () => {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
+  const [toppingCategories, setToppingCategories] = useState<ToppingCategory[]>([]);
   const { toast } = useToast();
   
   const form = useForm<MenuItemFormValues>({
@@ -149,8 +123,40 @@ const MenuItems = () => {
     }
   };
   
+  const fetchToppingCategories = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('topping_categories')
+        .select('*')
+        .order('name');
+        
+      if (error) {
+        throw error;
+      }
+      
+      const transformedCategories: ToppingCategory[] = data.map(category => ({
+        id: category.id,
+        name: category.name,
+        minSelection: category.min_selection,
+        maxSelection: category.max_selection,
+        description: category.description,
+        required: category.required
+      }));
+      
+      setToppingCategories(transformedCategories);
+    } catch (error) {
+      console.error('Error fetching topping categories:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to load topping categories. Please try again.',
+        variant: 'destructive',
+      });
+    }
+  };
+  
   useEffect(() => {
     fetchMenuItems();
+    fetchToppingCategories();
     
     const channel = supabase
       .channel('menu-items-changes')
@@ -358,7 +364,7 @@ const MenuItems = () => {
                       <TableCell>
                         {item.hasToppings ? (
                           <span className="bg-blue-100 text-blue-800 text-xs font-medium px-2.5 py-0.5 rounded-full">
-                            Has Toppings
+                            Has Toppings: {item.availableToppingCategories?.length || 0} categories
                           </span>
                         ) : (
                           <span className="text-gray-500 text-xs">None</span>
@@ -518,7 +524,7 @@ const MenuItems = () => {
                             </FormDescription>
                           </div>
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            {MOCK_TOPPING_CATEGORIES.map((category) => (
+                            {toppingCategories.map((category) => (
                               <FormField
                                 key={category.id}
                                 control={form.control}

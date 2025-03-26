@@ -49,12 +49,12 @@ const MenuPage: React.FC = () => {
         const transformedProducts: Product[] = data.map(item => ({
           id: item.id.toString(),
           name: item.name,
-          description: item.description || '', // Use description if it exists, otherwise empty string
+          description: item.description || '', // Use empty string as fallback if description doesn't exist
           price: item.price,
-          image: item.image || 'https://images.unsplash.com/photo-1546793665-c74683f339c1?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80', // Use image if it exists, otherwise default
+          image: item.image || 'https://images.unsplash.com/photo-1546793665-c74683f339c1?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80', // Use default image
           category: item.category,
           hasToppings: item.has_toppings,
-          availableToppingCategories: item.available_topping_categories
+          availableToppingCategories: item.available_topping_categories || []
         }));
         
         setProducts(transformedProducts);

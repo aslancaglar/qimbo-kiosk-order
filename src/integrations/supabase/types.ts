@@ -11,6 +11,7 @@ export type Database = {
     Tables: {
       menu_items: {
         Row: {
+          available_topping_categories: number[] | null
           category: string
           has_toppings: boolean
           id: number
@@ -19,6 +20,7 @@ export type Database = {
           status: string
         }
         Insert: {
+          available_topping_categories?: number[] | null
           category: string
           has_toppings?: boolean
           id?: number
@@ -27,6 +29,7 @@ export type Database = {
           status?: string
         }
         Update: {
+          available_topping_categories?: number[] | null
           category?: string
           has_toppings?: boolean
           id?: number
