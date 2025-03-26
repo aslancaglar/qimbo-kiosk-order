@@ -31,7 +31,7 @@ const AdminLayout = ({ children }: AdminLayoutProps) => {
   
   return (
     <SidebarProvider>
-      <div className="min-h-screen flex w-full bg-gray-50">
+      <div className="h-screen flex w-full bg-gray-50 overflow-hidden">
         <Sidebar className="border-r border-gray-200">
           <SidebarHeader className="px-6 py-3">
             <h2 className="text-xl font-bold">Admin Panel</h2>
@@ -128,13 +128,15 @@ const AdminLayout = ({ children }: AdminLayoutProps) => {
           </SidebarFooter>
         </Sidebar>
         
-        <div className="flex-1 overflow-auto">
+        <div className="flex-1 flex flex-col overflow-hidden">
           <div className="flex items-center p-4 border-b border-gray-200 bg-white">
             <SidebarTrigger />
             <h1 className="text-xl font-semibold ml-4">Restaurant Admin</h1>
           </div>
-          <main className="p-6">
-            {children}
+          <main className="flex-1 overflow-auto">
+            <div className="p-6">
+              {children}
+            </div>
           </main>
         </div>
       </div>

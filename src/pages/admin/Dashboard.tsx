@@ -1,4 +1,3 @@
-
 import React, { useEffect } from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { BarChart, Users, ShoppingBag, DollarSign, RefreshCw } from "lucide-react";
@@ -9,6 +8,7 @@ import { format } from 'date-fns';
 import { Order } from '@/types/orders';
 import { Badge } from "@/components/ui/badge";
 import { toast } from "@/components/ui/use-toast";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 const Dashboard = () => {
   const queryClient = useQueryClient();
@@ -199,89 +199,91 @@ const Dashboard = () => {
 
   return (
     <AdminLayout>
-      <div className="space-y-6">
-        <h1 className="text-3xl font-bold">Dashboard</h1>
-        
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
-          {displayStats.map((stat, index) => (
-            <Card key={index} className="hover:shadow-md transition-shadow">
-              <CardHeader className="flex flex-row items-center justify-between pb-2">
-                <CardTitle className="text-sm font-medium text-gray-500">
-                  {stat.title}
-                </CardTitle>
-                {stat.icon}
+      <ScrollArea className="h-[calc(100vh-80px)]">
+        <div className="space-y-6 pb-8">
+          <h1 className="text-3xl font-bold">Dashboard</h1>
+          
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
+            {displayStats.map((stat, index) => (
+              <Card key={index} className="hover:shadow-md transition-shadow">
+                <CardHeader className="flex flex-row items-center justify-between pb-2">
+                  <CardTitle className="text-sm font-medium text-gray-500">
+                    {stat.title}
+                  </CardTitle>
+                  {stat.icon}
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">{stat.value}</div>
+                  <p className="text-xs text-gray-500 mt-1">
+                    <span className="text-green-500">{stat.change}</span> from last month
+                  </p>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+          
+          <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+            {/* Recent Orders Panel */}
+            <Card>
+              <CardHeader className="flex justify-between items-center">
+                <CardTitle>Recent Orders</CardTitle>
+                {isLoadingOrders && <RefreshCw size={16} className="animate-spin text-gray-400" />}
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{stat.value}</div>
-                <p className="text-xs text-gray-500 mt-1">
-                  <span className="text-green-500">{stat.change}</span> from last month
-                </p>
+                <div className="space-y-3">
+                  {isLoadingOrders ? (
+                    <div className="flex justify-center py-8">
+                      <RefreshCw className="h-8 w-8 animate-spin text-primary" />
+                    </div>
+                  ) : orders.length === 0 ? (
+                    <p className="text-center py-4 text-gray-500">No recent orders found</p>
+                  ) : (
+                    orders.map((order) => (
+                      <div key={order.id} className="flex items-center justify-between border-b pb-3 last:border-0">
+                        <div>
+                          <p className="font-medium">Order #{order.id}</p>
+                          <p className="text-sm text-gray-500">
+                            {order.customer_type === 'Table' 
+                              ? `Table #${order.table_number}` 
+                              : 'Takeaway'} • {formatDate(order.created_at)}
+                          </p>
+                        </div>
+                        <Badge className={getStatusClass(order.status)}>
+                          {order.status}
+                        </Badge>
+                      </div>
+                    ))
+                  )}
+                </div>
               </CardContent>
             </Card>
-          ))}
-        </div>
-        
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-          {/* Recent Orders Panel */}
-          <Card>
-            <CardHeader className="flex justify-between items-center">
-              <CardTitle>Recent Orders</CardTitle>
-              {isLoadingOrders && <RefreshCw size={16} className="animate-spin text-gray-400" />}
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                {isLoadingOrders ? (
-                  <div className="flex justify-center py-8">
-                    <RefreshCw className="h-8 w-8 animate-spin text-primary" />
-                  </div>
-                ) : orders.length === 0 ? (
-                  <p className="text-center py-4 text-gray-500">No recent orders found</p>
-                ) : (
-                  orders.map((order) => (
-                    <div key={order.id} className="flex items-center justify-between border-b pb-3 last:border-0">
-                      <div>
-                        <p className="font-medium">Order #{order.id}</p>
-                        <p className="text-sm text-gray-500">
-                          {order.customer_type === 'Table' 
-                            ? `Table #${order.table_number}` 
-                            : 'Takeaway'} • {formatDate(order.created_at)}
-                        </p>
+            
+            {/* Popular Items Panel */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Popular Items</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  {['Cheeseburger', 'Chicken Wings', 'Caesar Salad', 'Margherita Pizza', 'French Fries'].map((item, i) => (
+                    <div key={i} className="flex items-center justify-between border-b pb-3 last:border-0">
+                      <div className="flex items-center">
+                        <div className="w-10 h-10 bg-gray-200 rounded-md mr-3 flex items-center justify-center text-gray-400">
+                          #{i+1}
+                        </div>
+                        <p className="font-medium">{item}</p>
                       </div>
-                      <Badge className={getStatusClass(order.status)}>
-                        {order.status}
-                      </Badge>
+                      <span className="text-gray-500 text-sm">
+                        {Math.floor(Math.random() * 50) + 10} orders
+                      </span>
                     </div>
-                  ))
-                )}
-              </div>
-            </CardContent>
-          </Card>
-          
-          {/* Popular Items Panel */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Popular Items</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                {['Cheeseburger', 'Chicken Wings', 'Caesar Salad', 'Margherita Pizza', 'French Fries'].map((item, i) => (
-                  <div key={i} className="flex items-center justify-between border-b pb-3 last:border-0">
-                    <div className="flex items-center">
-                      <div className="w-10 h-10 bg-gray-200 rounded-md mr-3 flex items-center justify-center text-gray-400">
-                        #{i+1}
-                      </div>
-                      <p className="font-medium">{item}</p>
-                    </div>
-                    <span className="text-gray-500 text-sm">
-                      {Math.floor(Math.random() * 50) + 10} orders
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
         </div>
-      </div>
+      </ScrollArea>
     </AdminLayout>
   );
 };
