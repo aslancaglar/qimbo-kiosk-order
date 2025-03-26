@@ -4,7 +4,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import Layout from '../layout/Layout';
 import Button from '../common/Button';
-import { Check, Clock, Home, Printer } from 'lucide-react';
+import { Check, Clock, Home, Printer, Plus } from 'lucide-react';
 import { CartItemType } from '../cart/types';
 
 interface OrderConfirmationProps {}
@@ -94,6 +94,13 @@ const OrderConfirmation: React.FC<OrderConfirmationProps> = () => {
               justify-content: space-between;
               margin-bottom: 8px;
             }
+            .topping-item {
+              display: flex;
+              justify-content: space-between;
+              margin-left: 20px;
+              font-size: 0.9em;
+              color: #666;
+            }
             .divider {
               border-top: 1px dashed #ccc;
               margin: 15px 0;
@@ -143,6 +150,14 @@ const OrderConfirmation: React.FC<OrderConfirmationProps> = () => {
               </div>
               <span>$${(item.product.price * item.quantity).toFixed(2)}</span>
             </div>
+            ${item.selectedToppings && item.selectedToppings.length > 0 ? 
+              item.selectedToppings.map((topping: {id: number, name: string, price: number}) => `
+                <div class="topping-item">
+                  <span>+ ${topping.name}</span>
+                  <span>$${topping.price.toFixed(2)}</span>
+                </div>
+              `).join('') : 
+              ''}
           `).join('')}
           
           <div class="divider"></div>
@@ -318,6 +333,21 @@ const OrderConfirmation: React.FC<OrderConfirmationProps> = () => {
                           <p className="text-sm text-gray-500">
                             {item.options.map(o => o.value).join(', ')}
                           </p>
+                        )}
+                        
+                        {/* Display selected toppings */}
+                        {item.selectedToppings && item.selectedToppings.length > 0 && (
+                          <div className="mt-1">
+                            {item.selectedToppings.map((topping, idx) => (
+                              <div key={idx} className="flex justify-between text-sm text-gray-500">
+                                <span className="flex items-center">
+                                  <Plus size={12} className="mr-1 text-gray-400" />
+                                  {topping.name}
+                                </span>
+                                <span>${topping.price.toFixed(2)}</span>
+                              </div>
+                            ))}
+                          </div>
                         )}
                       </div>
                       <p className="font-medium">
