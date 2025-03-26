@@ -61,6 +61,7 @@ interface Topping {
   price: number;
   available: boolean;
   category_id: number;
+  category: string;
   max_quantity: number;
 }
 
@@ -335,7 +336,9 @@ const Toppings = () => {
             price: data.price,
             category_id: data.category_id,
             available: data.available,
-            max_quantity: data.max_quantity
+            max_quantity: data.max_quantity,
+            // Get the category name from the selected category
+            category: categories.find(c => c.id === data.category_id)?.name || ""
           })
           .eq('id', editTopping.id);
           
@@ -349,6 +352,8 @@ const Toppings = () => {
         });
       } else {
         // Add new topping
+        const categoryName = categories.find(c => c.id === data.category_id)?.name || "";
+        
         const { error } = await supabase
           .from('toppings')
           .insert([{
@@ -356,7 +361,8 @@ const Toppings = () => {
             price: data.price,
             category_id: data.category_id,
             available: data.available,
-            max_quantity: data.max_quantity
+            max_quantity: data.max_quantity,
+            category: categoryName // Add the category name
           }]);
           
         if (error) {
