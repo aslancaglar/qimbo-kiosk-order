@@ -31,7 +31,9 @@ export const enableRealtimeForTables = async () => {
           console.log('Order deleted:', payload);
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        console.log('Realtime subscription status:', status);
+      });
     
     // Enable real-time for menu_items table
     const menuItemsChannel = supabase
@@ -57,7 +59,9 @@ export const enableRealtimeForTables = async () => {
           console.log('Menu item deleted:', payload);
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        console.log('Menu items subscription status:', status);
+      });
     
     console.log('Successfully enabled real-time for tables');
     

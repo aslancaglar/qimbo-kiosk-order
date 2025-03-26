@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import AdminLayout from '../../components/admin/AdminLayout';
@@ -269,11 +270,11 @@ const Orders = () => {
             <p className="text-gray-500">No orders found matching your criteria.</p>
           </div>
         ) : (
-          <div className="flex-1 h-[calc(100vh-280px)] min-h-[400px] overflow-hidden">
-            <ScrollArea className="h-full w-full rounded-md border">
-              <div className="min-w-full">
+          <div className="relative flex-1 overflow-hidden border rounded-md">
+            <ScrollArea className="h-[calc(100vh-280px)] min-h-[400px] w-full">
+              <div className="w-full overflow-auto">
                 <Table>
-                  <TableHeader>
+                  <TableHeader className="sticky top-0 bg-white z-10">
                     <TableRow>
                       <TableHead>Order ID</TableHead>
                       <TableHead>Customer</TableHead>

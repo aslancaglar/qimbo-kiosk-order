@@ -1,27 +1,57 @@
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-import { BarChart, Users, ShoppingBag, DollarSign } from "lucide-react";
+import { BarChart, Users, ShoppingBag, DollarSign, RefreshCw } from "lucide-react";
 import AdminLayout from '../../components/admin/AdminLayout';
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from "@/integrations/supabase/client";
+import { format } from 'date-fns';
+import { Order } from '@/types/orders';
+import { Badge } from "@/components/ui/badge";
 
 const Dashboard = () => {
+  const { data: orders = [], isLoading: isLoadingOrders } = useQuery({
+    queryKey: ['dashboard-orders'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('orders')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(5);
+      
+      if (error) {
+        console.error('Error fetching orders for dashboard:', error);
+        throw error;
+      }
+      
+      return data as Order[];
+    },
+    refetchInterval: 30000, // Refresh every 30 seconds
+  });
+
+  // Calculate stats from real data
+  const totalOrders = orders.length;
+  const totalRevenue = orders.reduce((sum, order) => sum + order.total_amount, 0);
+  const tableCustomers = orders.filter(order => order.customer_type === 'Table').length;
+  const takeawayCustomers = orders.filter(order => order.customer_type === 'Takeaway').length;
+
   // In a real app, this data would come from an API
   const stats = [
     {
       title: "Total Orders",
-      value: "156",
+      value: isLoadingOrders ? "Loading..." : totalOrders.toString(),
       change: "+12%",
       icon: <ShoppingBag className="h-8 w-8 text-blue-500" />,
     },
     {
       title: "Revenue",
-      value: "$5,429",
+      value: isLoadingOrders ? "Loading..." : `$${totalRevenue.toFixed(2)}`,
       change: "+8%",
       icon: <DollarSign className="h-8 w-8 text-green-500" />,
     },
     {
       title: "Customers",
-      value: "89",
+      value: isLoadingOrders ? "Loading..." : `${tableCustomers + takeawayCustomers}`,
       change: "+6%",
       icon: <Users className="h-8 w-8 text-purple-500" />,
     },
@@ -32,6 +62,28 @@ const Dashboard = () => {
       icon: <BarChart className="h-8 w-8 text-orange-500" />,
     },
   ];
+
+  const formatDate = (dateString: string) => {
+    try {
+      const date = new Date(dateString);
+      return format(date, 'MMM d, h:mm a');
+    } catch {
+      return 'Invalid date';
+    }
+  };
+
+  const getStatusClass = (status: string) => {
+    switch (status.toLowerCase()) {
+      case "completed":
+        return "bg-green-100 text-green-800";
+      case "in progress":
+        return "bg-blue-100 text-blue-800";
+      case "cancelled":
+        return "bg-red-100 text-red-800";
+      default:
+        return "bg-gray-100 text-gray-800";
+    }
+  };
 
   return (
     <AdminLayout>
@@ -60,22 +112,35 @@ const Dashboard = () => {
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
           {/* Recent Orders Panel */}
           <Card>
-            <CardHeader>
+            <CardHeader className="flex justify-between items-center">
               <CardTitle>Recent Orders</CardTitle>
+              {isLoadingOrders && <RefreshCw size={16} className="animate-spin text-gray-400" />}
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
-                {[1, 2, 3, 4, 5].map((i) => (
-                  <div key={i} className="flex items-center justify-between border-b pb-3 last:border-0">
-                    <div>
-                      <p className="font-medium">Order #{1000 + i}</p>
-                      <p className="text-sm text-gray-500">Table #3 • 10 mins ago</p>
-                    </div>
-                    <span className="bg-green-100 text-green-800 text-xs font-medium px-2.5 py-0.5 rounded">
-                      Completed
-                    </span>
+                {isLoadingOrders ? (
+                  <div className="flex justify-center py-8">
+                    <RefreshCw className="h-8 w-8 animate-spin text-primary" />
                   </div>
-                ))}
+                ) : orders.length === 0 ? (
+                  <p className="text-center py-4 text-gray-500">No recent orders found</p>
+                ) : (
+                  orders.map((order) => (
+                    <div key={order.id} className="flex items-center justify-between border-b pb-3 last:border-0">
+                      <div>
+                        <p className="font-medium">Order #{order.id}</p>
+                        <p className="text-sm text-gray-500">
+                          {order.customer_type === 'Table' 
+                            ? `Table #${order.table_number}` 
+                            : 'Takeaway'} • {formatDate(order.created_at)}
+                        </p>
+                      </div>
+                      <Badge className={getStatusClass(order.status)}>
+                        {order.status}
+                      </Badge>
+                    </div>
+                  ))
+                )}
               </div>
             </CardContent>
           </Card>
