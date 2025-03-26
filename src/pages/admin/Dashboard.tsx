@@ -33,8 +33,9 @@ const Dashboard = () => {
             });
           }
           
-          // Invalidate and refetch orders data
+          // Invalidate and refetch all dashboard data
           queryClient.invalidateQueries({ queryKey: ['dashboard-orders'] });
+          queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] });
         }
       )
       .subscribe((status) => {
@@ -47,6 +48,7 @@ const Dashboard = () => {
     };
   }, [queryClient]);
 
+  // Fetch recent orders
   const { data: orders = [], isLoading: isLoadingOrders } = useQuery({
     queryKey: ['dashboard-orders'],
     queryFn: async () => {
@@ -70,35 +72,104 @@ const Dashboard = () => {
     staleTime: 5000, // Consider data stale after 5 seconds
   });
 
-  // Calculate stats from real data
-  const totalOrders = orders.length;
-  const totalRevenue = orders.reduce((sum, order) => sum + order.total_amount, 0);
-  const tableCustomers = orders.filter(order => order.customer_type === 'Table').length;
-  const takeawayCustomers = orders.filter(order => order.customer_type === 'Takeaway').length;
+  // Fetch overall statistics
+  const { data: stats, isLoading: isLoadingStats } = useQuery({
+    queryKey: ['dashboard-stats'],
+    queryFn: async () => {
+      console.log('Fetching dashboard statistics...');
+      
+      // Fetch total orders count
+      const { count: totalOrders, error: ordersError } = await supabase
+        .from('orders')
+        .select('*', { count: 'exact', head: true });
+      
+      if (ordersError) {
+        console.error('Error fetching total orders count:', ordersError);
+        throw ordersError;
+      }
 
-  // In a real app, this data would come from an API
-  const stats = [
+      // Fetch total revenue
+      const { data: revenueData, error: revenueError } = await supabase
+        .from('orders')
+        .select('total_amount');
+      
+      if (revenueError) {
+        console.error('Error fetching total revenue:', revenueError);
+        throw revenueError;
+      }
+      
+      const totalRevenue = revenueData.reduce((sum, order) => sum + order.total_amount, 0);
+
+      // Fetch unique customers (using customer_type)
+      const { data: tableCustomers, error: tableError } = await supabase
+        .from('orders')
+        .select('*')
+        .eq('customer_type', 'Table');
+      
+      if (tableError) {
+        console.error('Error fetching table customers:', tableError);
+        throw tableError;
+      }
+      
+      const { data: takeawayCustomers, error: takeawayError } = await supabase
+        .from('orders')
+        .select('*')
+        .eq('customer_type', 'Takeaway');
+      
+      if (takeawayError) {
+        console.error('Error fetching takeaway customers:', takeawayError);
+        throw takeawayError;
+      }
+
+      // Fetch active menu items
+      const { count: activeItems, error: itemsError } = await supabase
+        .from('menu_items')
+        .select('*', { count: 'exact', head: true })
+        .eq('status', 'Active');
+      
+      if (itemsError) {
+        console.error('Error fetching active items:', itemsError);
+        throw itemsError;
+      }
+
+      console.log('Dashboard statistics fetched successfully');
+      
+      return {
+        totalOrders: totalOrders || 0,
+        totalRevenue: totalRevenue || 0,
+        tableCustomers: tableCustomers?.length || 0,
+        takeawayCustomers: takeawayCustomers?.length || 0,
+        activeItems: activeItems || 0
+      };
+    },
+    refetchOnWindowFocus: true,
+    refetchOnMount: true,
+    staleTime: 5000, // Consider data stale after 5 seconds
+  });
+
+  // Prepare stats for display
+  const displayStats = [
     {
       title: "Total Orders",
-      value: isLoadingOrders ? "Loading..." : totalOrders.toString(),
-      change: "+12%",
+      value: isLoadingStats ? "Loading..." : stats?.totalOrders.toString() || "0",
+      change: "+12%", // Note: This is still hardcoded. Could be calculated based on historical data
       icon: <ShoppingBag className="h-8 w-8 text-blue-500" />,
     },
     {
       title: "Revenue",
-      value: isLoadingOrders ? "Loading..." : `$${totalRevenue.toFixed(2)}`,
+      value: isLoadingStats ? "Loading..." : `$${stats?.totalRevenue.toFixed(2) || "0.00"}`,
       change: "+8%",
       icon: <DollarSign className="h-8 w-8 text-green-500" />,
     },
     {
       title: "Customers",
-      value: isLoadingOrders ? "Loading..." : `${tableCustomers + takeawayCustomers}`,
+      value: isLoadingStats ? "Loading..." : `${(stats?.tableCustomers || 0) + (stats?.takeawayCustomers || 0)}`,
       change: "+6%",
       icon: <Users className="h-8 w-8 text-purple-500" />,
     },
     {
       title: "Active Items",
-      value: "45",
+      value: isLoadingStats ? "Loading..." : stats?.activeItems.toString() || "0",
       change: "+3",
       icon: <BarChart className="h-8 w-8 text-orange-500" />,
     },
@@ -132,7 +203,7 @@ const Dashboard = () => {
         <h1 className="text-3xl font-bold">Dashboard</h1>
         
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
-          {stats.map((stat, index) => (
+          {displayStats.map((stat, index) => (
             <Card key={index} className="hover:shadow-md transition-shadow">
               <CardHeader className="flex flex-row items-center justify-between pb-2">
                 <CardTitle className="text-sm font-medium text-gray-500">
