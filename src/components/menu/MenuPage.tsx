@@ -49,12 +49,12 @@ const MenuPage: React.FC = () => {
         const transformedProducts: Product[] = data.map(item => ({
           id: item.id.toString(),
           name: item.name,
-          description: item.description || '',  // Handle potentially missing description
-          price: parseFloat(item.price),
-          image: item.image_url || 'https://images.unsplash.com/photo-1546793665-c74683f339c1?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80', // Default image if none is provided
+          description: '', // Provide a default empty description since it doesn't exist in the DB
+          price: item.price,
+          image: 'https://images.unsplash.com/photo-1546793665-c74683f339c1?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80', // Use default image
           category: item.category,
           hasToppings: item.has_toppings,
-          availableToppings: item.available_toppings || []
+          availableToppings: [] // Provide a default empty array since it doesn't exist in the DB
         }));
         
         setProducts(transformedProducts);

@@ -108,7 +108,7 @@ const MenuItems = () => {
         price: `$${item.price}`,
         status: item.status as "Active" | "Inactive",
         hasToppings: item.has_toppings,
-        availableToppings: item.available_toppings || []
+        availableToppings: [] // Since available_toppings doesn't exist in the DB, use an empty array
       }));
       
       setMenuItems(transformedItems);
@@ -221,14 +221,14 @@ const MenuItems = () => {
         return;
       }
       
-      // Prepare the data for Supabase
+      // Prepare the data for Supabase - note that we don't include available_toppings 
+      // since it doesn't exist in the database schema
       const menuItemData = {
         name: data.name,
         category: data.category,
         price: priceValue,
         status: data.status,
-        has_toppings: data.hasToppings,
-        available_toppings: data.hasToppings ? data.availableToppings : []
+        has_toppings: data.hasToppings
       };
       
       if (editItem) {
