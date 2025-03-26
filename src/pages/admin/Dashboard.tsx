@@ -1,3 +1,4 @@
+
 import React, { useEffect } from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { BarChart, Users, ShoppingBag, DollarSign, RefreshCw } from "lucide-react";
@@ -9,6 +10,12 @@ import { Order } from '@/types/orders';
 import { Badge } from "@/components/ui/badge";
 import { toast } from "@/components/ui/use-toast";
 import { ScrollArea } from "@/components/ui/scroll-area";
+
+interface PopularItem {
+  id: number;
+  name: string;
+  order_count: number;
+}
 
 const Dashboard = () => {
   const queryClient = useQueryClient();
@@ -36,6 +43,7 @@ const Dashboard = () => {
           // Invalidate and refetch all dashboard data
           queryClient.invalidateQueries({ queryKey: ['dashboard-orders'] });
           queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] });
+          queryClient.invalidateQueries({ queryKey: ['popular-items'] });
         }
       )
       .subscribe((status) => {
@@ -145,6 +153,62 @@ const Dashboard = () => {
     refetchOnWindowFocus: true,
     refetchOnMount: true,
     staleTime: 5000, // Consider data stale after 5 seconds
+  });
+  
+  // Fetch popular items
+  const { data: popularItems = [], isLoading: isLoadingPopularItems } = useQuery({
+    queryKey: ['popular-items'],
+    queryFn: async () => {
+      console.log('Fetching popular menu items...');
+      
+      // This query gets menu items ordered by how many times they appear in order_items
+      const { data, error } = await supabase
+        .from('order_items')
+        .select(`
+          menu_item_id,
+          quantity,
+          menu_items!inner(id, name)
+        `)
+        .order('menu_item_id');
+      
+      if (error) {
+        console.error('Error fetching popular items:', error);
+        throw error;
+      }
+      
+      // Process the data to count orders per menu item
+      const itemCounts: Record<number, { id: number; name: string; count: number }> = {};
+      
+      data.forEach(item => {
+        const id = item.menu_item_id;
+        if (id !== null) {
+          if (!itemCounts[id]) {
+            itemCounts[id] = { 
+              id, 
+              name: item.menu_items.name, 
+              count: 0 
+            };
+          }
+          itemCounts[id].count += item.quantity;
+        }
+      });
+      
+      // Convert to array and sort by count (most ordered first)
+      const sortedItems = Object.values(itemCounts)
+        .sort((a, b) => b.count - a.count)
+        .slice(0, 5) // Get top 5
+        .map(item => ({
+          id: item.id,
+          name: item.name,
+          order_count: item.count
+        }));
+      
+      console.log('Popular items fetched:', sortedItems);
+      return sortedItems as PopularItem[];
+    },
+    refetchOnWindowFocus: true,
+    refetchOnMount: true,
+    staleTime: 5000,
   });
 
   // Prepare stats for display
@@ -260,24 +324,33 @@ const Dashboard = () => {
             
             {/* Popular Items Panel */}
             <Card>
-              <CardHeader>
+              <CardHeader className="flex justify-between items-center">
                 <CardTitle>Popular Items</CardTitle>
+                {isLoadingPopularItems && <RefreshCw size={16} className="animate-spin text-gray-400" />}
               </CardHeader>
               <CardContent>
                 <div className="space-y-3">
-                  {['Cheeseburger', 'Chicken Wings', 'Caesar Salad', 'Margherita Pizza', 'French Fries'].map((item, i) => (
-                    <div key={i} className="flex items-center justify-between border-b pb-3 last:border-0">
-                      <div className="flex items-center">
-                        <div className="w-10 h-10 bg-gray-200 rounded-md mr-3 flex items-center justify-center text-gray-400">
-                          #{i+1}
-                        </div>
-                        <p className="font-medium">{item}</p>
-                      </div>
-                      <span className="text-gray-500 text-sm">
-                        {Math.floor(Math.random() * 50) + 10} orders
-                      </span>
+                  {isLoadingPopularItems ? (
+                    <div className="flex justify-center py-8">
+                      <RefreshCw className="h-8 w-8 animate-spin text-primary" />
                     </div>
-                  ))}
+                  ) : popularItems.length === 0 ? (
+                    <p className="text-center py-4 text-gray-500">No popular items found</p>
+                  ) : (
+                    popularItems.map((item, i) => (
+                      <div key={item.id} className="flex items-center justify-between border-b pb-3 last:border-0">
+                        <div className="flex items-center">
+                          <div className="w-10 h-10 bg-gray-200 rounded-md mr-3 flex items-center justify-center text-gray-400">
+                            #{i+1}
+                          </div>
+                          <p className="font-medium">{item.name}</p>
+                        </div>
+                        <span className="text-gray-500 text-sm">
+                          {item.order_count} orders
+                        </span>
+                      </div>
+                    ))
+                  )}
                 </div>
               </CardContent>
             </Card>
