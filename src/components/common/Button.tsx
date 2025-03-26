@@ -11,7 +11,8 @@ type ButtonProps = {
   icon?: React.ReactNode;
   iconPosition?: 'left' | 'right';
   disabled?: boolean;
-} & Omit<HTMLMotionProps<"button">, "disabled" | "size" | "variant">;
+  children?: React.ReactNode;
+} & Omit<HTMLMotionProps<"button">, "disabled" | "size" | "variant" | "children">;
 
 const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
   ({ 
