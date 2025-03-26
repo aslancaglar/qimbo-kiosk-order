@@ -388,6 +388,9 @@ const MenuItems = () => {
                           <Input placeholder="Item name" {...field} />
                         </FormControl>
                         <FormMessage />
+                        {formState.errors.name && (
+                          <p className="text-sm text-red-500 mt-1">{formState.errors.name.message}</p>
+                        )}
                       </FormItem>
                     )}
                   />

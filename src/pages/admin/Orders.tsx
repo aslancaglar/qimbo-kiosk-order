@@ -27,6 +27,7 @@ import { format, isValid } from 'date-fns';
 import { supabase } from "@/integrations/supabase/client";
 import { Order } from '@/types/orders';
 import { toast } from "@/components/ui/use-toast";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 const Orders = () => {
   const [searchTerm, setSearchTerm] = useState('');
@@ -190,7 +191,7 @@ const Orders = () => {
 
   return (
     <AdminLayout>
-      <div className="space-y-6">
+      <div className="space-y-6 h-full flex flex-col">
         <div className="flex justify-between items-center">
           <h1 className="text-3xl font-bold">Orders</h1>
           <div className="flex gap-2">
@@ -279,7 +280,7 @@ const Orders = () => {
             <p className="text-gray-500">No orders found matching your criteria.</p>
           </div>
         ) : (
-          <div className="rounded-md border">
+          <ScrollArea className="flex-1 rounded-md border">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -323,13 +324,13 @@ const Orders = () => {
                 ))}
               </TableBody>
             </Table>
-          </div>
+          </ScrollArea>
         )}
       </div>
 
       {/* Order Details Sheet */}
       <Sheet open={isOrderDetailsOpen} onOpenChange={setIsOrderDetailsOpen}>
-        <SheetContent className="sm:max-w-md">
+        <SheetContent className="sm:max-w-md overflow-y-auto">
           <SheetHeader>
             <SheetTitle>Order #{selectedOrder?.id}</SheetTitle>
             <SheetDescription>
