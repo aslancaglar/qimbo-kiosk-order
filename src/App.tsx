@@ -18,6 +18,8 @@ import Settings from "./pages/admin/Settings";
 
 // Add framer-motion for animations
 import { AnimatePresence } from "framer-motion";
+import { useEffect } from "react";
+import { enableRealtimeForTables } from "./utils/enableRealtimeForTables";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -29,6 +31,16 @@ const queryClient = new QueryClient({
 });
 
 const App = () => {
+  // Initialize realtime subscriptions when the app starts
+  useEffect(() => {
+    console.log('Initializing realtime subscriptions...');
+    enableRealtimeForTables()
+      .then(() => console.log('Realtime subscriptions initialized'))
+      .catch(error => console.error('Failed to initialize realtime:', error));
+      
+    // No cleanup needed as we want these subscriptions to persist
+  }, []);
+
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>

@@ -6,6 +6,8 @@ import CartItem from './CartItem';
 import { CartItemType } from './types';
 import { ShoppingBag, X } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from '@/components/ui/use-toast';
 
 interface CartSidebarProps {
   isOpen: boolean;
@@ -51,18 +53,119 @@ const CartSidebar: React.FC<CartSidebarProps> = ({
   const tax = subtotal * 0.1; // 10% tax rate
   const total = subtotal + tax;
   
-  const handleCheckout = () => {
-    // Navigate to confirmation page with cart items
-    navigate('/confirmation', { 
-      state: { 
+  const saveOrderToDatabase = async (orderData: any) => {
+    try {
+      console.log('Saving order to database:', orderData);
+      
+      // 1. First create the order
+      const { data: orderResult, error: orderError } = await supabase
+        .from('orders')
+        .insert({
+          customer_type: orderData.orderType === 'eat-in' ? 'Table' : 'Takeaway',
+          table_number: orderData.orderType === 'eat-in' ? orderData.tableNumber : null,
+          items_count: orderData.items.reduce((sum: number, item: CartItemType) => sum + item.quantity, 0),
+          total_amount: orderData.total,
+          status: 'In Progress',
+        })
+        .select('id')
+        .single();
+      
+      if (orderError) {
+        console.error('Error creating order:', orderError);
+        throw orderError;
+      }
+      
+      console.log('Order created successfully:', orderResult);
+      
+      // 2. Create order items
+      for (const item of orderData.items) {
+        const { data: orderItemResult, error: orderItemError } = await supabase
+          .from('order_items')
+          .insert({
+            order_id: orderResult.id,
+            menu_item_id: item.product.id,
+            quantity: item.quantity,
+            price: item.product.price,
+            notes: item.notes || null,
+          })
+          .select('id')
+          .single();
+        
+        if (orderItemError) {
+          console.error('Error creating order item:', orderItemError);
+          continue; // Try to create other items
+        }
+        
+        console.log('Order item created successfully:', orderItemResult);
+        
+        // 3. Create order item toppings
+        if (item.selectedToppings && item.selectedToppings.length > 0) {
+          for (const topping of item.selectedToppings) {
+            const { error: toppingError } = await supabase
+              .from('order_item_toppings')
+              .insert({
+                order_item_id: orderItemResult.id,
+                topping_id: topping.id,
+                price: topping.price,
+              });
+            
+            if (toppingError) {
+              console.error('Error creating order item topping:', toppingError);
+              continue; // Try to create other toppings
+            }
+          }
+        }
+      }
+      
+      return orderResult.id;
+    } catch (error) {
+      console.error('Error saving order:', error);
+      toast({
+        title: "Error",
+        description: "Could not save your order. Please try again.",
+        variant: "destructive",
+      });
+      throw error;
+    }
+  };
+  
+  const handleCheckout = async () => {
+    if (items.length === 0) return;
+    
+    try {
+      const orderData = { 
         items, 
         orderType, 
         tableNumber,
         subtotal,
         tax,
         total
-      } 
-    });
+      };
+      
+      // Save order to database first
+      const orderId = await saveOrderToDatabase(orderData);
+      
+      // Navigate to confirmation page with order data
+      navigate('/confirmation', { 
+        state: { 
+          ...orderData,
+          orderId
+        } 
+      });
+      
+      // Show success toast
+      toast({
+        title: "Order Submitted",
+        description: `Your order #${orderId} has been placed successfully!`,
+      });
+    } catch (error) {
+      console.error('Checkout error:', error);
+      toast({
+        title: "Error",
+        description: "Could not complete checkout. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
   
   return (

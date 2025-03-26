@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import AdminLayout from '../../components/admin/AdminLayout';
@@ -55,10 +54,17 @@ const Orders = () => {
               title: "New Order Received",
               description: `Order #${payload.new.id} has been created`,
             });
+            
+            // Invalidate and refetch orders data
+            queryClient.invalidateQueries({ queryKey: ['orders'] });
+          } else if (payload.eventType === 'UPDATE') {
+            toast({
+              title: "Order Updated",
+              description: `Order #${payload.new.id} status changed to ${payload.new.status}`,
+            });
+            
+            queryClient.invalidateQueries({ queryKey: ['orders'] });
           }
-          
-          // Invalidate and refetch orders data
-          queryClient.invalidateQueries({ queryKey: ['orders'] });
         }
       )
       .subscribe((status) => {

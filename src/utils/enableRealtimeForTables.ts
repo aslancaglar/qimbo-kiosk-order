@@ -25,6 +25,15 @@ export const enableRealtimeForTables = async () => {
               title: "New Order Received",
               description: `Order #${payload.new.id} has been created`,
             });
+            
+            // Log to verify we're receiving new orders
+            console.log('New order created and detected by realtime:', payload.new);
+          } else if (payload.eventType === 'UPDATE') {
+            console.log('Order updated:', payload.new);
+            toast({
+              title: "Order Updated",
+              description: `Order #${payload.new.id} has been updated`,
+            });
           }
         }
       )
