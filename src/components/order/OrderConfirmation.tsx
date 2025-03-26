@@ -35,18 +35,24 @@ const OrderConfirmation: React.FC<OrderConfirmationProps> = () => {
     return () => clearInterval(timer);
   }, [countdown]);
 
-  // Auto print on component mount
+  // Auto print on component mount and redirect after printing
   useEffect(() => {
-    // Delay printing by a small amount to ensure component is fully rendered
+    // Only print if we have items and haven't printed yet
     if (items && items.length > 0 && !printed) {
+      // Delay printing by a small amount to ensure component is fully rendered
       const timer = setTimeout(() => {
         printOrder();
         setPrinted(true);
+        
+        // Redirect to welcome page after a brief delay
+        setTimeout(() => {
+          navigate('/');
+        }, 500);
       }, 1000);
       
       return () => clearTimeout(timer);
     }
-  }, [items, printed]);
+  }, [items, printed, navigate]);
   
   // Format time from seconds to MM:SS
   const formatTime = (seconds: number) => {
@@ -60,12 +66,13 @@ const OrderConfirmation: React.FC<OrderConfirmationProps> = () => {
 
   // Print order function
   const printOrder = () => {
-    const printWindow = window.open('', '_blank');
-    if (!printWindow) return;
-
+    const iframe = document.createElement('iframe');
+    iframe.style.display = 'none';
+    document.body.appendChild(iframe);
+    
     const orderDate = new Date().toLocaleString();
     
-    printWindow.document.write(`
+    iframe.contentDocument?.write(`
       <html>
         <head>
           <title>Order #${orderNumber}</title>
@@ -158,22 +165,26 @@ const OrderConfirmation: React.FC<OrderConfirmationProps> = () => {
           <div class="footer">
             <p>Thank you for your order!</p>
           </div>
+          <script>
+            window.onload = function() {
+              setTimeout(function() {
+                window.print();
+                setTimeout(function() {
+                  document.body.innerHTML = 'Printing complete.';
+                }, 500);
+              }, 500);
+            };
+          </script>
         </body>
       </html>
     `);
     
-    printWindow.document.close();
-    printWindow.focus();
-    printWindow.print();
+    iframe.contentDocument?.close();
     
-    // Close after printing (some browsers may close automatically)
+    // Remove the iframe after printing
     setTimeout(() => {
-      try {
-        printWindow.close();
-      } catch (e) {
-        console.log('Print window already closed');
-      }
-    }, 500);
+      iframe.remove();
+    }, 2000);
   };
   
   return (
@@ -247,6 +258,15 @@ const OrderConfirmation: React.FC<OrderConfirmationProps> = () => {
                   Table #{tableNumber}
                 </motion.div>
               )}
+              
+              <motion.p
+                initial={{ y: 20, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                transition={{ delay: 0.6 }}
+                className="text-gray-500 mt-4"
+              >
+                Printing your receipt and redirecting you...
+              </motion.p>
             </div>
             
             <motion.div
