@@ -51,11 +51,9 @@ const CartSidebar: React.FC<CartSidebarProps> = ({
   
   return (
     <>
-      {/* Fixed position cart sidebar */}
+      {/* Fixed position cart sidebar - always visible */}
       <div 
-        className={`fixed top-0 right-0 h-full w-[350px] bg-white shadow-lg z-50 transition-all duration-300 ease-in-out ${
-          isOpen ? 'translate-x-0' : 'translate-x-full'
-        }`}
+        className="fixed top-0 right-0 h-full w-[350px] bg-white shadow-lg z-50"
       >
         <div className="h-full flex flex-col">
           <div className="p-6 border-b border-gray-100 flex justify-between items-center">
@@ -68,13 +66,6 @@ const CartSidebar: React.FC<CartSidebarProps> = ({
                 </span>
               )}
             </div>
-            
-            <button
-              className="text-gray-500 hover:text-gray-900 p-2 -m-2"
-              onClick={onClose}
-            >
-              <X size={24} />
-            </button>
           </div>
           
           {orderType === 'eat-in' && tableNumber && (
@@ -90,9 +81,6 @@ const CartSidebar: React.FC<CartSidebarProps> = ({
               <ShoppingBag className="h-16 w-16 text-gray-300 mb-4" />
               <h3 className="text-xl font-medium text-gray-900 mb-1">Your cart is empty</h3>
               <p className="text-gray-500 mb-6">Add some delicious items to get started</p>
-              <Button variant="outline" onClick={onClose}>
-                Browse Menu
-              </Button>
             </div>
           ) : (
             <>
@@ -126,7 +114,7 @@ const CartSidebar: React.FC<CartSidebarProps> = ({
                   </div>
                 </div>
                 
-                <Button size="full" onClick={handleCheckout}>
+                <Button size="full" onClick={handleCheckout} disabled={items.length === 0}>
                   Checkout
                 </Button>
               </div>
@@ -134,14 +122,6 @@ const CartSidebar: React.FC<CartSidebarProps> = ({
           )}
         </div>
       </div>
-      
-      {/* Overlay that only appears when cart is open */}
-      {isOpen && (
-        <div 
-          className="fixed inset-0 bg-black/40 backdrop-blur-sm z-40"
-          onClick={onClose}
-        />
-      )}
     </>
   );
 };

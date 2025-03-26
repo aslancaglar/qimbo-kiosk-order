@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
@@ -87,9 +86,8 @@ const MenuPage: React.FC = () => {
   
   const [activeCategory, setActiveCategory] = useState('All');
   const [cartItems, setCartItems] = useState<CartItemType[]>([]);
-  const [isCartOpen, setIsCartOpen] = useState(false);
+  const [isCartOpen, setIsCartOpen] = useState(true);
   
-  // Redirect to welcome page if no orderType is specified
   useEffect(() => {
     if (!orderType) {
       navigate('/');
@@ -107,7 +105,6 @@ const MenuPage: React.FC = () => {
     };
     
     setCartItems([...cartItems, newItem]);
-    setIsCartOpen(true);
   };
   
   const handleRemoveItem = (index: number) => {
@@ -132,63 +129,51 @@ const MenuPage: React.FC = () => {
   
   return (
     <Layout>
-      <header className="flex justify-between items-center p-6 border-b border-gray-100">
-        <Button 
-          variant="ghost" 
-          size="icon" 
-          onClick={() => navigate('/')}
-          className="rounded-full"
-        >
-          <Home size={24} />
-        </Button>
-        
-        <h1 className="text-2xl font-semibold">Menu</h1>
-        
-        <div className="relative">
+      <div className="flex flex-col h-screen">
+        <header className="flex justify-between items-center p-6 border-b border-gray-100">
           <Button 
             variant="ghost" 
             size="icon" 
-            onClick={() => setIsCartOpen(true)}
+            onClick={() => navigate('/')}
             className="rounded-full"
           >
-            <ShoppingBag size={24} />
-            {cartItems.length > 0 && (
-              <span className="absolute -top-1 -right-1 bg-primary text-primary-foreground text-xs w-5 h-5 flex items-center justify-center rounded-full">
-                {cartItems.reduce((sum, item) => sum + item.quantity, 0)}
-              </span>
-            )}
+            <Home size={24} />
           </Button>
+          
+          <h1 className="text-2xl font-semibold">Menu</h1>
+          
+          <div className="w-10"></div>
+        </header>
+        
+        <CategorySelector 
+          categories={MOCK_CATEGORIES} 
+          activeCategory={activeCategory} 
+          onChange={setActiveCategory} 
+        />
+        
+        <div className="flex-1 overflow-y-auto p-6 pr-[350px]">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+            {filteredProducts.map((product) => (
+              <ProductCard 
+                key={product.id} 
+                product={product} 
+                onSelect={handleProductSelect} 
+              />
+            ))}
+          </div>
         </div>
-      </header>
-      
-      <CategorySelector 
-        categories={MOCK_CATEGORIES} 
-        activeCategory={activeCategory} 
-        onChange={setActiveCategory} 
-      />
-      
-      <div className="flex-1 overflow-y-auto p-6">
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 justify-items-center">
-          {filteredProducts.map((product) => (
-            <ProductCard 
-              key={product.id} 
-              product={product} 
-              onSelect={handleProductSelect} 
-            />
-          ))}
-        </div>
+        
+        <CartSidebar 
+          isOpen={isCartOpen} 
+          onClose={() => {}} 
+          items={cartItems} 
+          onRemoveItem={handleRemoveItem}
+          onIncrementItem={handleIncrementItem}
+          onDecrementItem={handleDecrementItem}
+          orderType={orderType}
+          tableNumber={tableNumber}
+        />
       </div>
-      
-      <CartSidebar 
-        isOpen={isCartOpen} 
-        onClose={() => setIsCartOpen(false)} 
-        items={cartItems} 
-        onRemoveItem={handleRemoveItem}
-        onIncrementItem={handleIncrementItem}
-        onDecrementItem={handleDecrementItem}
-        orderType={orderType}
-        tableNumber={tableNumber}
-      />
     </Layout>
   );
 };
