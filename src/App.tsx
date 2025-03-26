@@ -13,6 +13,7 @@ import OrderConfirmation from "./components/order/OrderConfirmation";
 import Dashboard from "./pages/admin/Dashboard";
 import Orders from "./pages/admin/Orders";
 import MenuItems from "./pages/admin/MenuItems";
+import Toppings from "./pages/admin/Toppings";
 import Settings from "./pages/admin/Settings";
 
 // Add framer-motion for animations
@@ -37,6 +38,7 @@ const App = () => (
             <Route path="/admin" element={<Dashboard />} />
             <Route path="/admin/orders" element={<Orders />} />
             <Route path="/admin/menu" element={<MenuItems />} />
+            <Route path="/admin/toppings" element={<Toppings />} />
             <Route path="/admin/settings" element={<Settings />} />
             
             {/* 404 route */}

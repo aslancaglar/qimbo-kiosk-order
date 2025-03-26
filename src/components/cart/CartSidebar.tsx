@@ -31,7 +31,23 @@ const CartSidebar: React.FC<CartSidebarProps> = ({
   const navigate = useNavigate();
   
   const totalItems = items.reduce((sum, item) => sum + item.quantity, 0);
-  const subtotal = items.reduce((sum, item) => sum + (item.product.price * item.quantity), 0);
+  
+  // Calculate subtotal including toppings
+  const subtotal = items.reduce((sum, item) => {
+    // Base price of the product × quantity
+    let itemTotal = item.product.price * item.quantity;
+    
+    // Add cost of toppings × quantity
+    if (item.selectedToppings && item.selectedToppings.length > 0) {
+      const toppingsPrice = item.selectedToppings.reduce(
+        (toppingSum, topping) => toppingSum + topping.price, 0
+      );
+      itemTotal += toppingsPrice * item.quantity;
+    }
+    
+    return sum + itemTotal;
+  }, 0);
+  
   const tax = subtotal * 0.1; // 10% tax rate
   const total = subtotal + tax;
   
@@ -87,13 +103,32 @@ const CartSidebar: React.FC<CartSidebarProps> = ({
               <div className="flex-1 overflow-y-auto p-6">
                 <AnimatePresence initial={false}>
                   {items.map((item, index) => (
-                    <CartItem
+                    <motion.div
                       key={`${item.product.id}-${index}`}
-                      item={item}
-                      onRemove={() => onRemoveItem(index)}
-                      onIncrement={() => onIncrementItem(index)}
-                      onDecrement={() => onDecrementItem(index)}
-                    />
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: 'auto' }}
+                      exit={{ opacity: 0, height: 0 }}
+                      className="mb-4 border-b pb-4 last:border-0 last:pb-0"
+                    >
+                      <CartItem
+                        item={item}
+                        onRemove={() => onRemoveItem(index)}
+                        onIncrement={() => onIncrementItem(index)}
+                        onDecrement={() => onDecrementItem(index)}
+                      />
+                      
+                      {/* Display toppings if any */}
+                      {item.selectedToppings && item.selectedToppings.length > 0 && (
+                        <div className="pl-3 mt-2 space-y-1">
+                          {item.selectedToppings.map((topping) => (
+                            <div key={topping.id} className="flex justify-between text-sm text-gray-600">
+                              <span>+ {topping.name}</span>
+                              <span>${topping.price.toFixed(2)}</span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </motion.div>
                   ))}
                 </AnimatePresence>
               </div>

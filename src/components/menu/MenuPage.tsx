@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
@@ -5,7 +6,7 @@ import Layout from '../layout/Layout';
 import CategorySelector from './CategorySelector';
 import ProductCard, { Product } from './ProductCard';
 import CartSidebar from '../cart/CartSidebar';
-import { CartItemType } from '../cart/types';
+import { CartItemType, ToppingItem } from '../cart/types';
 import Button from '../common/Button';
 import { ShoppingBag, Home } from 'lucide-react';
 
@@ -20,6 +21,8 @@ const MOCK_PRODUCTS: Product[] = [
     price: 12.99,
     image: 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80',
     category: 'Main Courses',
+    hasToppings: true,
+    availableToppings: [1, 4, 5, 6]
   },
   {
     id: '2',
@@ -52,6 +55,8 @@ const MOCK_PRODUCTS: Product[] = [
     price: 14.99,
     image: 'https://images.unsplash.com/photo-1604382354936-07c5d9983bd3?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80',
     category: 'Main Courses',
+    hasToppings: true,
+    availableToppings: [1, 2, 3, 4, 7, 8]
   },
   {
     id: '6',
@@ -60,6 +65,8 @@ const MOCK_PRODUCTS: Product[] = [
     price: 5.99,
     image: 'https://images.unsplash.com/photo-1573080496219-bb080dd4f877?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80',
     category: 'Appetizers',
+    hasToppings: true,
+    availableToppings: [1, 5, 6]
   },
   {
     id: '7',
@@ -98,10 +105,11 @@ const MenuPage: React.FC = () => {
     ? MOCK_PRODUCTS
     : MOCK_PRODUCTS.filter(product => product.category === activeCategory);
   
-  const handleProductSelect = (product: Product) => {
+  const handleProductSelect = (product: Product, selectedToppings?: ToppingItem[]) => {
     const newItem: CartItemType = {
       product,
       quantity: 1,
+      selectedToppings
     };
     
     setCartItems([...cartItems, newItem]);

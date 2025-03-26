@@ -14,7 +14,7 @@ import {
   SidebarTrigger
 } from "@/components/ui/sidebar";
 import { SidebarProvider } from "@/components/ui/sidebar";
-import { BarChart, Settings, ShoppingBag, PanelRight, LogOut } from "lucide-react";
+import { BarChart, Settings, ShoppingBag, PanelRight, LogOut, Tag } from "lucide-react";
 import { NavLink, useNavigate } from 'react-router-dom';
 
 interface AdminLayoutProps {
@@ -81,6 +81,20 @@ const AdminLayout = ({ children }: AdminLayoutProps) => {
                       >
                         <PanelRight className="h-5 w-5" />
                         <span>Menu Items</span>
+                      </NavLink>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                  
+                  <SidebarMenuItem>
+                    <SidebarMenuButton asChild>
+                      <NavLink 
+                        to="/admin/toppings" 
+                        className={({ isActive }) => 
+                          isActive ? "text-primary font-medium" : "text-gray-500 hover:text-gray-900"
+                        }
+                      >
+                        <Tag className="h-5 w-5" />
+                        <span>Toppings</span>
                       </NavLink>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
