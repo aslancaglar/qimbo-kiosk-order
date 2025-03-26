@@ -1,16 +1,17 @@
 
 import React from 'react';
-import { motion } from 'framer-motion';
+import { motion, HTMLMotionProps } from 'framer-motion';
 import { cn } from '@/lib/utils';
 
-interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
+// Create a combined type that merges motion button props with our custom props
+type ButtonProps = {
   variant?: 'primary' | 'secondary' | 'outline' | 'ghost' | 'link';
   size?: 'sm' | 'md' | 'lg' | 'icon' | 'full';
   isLoading?: boolean;
   icon?: React.ReactNode;
   iconPosition?: 'left' | 'right';
   disabled?: boolean;
-}
+} & Omit<HTMLMotionProps<"button">, "disabled" | "size" | "variant">;
 
 const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
   ({ 
