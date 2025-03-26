@@ -28,7 +28,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { Order } from '@/types/orders';
 import { toast } from "@/components/ui/use-toast";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { enableRealtimeForTables } from "@/utils/enableRealtimeForTables";
 
 const Orders = () => {
   const [searchTerm, setSearchTerm] = useState('');
@@ -38,14 +37,10 @@ const Orders = () => {
   const [autoRefresh, setAutoRefresh] = useState(true);
   const queryClient = useQueryClient();
 
-  // Set up realtime subscription
+  // Set up realtime subscription for immediate updates
   useEffect(() => {
-    // Enable realtime functionality for tables
-    const setup = async () => {
-      await enableRealtimeForTables();
-    };
-    setup();
-
+    console.log('Setting up realtime subscription for orders page...');
+    
     const channel = supabase
       .channel('orders-page-changes')
       .on(
@@ -66,9 +61,12 @@ const Orders = () => {
           queryClient.invalidateQueries({ queryKey: ['orders'] });
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        console.log('Orders page subscription status:', status);
+      });
 
     return () => {
+      console.log('Cleaning up orders page subscription');
       supabase.removeChannel(channel);
     };
   }, [queryClient]);
@@ -76,6 +74,7 @@ const Orders = () => {
   const { data: orders = [], isLoading, isError, refetch } = useQuery({
     queryKey: ['orders'],
     queryFn: async () => {
+      console.log('Fetching orders data...');
       const { data, error } = await supabase
         .from('orders')
         .select('*')
@@ -91,12 +90,16 @@ const Orders = () => {
         throw error;
       }
       
-      console.log('Fetched orders:', data);
+      console.log('Fetched orders data:', data);
       return data as Order[];
     },
     refetchInterval: autoRefresh ? 10000 : false,
+    refetchOnWindowFocus: true,
+    refetchOnMount: true,
+    staleTime: 5000, // Consider data stale after 5 seconds
   });
 
+  // Filter orders based on search term and selected status
   const filteredOrders = orders.filter(order => {
     const matchesSearch = searchTerm === '' || 
       order.id.toString().includes(searchTerm) ||
@@ -159,6 +162,7 @@ const Orders = () => {
     if (!selectedOrder) return;
     
     try {
+      console.log(`Updating order #${selectedOrder.id} status to ${newStatus}...`);
       const { error } = await supabase
         .from('orders')
         .update({ status: newStatus })
@@ -171,11 +175,13 @@ const Orders = () => {
         description: `Order #${selectedOrder.id} status changed to ${newStatus}`,
       });
       
+      // Update the selected order in the UI immediately
       setSelectedOrder({
         ...selectedOrder,
         status: newStatus
       });
       
+      // Refetch to ensure data consistency
       refetch();
     } catch (error) {
       console.error('Error updating order:', error);
@@ -185,6 +191,11 @@ const Orders = () => {
         variant: "destructive",
       });
     }
+  };
+
+  const handleManualRefresh = () => {
+    console.log('Manually refreshing orders data...');
+    refetch();
   };
 
   return (
@@ -213,7 +224,7 @@ const Orders = () => {
             </Button>
             <Button 
               variant="outline" 
-              onClick={() => refetch()}
+              onClick={handleManualRefresh}
               disabled={isLoading}
             >
               <RefreshCw className={`mr-2 h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />

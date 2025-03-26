@@ -8,33 +8,41 @@ import { supabase } from "@/integrations/supabase/client";
 import { format } from 'date-fns';
 import { Order } from '@/types/orders';
 import { Badge } from "@/components/ui/badge";
-import { enableRealtimeForTables } from "@/utils/enableRealtimeForTables";
+import { toast } from "@/components/ui/use-toast";
 
 const Dashboard = () => {
   const queryClient = useQueryClient();
 
-  // Setup realtime subscription
+  // Set up real-time subscription for immediate updates
   useEffect(() => {
-    // Enable realtime functionality for tables
-    const setup = async () => {
-      await enableRealtimeForTables();
-    };
-    setup();
-
-    // Set up specific dashboard subscription for immediate updates
+    console.log('Setting up dashboard real-time subscription...');
+    
     const channel = supabase
       .channel('dashboard-orders-changes')
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'orders' },
-        () => {
-          console.log('Dashboard detected order changes, refreshing data');
+        (payload) => {
+          console.log('Dashboard detected order changes:', payload);
+          
+          // Show toast for new orders
+          if (payload.eventType === 'INSERT') {
+            toast({
+              title: "New Order Received",
+              description: `Order #${payload.new.id} has been created`,
+            });
+          }
+          
+          // Invalidate and refetch orders data
           queryClient.invalidateQueries({ queryKey: ['dashboard-orders'] });
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        console.log('Dashboard subscription status:', status);
+      });
 
     return () => {
+      console.log('Cleaning up dashboard subscription');
       supabase.removeChannel(channel);
     };
   }, [queryClient]);
@@ -42,6 +50,7 @@ const Dashboard = () => {
   const { data: orders = [], isLoading: isLoadingOrders } = useQuery({
     queryKey: ['dashboard-orders'],
     queryFn: async () => {
+      console.log('Fetching dashboard orders...');
       const { data, error } = await supabase
         .from('orders')
         .select('*')
@@ -56,6 +65,9 @@ const Dashboard = () => {
       console.log('Dashboard fetched orders:', data);
       return data as Order[];
     },
+    refetchOnWindowFocus: true,
+    refetchOnMount: true,
+    staleTime: 5000, // Consider data stale after 5 seconds
   });
 
   // Calculate stats from real data

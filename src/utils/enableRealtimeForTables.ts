@@ -1,5 +1,6 @@
 
 import { supabase } from "@/integrations/supabase/client";
+import { toast } from "@/components/ui/use-toast";
 
 /**
  * Enables real-time functionality for specified tables through Supabase
@@ -17,6 +18,14 @@ export const enableRealtimeForTables = async () => {
         { event: '*', schema: 'public', table: 'orders' },
         (payload) => {
           console.log('Real-time order notification received:', payload);
+          
+          // Show toast notification for new orders
+          if (payload.eventType === 'INSERT') {
+            toast({
+              title: "New Order Received",
+              description: `Order #${payload.new.id} has been created`,
+            });
+          }
         }
       )
       .subscribe((status) => {

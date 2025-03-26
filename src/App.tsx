@@ -4,12 +4,10 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
-import { useEffect } from "react";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import MenuPage from "./components/menu/MenuPage";
 import OrderConfirmation from "./components/order/OrderConfirmation";
-import { enableRealtimeForTables } from "./utils/enableRealtimeForTables";
 
 // Admin pages
 import Dashboard from "./pages/admin/Dashboard";
@@ -21,14 +19,16 @@ import Settings from "./pages/admin/Settings";
 // Add framer-motion for animations
 import { AnimatePresence } from "framer-motion";
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      refetchOnWindowFocus: true,
+      staleTime: 10000, // 10 seconds
+    },
+  },
+});
 
 const App = () => {
-  // Set up realtime functionality
-  useEffect(() => {
-    enableRealtimeForTables();
-  }, []);
-
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
