@@ -139,7 +139,7 @@ const MenuItems = () => {
         name: category.name,
         minSelection: category.min_selection,
         maxSelection: category.max_selection,
-        description: category.description,
+        description: category.description || '',
         required: category.required
       }));
       

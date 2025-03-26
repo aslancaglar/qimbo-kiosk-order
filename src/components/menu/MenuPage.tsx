@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
@@ -31,7 +30,6 @@ const MenuPage: React.FC = () => {
     }
   }, [orderType, navigate]);
   
-  // Fetch menu items from the database
   useEffect(() => {
     const fetchMenuItems = async () => {
       setIsLoading(true);
@@ -45,13 +43,12 @@ const MenuPage: React.FC = () => {
           throw error;
         }
         
-        // Transform data to match Product type
         const transformedProducts: Product[] = data.map(item => ({
           id: item.id.toString(),
           name: item.name,
-          description: item.description || '', // Use empty string as fallback if description doesn't exist
+          description: item.description || '',
           price: item.price,
-          image: item.image || 'https://images.unsplash.com/photo-1546793665-c74683f339c1?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80', // Use default image
+          image: item.image || 'https://images.unsplash.com/photo-1546793665-c74683f339c1?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80',
           category: item.category,
           hasToppings: item.has_toppings,
           availableToppingCategories: item.available_topping_categories || []
@@ -59,7 +56,6 @@ const MenuPage: React.FC = () => {
         
         setProducts(transformedProducts);
         
-        // Extract unique categories
         const uniqueCategories = ['All', ...new Set(data.map(item => item.category))];
         setCategories(uniqueCategories);
       } catch (error) {
@@ -76,7 +72,6 @@ const MenuPage: React.FC = () => {
     
     fetchMenuItems();
     
-    // Set up real-time subscription for menu items
     const channel = supabase
       .channel('menu-updates')
       .on(
@@ -84,7 +79,6 @@ const MenuPage: React.FC = () => {
         { event: '*', schema: 'public', table: 'menu_items' },
         (payload) => {
           console.log('Menu item change detected:', payload);
-          // Refresh menu items when a change is detected
           fetchMenuItems();
         }
       )

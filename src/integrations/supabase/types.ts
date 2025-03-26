@@ -13,8 +13,10 @@ export type Database = {
         Row: {
           available_topping_categories: number[] | null
           category: string
+          description: string | null
           has_toppings: boolean
           id: number
+          image: string | null
           name: string
           price: number
           status: string
@@ -22,8 +24,10 @@ export type Database = {
         Insert: {
           available_topping_categories?: number[] | null
           category: string
+          description?: string | null
           has_toppings?: boolean
           id?: number
+          image?: string | null
           name: string
           price: number
           status?: string
@@ -31,8 +35,10 @@ export type Database = {
         Update: {
           available_topping_categories?: number[] | null
           category?: string
+          description?: string | null
           has_toppings?: boolean
           id?: number
+          image?: string | null
           name?: string
           price?: number
           status?: string
@@ -147,29 +153,70 @@ export type Database = {
         }
         Relationships: []
       }
+      topping_categories: {
+        Row: {
+          description: string | null
+          id: number
+          max_selection: number
+          min_selection: number
+          name: string
+          required: boolean
+        }
+        Insert: {
+          description?: string | null
+          id?: number
+          max_selection?: number
+          min_selection?: number
+          name: string
+          required?: boolean
+        }
+        Update: {
+          description?: string | null
+          id?: number
+          max_selection?: number
+          min_selection?: number
+          name?: string
+          required?: boolean
+        }
+        Relationships: []
+      }
       toppings: {
         Row: {
           available: boolean
           category: string
+          category_id: number | null
           id: number
+          max_quantity: number
           name: string
           price: number
         }
         Insert: {
           available?: boolean
           category: string
+          category_id?: number | null
           id?: number
+          max_quantity?: number
           name: string
           price: number
         }
         Update: {
           available?: boolean
           category?: string
+          category_id?: number | null
           id?: number
+          max_quantity?: number
           name?: string
           price?: number
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "toppings_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "topping_categories"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {

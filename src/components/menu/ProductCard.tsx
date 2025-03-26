@@ -1,5 +1,4 @@
-
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import Button from '../common/Button';
 import { ShoppingBag, Plus } from 'lucide-react';
@@ -143,7 +142,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onSelect }) => {
             name: topping.name,
             price: topping.price,
             categoryId: topping.category_id,
-            maxQuantity: topping.max_quantity || 1
+            maxQuantity: topping.max_quantity
           }))
         };
       });
