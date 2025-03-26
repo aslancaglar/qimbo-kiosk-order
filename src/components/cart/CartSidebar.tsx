@@ -55,7 +55,7 @@ const CartSidebar: React.FC<CartSidebarProps> = ({
   
   const saveOrderToDatabase = async (orderData: any) => {
     try {
-      console.log('Saving order to database:', orderData);
+      console.log('Saving order to database with data:', JSON.stringify(orderData, null, 2));
       
       // 1. First create the order
       const { data: orderResult, error: orderError } = await supabase
@@ -75,7 +75,7 @@ const CartSidebar: React.FC<CartSidebarProps> = ({
         throw orderError;
       }
       
-      console.log('Order created successfully:', orderResult);
+      console.log('Order created successfully with ID:', orderResult.id);
       
       // 2. Create order items
       for (const item of orderData.items) {
@@ -96,7 +96,7 @@ const CartSidebar: React.FC<CartSidebarProps> = ({
           continue; // Try to create other items
         }
         
-        console.log('Order item created successfully:', orderItemResult);
+        console.log('Order item created successfully with ID:', orderItemResult.id);
         
         // 3. Create order item toppings
         if (item.selectedToppings && item.selectedToppings.length > 0) {
@@ -142,8 +142,11 @@ const CartSidebar: React.FC<CartSidebarProps> = ({
         total
       };
       
+      console.log('Starting checkout process with order data:', orderData);
+      
       // Save order to database first
       const orderId = await saveOrderToDatabase(orderData);
+      console.log(`Order #${orderId} saved successfully to database`);
       
       // Navigate to confirmation page with order data
       navigate('/confirmation', { 

@@ -39,6 +39,9 @@ export const enableRealtimeForTables = async () => {
       )
       .subscribe((status) => {
         console.log('Orders realtime subscription status:', status);
+        if (status === 'SUBSCRIPTION_ERROR') {
+          console.error('Failed to subscribe to orders changes');
+        }
       });
     
     // Enable real-time for menu_items table
@@ -53,6 +56,9 @@ export const enableRealtimeForTables = async () => {
       )
       .subscribe((status) => {
         console.log('Menu items subscription status:', status);
+        if (status === 'SUBSCRIPTION_ERROR') {
+          console.error('Failed to subscribe to menu items changes');
+        }
       });
     
     console.log('Successfully enabled real-time for tables');

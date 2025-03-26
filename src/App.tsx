@@ -34,11 +34,20 @@ const App = () => {
   // Initialize realtime subscriptions when the app starts
   useEffect(() => {
     console.log('Initializing realtime subscriptions...');
-    enableRealtimeForTables()
-      .then(() => console.log('Realtime subscriptions initialized'))
-      .catch(error => console.error('Failed to initialize realtime:', error));
-      
-    // No cleanup needed as we want these subscriptions to persist
+    
+    const initializeRealtime = async () => {
+      try {
+        const channels = await enableRealtimeForTables();
+        console.log('Realtime subscriptions initialized successfully', channels);
+        
+        // We don't unsubscribe from these channels as we want them to persist
+        // throughout the application lifecycle
+      } catch (error) {
+        console.error('Failed to initialize realtime:', error);
+      }
+    };
+    
+    initializeRealtime();
   }, []);
 
   return (
