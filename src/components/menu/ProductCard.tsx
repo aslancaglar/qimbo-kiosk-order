@@ -1,7 +1,8 @@
+
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import Button from '../common/Button';
-import { ShoppingBag, Plus } from 'lucide-react';
+import { ShoppingBag, Plus, Minus } from 'lucide-react';
 import { ToppingItem } from '../cart/types';
 import {
   Dialog,
@@ -357,25 +358,34 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onSelect }) => {
                                 <p className="text-sm text-gray-500">${topping.price.toFixed(2)}</p>
                               </div>
                               
-                              <div className="flex items-center">
-                                <button
-                                  type="button"
-                                  onClick={() => handleDecrementTopping(topping.id)}
-                                  disabled={quantity <= 0}
-                                  className="w-8 h-8 flex items-center justify-center rounded-full border disabled:opacity-50"
-                                >
-                                  -
-                                </button>
-                                <span className="mx-2 w-6 text-center">{quantity}</span>
+                              {quantity === 0 ? (
                                 <button
                                   type="button"
                                   onClick={() => handleIncrementTopping(topping.id)}
-                                  disabled={quantity >= (topping.maxQuantity || 1)}
-                                  className="w-8 h-8 flex items-center justify-center rounded-full border disabled:opacity-50"
+                                  className="flex items-center justify-center p-1 rounded-full bg-primary text-white hover:bg-primary/90 transition-colors"
                                 >
-                                  +
+                                  <Plus className="h-5 w-5" />
                                 </button>
-                              </div>
+                              ) : (
+                                <div className="flex items-center gap-2">
+                                  <button
+                                    type="button"
+                                    onClick={() => handleDecrementTopping(topping.id)}
+                                    className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 hover:bg-gray-200 transition-colors"
+                                  >
+                                    <Minus className="h-4 w-4" />
+                                  </button>
+                                  <span className="w-5 text-center font-medium">{quantity}</span>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleIncrementTopping(topping.id)}
+                                    disabled={quantity >= (topping.maxQuantity || 1)}
+                                    className="w-8 h-8 flex items-center justify-center rounded-full bg-primary text-white hover:bg-primary/90 disabled:opacity-50 disabled:hover:bg-primary transition-colors"
+                                  >
+                                    <Plus className="h-4 w-4" />
+                                  </button>
+                                </div>
+                              )}
                             </div>
                           );
                         })}
