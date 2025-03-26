@@ -45,18 +45,43 @@ interface MenuItem {
   price: string;
   status: "Active" | "Inactive";
   hasToppings: boolean;
-  availableToppings?: number[];
+  availableToppingCategories?: number[];
 }
 
-const mockToppings = [
-  { id: 1, name: "Cheese", price: 1.50, available: true, category: "Dairy" },
-  { id: 2, name: "Pepperoni", price: 2.00, available: true, category: "Meat" },
-  { id: 3, name: "Mushrooms", price: 1.00, available: true, category: "Vegetables" },
-  { id: 4, name: "Onions", price: 0.75, available: true, category: "Vegetables" },
-  { id: 5, name: "Bacon", price: 2.50, available: true, category: "Meat" },
-  { id: 6, name: "Extra Sauce", price: 0.50, available: true, category: "Sauces" },
-  { id: 7, name: "Jalapeños", price: 1.00, available: true, category: "Vegetables" },
-  { id: 8, name: "Pineapple", price: 1.25, available: false, category: "Fruits" },
+// Mock topping categories data - this would come from the database in a real app
+const MOCK_TOPPING_CATEGORIES = [
+  {
+    id: 1,
+    name: "Sauces",
+    minSelection: 1,
+    maxSelection: 2,
+    description: "Choose your favorite sauce",
+    required: true
+  },
+  {
+    id: 2,
+    name: "Vegetables",
+    minSelection: 0,
+    maxSelection: 5,
+    description: "Add some veggies",
+    required: false
+  },
+  {
+    id: 3,
+    name: "Cheese",
+    minSelection: 0,
+    maxSelection: 3,
+    description: "Extra cheese options",
+    required: false
+  },
+  {
+    id: 4,
+    name: "Meat",
+    minSelection: 0,
+    maxSelection: 3,
+    description: "Premium meat toppings",
+    required: false
+  }
 ];
 
 const menuItemFormSchema = z.object({
@@ -65,7 +90,7 @@ const menuItemFormSchema = z.object({
   price: z.string().min(1, { message: "Price is required." }),
   status: z.enum(["Active", "Inactive"]),
   hasToppings: z.boolean().default(false),
-  availableToppings: z.array(z.number()).optional(),
+  availableToppingCategories: z.array(z.number()).optional(),
 });
 
 type MenuItemFormValues = z.infer<typeof menuItemFormSchema>;
@@ -86,7 +111,7 @@ const MenuItems = () => {
       price: "",
       status: "Active",
       hasToppings: false,
-      availableToppings: [],
+      availableToppingCategories: [],
     },
   });
 
@@ -108,7 +133,7 @@ const MenuItems = () => {
         price: `$${item.price}`,
         status: item.status as "Active" | "Inactive",
         hasToppings: item.has_toppings,
-        availableToppings: []
+        availableToppingCategories: item.available_topping_categories || []
       }));
       
       setMenuItems(transformedItems);
@@ -162,7 +187,7 @@ const MenuItems = () => {
       price: item.price.replace('$', ''),
       status: item.status,
       hasToppings: item.hasToppings,
-      availableToppings: item.availableToppings || [],
+      availableToppingCategories: item.availableToppingCategories || [],
     });
     setIsDialogOpen(true);
   };
@@ -175,7 +200,7 @@ const MenuItems = () => {
       price: "",
       status: "Active",
       hasToppings: false,
-      availableToppings: [],
+      availableToppingCategories: [],
     });
     setIsDialogOpen(true);
   };
@@ -224,7 +249,8 @@ const MenuItems = () => {
         category: data.category,
         price: priceValue,
         status: data.status,
-        has_toppings: data.hasToppings
+        has_toppings: data.hasToppings,
+        available_topping_categories: data.hasToppings ? data.availableToppingCategories : []
       };
       
       if (editItem) {
@@ -297,7 +323,7 @@ const MenuItems = () => {
         <div className="flex-1 overflow-hidden rounded-md border">
           <ScrollArea className="h-[calc(100vh-240px)]">
             <Table>
-              <TableHeader>
+              <TableHeader className="sticky top-0 bg-white z-10">
                 <TableRow>
                   <TableHead>ID</TableHead>
                   <TableHead>Name</TableHead>
@@ -482,46 +508,54 @@ const MenuItems = () => {
                   {form.watch("hasToppings") && (
                     <FormField
                       control={form.control}
-                      name="availableToppings"
+                      name="availableToppingCategories"
                       render={() => (
                         <FormItem>
                           <div className="mb-4">
-                            <FormLabel className="text-base">Available Toppings</FormLabel>
+                            <FormLabel className="text-base">Available Topping Categories</FormLabel>
                             <FormDescription>
-                              Select which toppings can be added to this item
+                              Select which topping categories can be added to this item
                             </FormDescription>
                           </div>
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            {mockToppings.map((topping) => (
+                            {MOCK_TOPPING_CATEGORIES.map((category) => (
                               <FormField
-                                key={topping.id}
+                                key={category.id}
                                 control={form.control}
-                                name="availableToppings"
+                                name="availableToppingCategories"
                                 render={({ field }) => {
                                   return (
                                     <FormItem
-                                      key={topping.id}
+                                      key={category.id}
                                       className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-3"
                                     >
                                       <FormControl>
                                         <Checkbox
-                                          checked={field.value?.includes(topping.id)}
+                                          checked={field.value?.includes(category.id)}
                                           onCheckedChange={(checked) => {
                                             const current = Array.isArray(field.value) ? field.value : []
                                             return checked
-                                              ? field.onChange([...current, topping.id])
+                                              ? field.onChange([...current, category.id])
                                               : field.onChange(
-                                                  current.filter((value) => value !== topping.id)
+                                                  current.filter((value) => value !== category.id)
                                                 )
                                           }}
                                         />
                                       </FormControl>
                                       <div className="space-y-1 leading-none">
                                         <FormLabel className="font-medium">
-                                          {topping.name}
+                                          {category.name}
                                         </FormLabel>
                                         <FormDescription>
-                                          ${topping.price.toFixed(2)} - {topping.category}
+                                          {category.description}
+                                          {category.required && (
+                                            <span className="text-red-500 ml-1 font-medium">
+                                              (Required)
+                                            </span>
+                                          )}
+                                        </FormDescription>
+                                        <FormDescription>
+                                          Min: {category.minSelection} / Max: {category.maxSelection} selections
                                         </FormDescription>
                                       </div>
                                     </FormItem>
