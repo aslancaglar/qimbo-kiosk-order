@@ -23,7 +23,7 @@ import {
 } from "@/components/ui/sheet";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { format } from 'date-fns';
+import { format, isValid } from 'date-fns';
 import { supabase } from "@/integrations/supabase/client";
 import { Order } from '@/types/orders';
 import { toast } from "@/components/ui/use-toast";
@@ -88,17 +88,33 @@ const Orders = () => {
   };
 
   const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    const now = new Date();
-    const yesterday = new Date(now);
-    yesterday.setDate(yesterday.getDate() - 1);
-    
-    if (date.toDateString() === now.toDateString()) {
-      return `Today, ${format(date, 'h:mm a')}`;
-    } else if (date.toDateString() === yesterday.toDateString()) {
-      return `Yesterday, ${format(date, 'h:mm a')}`;
-    } else {
-      return format(date, 'MMM d, h:mm a');
+    try {
+      // First, check if dateString is defined
+      if (!dateString) {
+        return 'Invalid date';
+      }
+      
+      const date = new Date(dateString);
+      
+      // Check if the date is valid
+      if (!isValid(date)) {
+        return 'Invalid date';
+      }
+      
+      const now = new Date();
+      const yesterday = new Date(now);
+      yesterday.setDate(yesterday.getDate() - 1);
+      
+      if (date.toDateString() === now.toDateString()) {
+        return `Today, ${format(date, 'h:mm a')}`;
+      } else if (date.toDateString() === yesterday.toDateString()) {
+        return `Yesterday, ${format(date, 'h:mm a')}`;
+      } else {
+        return format(date, 'MMM d, h:mm a');
+      }
+    } catch (error) {
+      console.error('Error formatting date:', error, dateString);
+      return 'Invalid date';
     }
   };
 
@@ -241,7 +257,7 @@ const Orders = () => {
             <SheetDescription>
               {selectedOrder?.customer_type === 'Table' 
                 ? `Table #${selectedOrder.table_number}` 
-                : 'Takeaway'} · {formatDate(selectedOrder?.created_at || '')}
+                : 'Takeaway'} · {selectedOrder ? formatDate(selectedOrder.created_at) : ''}
             </SheetDescription>
           </SheetHeader>
           
