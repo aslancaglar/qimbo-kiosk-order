@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import AdminLayout from '../../components/admin/AdminLayout';
 import { Input } from "@/components/ui/input";
@@ -18,7 +17,8 @@ import {
   DialogHeader,
   DialogTitle,
   DialogFooter,
-  DialogClose
+  DialogClose,
+  DialogDescription
 } from "@/components/ui/dialog";
 import {
   Form,
@@ -30,6 +30,7 @@ import {
   FormDescription
 } from "@/components/ui/form";
 import { Checkbox } from "@/components/ui/checkbox";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
@@ -88,7 +89,6 @@ const MenuItems = () => {
     },
   });
 
-  // Fetch menu items from the database
   const fetchMenuItems = async () => {
     try {
       setIsLoading(true);
@@ -100,7 +100,6 @@ const MenuItems = () => {
         throw error;
       }
       
-      // Transform database data to match the MenuItem interface
       const transformedItems: MenuItem[] = data.map(item => ({
         id: item.id,
         name: item.name,
@@ -108,7 +107,7 @@ const MenuItems = () => {
         price: `$${item.price}`,
         status: item.status as "Active" | "Inactive",
         hasToppings: item.has_toppings,
-        availableToppings: [] // Since available_toppings doesn't exist in the DB, use an empty array
+        availableToppings: []
       }));
       
       setMenuItems(transformedItems);
@@ -127,7 +126,6 @@ const MenuItems = () => {
   useEffect(() => {
     fetchMenuItems();
     
-    // Set up real-time subscription
     const channel = supabase
       .channel('menu-items-changes')
       .on(
@@ -197,7 +195,6 @@ const MenuItems = () => {
         description: 'Menu item deleted successfully.',
       });
       
-      // The UI will be updated via the real-time subscription
     } catch (error) {
       console.error('Error deleting menu item:', error);
       toast({
@@ -221,8 +218,6 @@ const MenuItems = () => {
         return;
       }
       
-      // Prepare the data for Supabase - note that we don't include available_toppings 
-      // since it doesn't exist in the database schema
       const menuItemData = {
         name: data.name,
         category: data.category,
@@ -232,7 +227,6 @@ const MenuItems = () => {
       };
       
       if (editItem) {
-        // Update existing item
         const { error } = await supabase
           .from('menu_items')
           .update(menuItemData)
@@ -247,7 +241,6 @@ const MenuItems = () => {
           description: 'Menu item updated successfully.',
         });
       } else {
-        // Insert new item
         const { error } = await supabase
           .from('menu_items')
           .insert([menuItemData]);
@@ -263,7 +256,6 @@ const MenuItems = () => {
       }
       
       setIsDialogOpen(false);
-      // The UI will be updated via the real-time subscription
     } catch (error) {
       console.error('Error saving menu item:', error);
       toast({
@@ -274,7 +266,6 @@ const MenuItems = () => {
     }
   };
   
-  // Filter menu items based on search query
   const filteredMenuItems = menuItems.filter(item => 
     item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     item.category.toLowerCase().includes(searchQuery.toLowerCase())
@@ -282,7 +273,7 @@ const MenuItems = () => {
 
   return (
     <AdminLayout>
-      <div className="space-y-6">
+      <div className="h-full flex flex-col space-y-6 overflow-hidden">
         <div className="flex justify-between items-center">
           <h1 className="text-3xl font-bold">Menu Items</h1>
           <Button onClick={handleAddItem}>
@@ -302,249 +293,258 @@ const MenuItems = () => {
           />
         </div>
         
-        <div className="rounded-md border">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>ID</TableHead>
-                <TableHead>Name</TableHead>
-                <TableHead>Category</TableHead>
-                <TableHead>Price</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Toppings</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {isLoading ? (
+        <div className="flex-1 overflow-hidden rounded-md border">
+          <ScrollArea className="h-[calc(100vh-240px)]">
+            <Table>
+              <TableHeader>
                 <TableRow>
-                  <TableCell colSpan={7} className="text-center py-8">
-                    <div className="flex justify-center">
-                      <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary"></div>
-                    </div>
-                  </TableCell>
+                  <TableHead>ID</TableHead>
+                  <TableHead>Name</TableHead>
+                  <TableHead>Category</TableHead>
+                  <TableHead>Price</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Toppings</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
-              ) : filteredMenuItems.length > 0 ? (
-                filteredMenuItems.map((item) => (
-                  <TableRow key={item.id}>
-                    <TableCell className="font-medium">#{item.id}</TableCell>
-                    <TableCell>{item.name}</TableCell>
-                    <TableCell>{item.category}</TableCell>
-                    <TableCell>{item.price}</TableCell>
-                    <TableCell>
-                      <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusClass(item.status)}`}>
-                        {item.status}
-                      </span>
-                    </TableCell>
-                    <TableCell>
-                      {item.hasToppings ? (
-                        <span className="bg-blue-100 text-blue-800 text-xs font-medium px-2.5 py-0.5 rounded-full">
-                          Has Toppings
-                        </span>
-                      ) : (
-                        <span className="text-gray-500 text-xs">None</span>
-                      )}
-                    </TableCell>
-                    <TableCell className="text-right space-x-2">
-                      <Button variant="outline" size="sm" className="h-8 w-8 p-0" onClick={() => handleEditItem(item)}>
-                        <Edit className="h-4 w-4" />
-                      </Button>
-                      <Button 
-                        variant="outline" 
-                        size="sm" 
-                        className="h-8 w-8 p-0 text-red-500 hover:text-red-700"
-                        onClick={() => handleDeleteItem(item.id)}
-                      >
-                        <Trash className="h-4 w-4" />
-                      </Button>
+              </TableHeader>
+              <TableBody>
+                {isLoading ? (
+                  <TableRow>
+                    <TableCell colSpan={7} className="text-center py-8">
+                      <div className="flex justify-center">
+                        <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary"></div>
+                      </div>
                     </TableCell>
                   </TableRow>
-                ))
-              ) : (
-                <TableRow>
-                  <TableCell colSpan={7} className="text-center py-8">
-                    No menu items found
-                  </TableCell>
-                </TableRow>
-              )}
-            </TableBody>
-          </Table>
+                ) : filteredMenuItems.length > 0 ? (
+                  filteredMenuItems.map((item) => (
+                    <TableRow key={item.id}>
+                      <TableCell className="font-medium">#{item.id}</TableCell>
+                      <TableCell>{item.name}</TableCell>
+                      <TableCell>{item.category}</TableCell>
+                      <TableCell>{item.price}</TableCell>
+                      <TableCell>
+                        <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusClass(item.status)}`}>
+                          {item.status}
+                        </span>
+                      </TableCell>
+                      <TableCell>
+                        {item.hasToppings ? (
+                          <span className="bg-blue-100 text-blue-800 text-xs font-medium px-2.5 py-0.5 rounded-full">
+                            Has Toppings
+                          </span>
+                        ) : (
+                          <span className="text-gray-500 text-xs">None</span>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-right space-x-2">
+                        <Button variant="outline" size="sm" className="h-8 w-8 p-0" onClick={() => handleEditItem(item)}>
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          className="h-8 w-8 p-0 text-red-500 hover:text-red-700"
+                          onClick={() => handleDeleteItem(item.id)}
+                        >
+                          <Trash className="h-4 w-4" />
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                ) : (
+                  <TableRow>
+                    <TableCell colSpan={7} className="text-center py-8">
+                      No menu items found
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
+          </ScrollArea>
         </div>
       </div>
       
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-4xl">
           <DialogHeader>
             <DialogTitle>{editItem ? 'Edit Menu Item' : 'Add New Menu Item'}</DialogTitle>
+            <DialogDescription>
+              Fill in the details below to {editItem ? 'update' : 'add'} a menu item.
+            </DialogDescription>
           </DialogHeader>
           
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-              <FormField
-                control={form.control}
-                name="name"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Name</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Item name" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              <FormField
-                control={form.control}
-                name="category"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Category</FormLabel>
-                    <FormControl>
-                      <Input placeholder="e.g., Burgers, Salads" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              <FormField
-                control={form.control}
-                name="price"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Price</FormLabel>
-                    <FormControl>
-                      <Input placeholder="e.g., 10.99" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              <FormField
-                control={form.control}
-                name="status"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Status</FormLabel>
-                    <div className="flex gap-4">
-                      <FormItem className="flex items-center space-x-2">
+          <ScrollArea className="max-h-[70vh]">
+            <div className="p-1">
+              <Form {...form}>
+                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                  <FormField
+                    control={form.control}
+                    name="name"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Name</FormLabel>
                         <FormControl>
-                          <input
-                            type="radio"
-                            value="Active"
-                            checked={field.value === "Active"}
-                            onChange={() => field.onChange("Active")}
-                            className="text-primary"
+                          <Input placeholder="Item name" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  
+                  <FormField
+                    control={form.control}
+                    name="category"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Category</FormLabel>
+                        <FormControl>
+                          <Input placeholder="e.g., Burgers, Salads" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  
+                  <FormField
+                    control={form.control}
+                    name="price"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Price</FormLabel>
+                        <FormControl>
+                          <Input placeholder="e.g., 10.99" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  
+                  <FormField
+                    control={form.control}
+                    name="status"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Status</FormLabel>
+                        <div className="flex gap-4">
+                          <FormItem className="flex items-center space-x-2">
+                            <FormControl>
+                              <input
+                                type="radio"
+                                value="Active"
+                                checked={field.value === "Active"}
+                                onChange={() => field.onChange("Active")}
+                                className="text-primary"
+                              />
+                            </FormControl>
+                            <FormLabel className="font-normal cursor-pointer">Active</FormLabel>
+                          </FormItem>
+                          <FormItem className="flex items-center space-x-2">
+                            <FormControl>
+                              <input
+                                type="radio"
+                                value="Inactive"
+                                checked={field.value === "Inactive"}
+                                onChange={() => field.onChange("Inactive")}
+                                className="text-primary"
+                              />
+                            </FormControl>
+                            <FormLabel className="font-normal cursor-pointer">Inactive</FormLabel>
+                          </FormItem>
+                        </div>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  
+                  <FormField
+                    control={form.control}
+                    name="hasToppings"
+                    render={({ field }) => (
+                      <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
+                        <FormControl>
+                          <Checkbox
+                            checked={field.value}
+                            onCheckedChange={field.onChange}
                           />
                         </FormControl>
-                        <FormLabel className="font-normal cursor-pointer">Active</FormLabel>
+                        <div className="space-y-1 leading-none">
+                          <FormLabel>Allow Toppings</FormLabel>
+                          <FormDescription>
+                            Enable this to allow customers to add toppings to this item
+                          </FormDescription>
+                        </div>
                       </FormItem>
-                      <FormItem className="flex items-center space-x-2">
-                        <FormControl>
-                          <input
-                            type="radio"
-                            value="Inactive"
-                            checked={field.value === "Inactive"}
-                            onChange={() => field.onChange("Inactive")}
-                            className="text-primary"
-                          />
-                        </FormControl>
-                        <FormLabel className="font-normal cursor-pointer">Inactive</FormLabel>
-                      </FormItem>
-                    </div>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              <FormField
-                control={form.control}
-                name="hasToppings"
-                render={({ field }) => (
-                  <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
-                    <FormControl>
-                      <Checkbox
-                        checked={field.value}
-                        onCheckedChange={field.onChange}
-                      />
-                    </FormControl>
-                    <div className="space-y-1 leading-none">
-                      <FormLabel>Allow Toppings</FormLabel>
-                      <FormDescription>
-                        Enable this to allow customers to add toppings to this item
-                      </FormDescription>
-                    </div>
-                  </FormItem>
-                )}
-              />
-              
-              {form.watch("hasToppings") && (
-                <FormField
-                  control={form.control}
-                  name="availableToppings"
-                  render={() => (
-                    <FormItem>
-                      <div className="mb-4">
-                        <FormLabel className="text-base">Available Toppings</FormLabel>
-                        <FormDescription>
-                          Select which toppings can be added to this item
-                        </FormDescription>
-                      </div>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        {mockToppings.map((topping) => (
-                          <FormField
-                            key={topping.id}
-                            control={form.control}
-                            name="availableToppings"
-                            render={({ field }) => {
-                              return (
-                                <FormItem
-                                  key={topping.id}
-                                  className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-3"
-                                >
-                                  <FormControl>
-                                    <Checkbox
-                                      checked={field.value?.includes(topping.id)}
-                                      onCheckedChange={(checked) => {
-                                        const current = Array.isArray(field.value) ? field.value : []
-                                        return checked
-                                          ? field.onChange([...current, topping.id])
-                                          : field.onChange(
-                                              current.filter((value) => value !== topping.id)
-                                            )
-                                      }}
-                                    />
-                                  </FormControl>
-                                  <div className="space-y-1 leading-none">
-                                    <FormLabel className="font-medium">
-                                      {topping.name}
-                                    </FormLabel>
-                                    <FormDescription>
-                                      ${topping.price.toFixed(2)} - {topping.category}
-                                    </FormDescription>
-                                  </div>
-                                </FormItem>
-                              )
-                            }}
-                          />
-                        ))}
-                      </div>
-                      <FormMessage />
-                    </FormItem>
+                    )}
+                  />
+                  
+                  {form.watch("hasToppings") && (
+                    <FormField
+                      control={form.control}
+                      name="availableToppings"
+                      render={() => (
+                        <FormItem>
+                          <div className="mb-4">
+                            <FormLabel className="text-base">Available Toppings</FormLabel>
+                            <FormDescription>
+                              Select which toppings can be added to this item
+                            </FormDescription>
+                          </div>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            {mockToppings.map((topping) => (
+                              <FormField
+                                key={topping.id}
+                                control={form.control}
+                                name="availableToppings"
+                                render={({ field }) => {
+                                  return (
+                                    <FormItem
+                                      key={topping.id}
+                                      className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-3"
+                                    >
+                                      <FormControl>
+                                        <Checkbox
+                                          checked={field.value?.includes(topping.id)}
+                                          onCheckedChange={(checked) => {
+                                            const current = Array.isArray(field.value) ? field.value : []
+                                            return checked
+                                              ? field.onChange([...current, topping.id])
+                                              : field.onChange(
+                                                  current.filter((value) => value !== topping.id)
+                                                )
+                                          }}
+                                        />
+                                      </FormControl>
+                                      <div className="space-y-1 leading-none">
+                                        <FormLabel className="font-medium">
+                                          {topping.name}
+                                        </FormLabel>
+                                        <FormDescription>
+                                          ${topping.price.toFixed(2)} - {topping.category}
+                                        </FormDescription>
+                                      </div>
+                                    </FormItem>
+                                  )
+                                }}
+                              />
+                            ))}
+                          </div>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
                   )}
-                />
-              )}
-              
-              <DialogFooter>
-                <DialogClose asChild>
-                  <Button variant="outline">Cancel</Button>
-                </DialogClose>
-                <Button type="submit">{editItem ? 'Update' : 'Add'} Menu Item</Button>
-              </DialogFooter>
-            </form>
-          </Form>
+                  
+                  <DialogFooter>
+                    <DialogClose asChild>
+                      <Button variant="outline">Cancel</Button>
+                    </DialogClose>
+                    <Button type="submit" form={form.formState.form?.id}>{editItem ? 'Update' : 'Add'} Menu Item</Button>
+                  </DialogFooter>
+                </form>
+              </Form>
+            </div>
+          </ScrollArea>
         </DialogContent>
       </Dialog>
     </AdminLayout>
