@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import AdminLayout from '../../components/admin/AdminLayout';
 import { 
   Table, 
@@ -37,16 +37,19 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 
 // Define the ToppingCategory interface
 interface ToppingCategory {
   id: number;
   name: string;
-  minSelection: number;
-  maxSelection: number;
+  min_selection: number;
+  max_selection: number;
   description: string;
   required: boolean;
 }
@@ -57,87 +60,24 @@ interface Topping {
   name: string;
   price: number;
   available: boolean;
-  categoryId: number;
-  maxQuantity: number;
+  category_id: number;
+  max_quantity: number;
 }
-
-// Initial mock data for topping categories
-const mockCategories: ToppingCategory[] = [
-  { 
-    id: 1, 
-    name: "Sauces", 
-    minSelection: 1, 
-    maxSelection: 2, 
-    description: "Choose your favorite sauce", 
-    required: true 
-  },
-  { 
-    id: 2, 
-    name: "Vegetables", 
-    minSelection: 0, 
-    maxSelection: 5, 
-    description: "Add some veggies", 
-    required: false 
-  },
-  { 
-    id: 3, 
-    name: "Cheese", 
-    minSelection: 0, 
-    maxSelection: 3, 
-    description: "Extra cheese options", 
-    required: false 
-  },
-  { 
-    id: 4, 
-    name: "Meat", 
-    minSelection: 0, 
-    maxSelection: 3, 
-    description: "Premium meat toppings", 
-    required: false 
-  }
-];
-
-// Initial mock data for toppings based on categories
-const mockToppings: Topping[] = [
-  // Sauces
-  { id: 1, name: "Tomato Sauce", price: 0.50, available: true, categoryId: 1, maxQuantity: 1 },
-  { id: 2, name: "BBQ Sauce", price: 0.75, available: true, categoryId: 1, maxQuantity: 1 },
-  { id: 3, name: "Ranch", price: 0.75, available: true, categoryId: 1, maxQuantity: 1 },
-  { id: 4, name: "Hot Sauce", price: 0.50, available: true, categoryId: 1, maxQuantity: 1 },
-  
-  // Vegetables
-  { id: 5, name: "Mushrooms", price: 1.00, available: true, categoryId: 2, maxQuantity: 2 },
-  { id: 6, name: "Onions", price: 0.75, available: true, categoryId: 2, maxQuantity: 2 },
-  { id: 7, name: "Bell Peppers", price: 0.75, available: true, categoryId: 2, maxQuantity: 2 },
-  { id: 8, name: "Jalapeños", price: 1.00, available: true, categoryId: 2, maxQuantity: 2 },
-  { id: 9, name: "Olives", price: 0.75, available: true, categoryId: 2, maxQuantity: 2 },
-  
-  // Cheese
-  { id: 10, name: "Mozzarella", price: 1.50, available: true, categoryId: 3, maxQuantity: 2 },
-  { id: 11, name: "Cheddar", price: 1.50, available: true, categoryId: 3, maxQuantity: 2 },
-  { id: 12, name: "Parmesan", price: 1.75, available: true, categoryId: 3, maxQuantity: 2 },
-  
-  // Meat
-  { id: 13, name: "Pepperoni", price: 2.00, available: true, categoryId: 4, maxQuantity: 3 },
-  { id: 14, name: "Bacon", price: 2.50, available: true, categoryId: 4, maxQuantity: 3 },
-  { id: 15, name: "Ham", price: 2.00, available: true, categoryId: 4, maxQuantity: 3 },
-  { id: 16, name: "Chicken", price: 2.50, available: true, categoryId: 4, maxQuantity: 3 }
-];
 
 // Form schema for topping validation
 const toppingFormSchema = z.object({
   name: z.string().min(2, { message: "Name must be at least 2 characters." }),
   price: z.coerce.number().min(0, { message: "Price must be a positive number." }),
-  categoryId: z.coerce.number().min(1, { message: "Category is required." }),
+  category_id: z.coerce.number().min(1, { message: "Category is required." }),
   available: z.boolean().default(true),
-  maxQuantity: z.coerce.number().min(1, { message: "Max quantity must be at least 1." }).max(10, { message: "Max quantity cannot exceed 10." })
+  max_quantity: z.coerce.number().min(1, { message: "Max quantity must be at least 1." }).max(10, { message: "Max quantity cannot exceed 10." })
 });
 
 // Form schema for category validation
 const categoryFormSchema = z.object({
   name: z.string().min(2, { message: "Name must be at least 2 characters." }),
-  minSelection: z.coerce.number().min(0, { message: "Minimum selection cannot be negative." }),
-  maxSelection: z.coerce.number().min(1, { message: "Maximum selection must be at least 1." }),
+  min_selection: z.coerce.number().min(0, { message: "Minimum selection cannot be negative." }),
+  max_selection: z.coerce.number().min(1, { message: "Maximum selection must be at least 1." }),
   description: z.string().optional(),
   required: z.boolean().default(false)
 });
@@ -146,23 +86,25 @@ type ToppingFormValues = z.infer<typeof toppingFormSchema>;
 type CategoryFormValues = z.infer<typeof categoryFormSchema>;
 
 const Toppings = () => {
-  const [categories, setCategories] = useState<ToppingCategory[]>(mockCategories);
-  const [toppings, setToppings] = useState<Topping[]>(mockToppings);
+  const [categories, setCategories] = useState<ToppingCategory[]>([]);
+  const [toppings, setToppings] = useState<Topping[]>([]);
   const [editTopping, setEditTopping] = useState<Topping | null>(null);
   const [editCategory, setEditCategory] = useState<ToppingCategory | null>(null);
   const [isAddToppingDialogOpen, setIsAddToppingDialogOpen] = useState(false);
   const [isAddCategoryDialogOpen, setIsAddCategoryDialogOpen] = useState(false);
-  const [expandedCategories, setExpandedCategories] = useState<number[]>(categories.map(c => c.id));
+  const [expandedCategories, setExpandedCategories] = useState<number[]>([]);
   const [filterText, setFilterText] = useState('');
+  const [isLoading, setIsLoading] = useState(true);
+  const { toast } = useToast();
   
   const toppingForm = useForm<ToppingFormValues>({
     resolver: zodResolver(toppingFormSchema),
     defaultValues: {
       name: "",
       price: 0,
-      categoryId: 1,
+      category_id: 1,
       available: true,
-      maxQuantity: 1
+      max_quantity: 1
     },
   });
 
@@ -170,21 +112,102 @@ const Toppings = () => {
     resolver: zodResolver(categoryFormSchema),
     defaultValues: {
       name: "",
-      minSelection: 0,
-      maxSelection: 1,
+      min_selection: 0,
+      max_selection: 1,
       description: "",
       required: false
     },
   });
+
+  const fetchToppingCategories = async () => {
+    try {
+      setIsLoading(true);
+      const { data, error } = await supabase
+        .from('topping_categories')
+        .select('*')
+        .order('name');
+        
+      if (error) {
+        throw error;
+      }
+      
+      const fetchedCategories = data as ToppingCategory[];
+      setCategories(fetchedCategories);
+      
+      // Expand all categories by default
+      setExpandedCategories(fetchedCategories.map(c => c.id));
+    } catch (error) {
+      console.error('Error fetching topping categories:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to load topping categories. Please try again.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+  
+  const fetchToppings = async () => {
+    try {
+      setIsLoading(true);
+      const { data, error } = await supabase
+        .from('toppings')
+        .select('*')
+        .order('name');
+        
+      if (error) {
+        throw error;
+      }
+      
+      setToppings(data as Topping[]);
+    } catch (error) {
+      console.error('Error fetching toppings:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to load toppings. Please try again.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+  
+  useEffect(() => {
+    fetchToppingCategories();
+    fetchToppings();
+    
+    const channel = supabase
+      .channel('toppings-changes')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'toppings' },
+        () => {
+          fetchToppings();
+        }
+      )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'topping_categories' },
+        () => {
+          fetchToppingCategories();
+        }
+      )
+      .subscribe();
+      
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, []);
 
   const handleEditTopping = (topping: Topping) => {
     setEditTopping(topping);
     toppingForm.reset({
       name: topping.name,
       price: topping.price,
-      categoryId: topping.categoryId,
+      category_id: topping.category_id,
       available: topping.available,
-      maxQuantity: topping.maxQuantity
+      max_quantity: topping.max_quantity
     });
     setIsAddToppingDialogOpen(true);
   };
@@ -194,9 +217,9 @@ const Toppings = () => {
     toppingForm.reset({
       name: "",
       price: 0,
-      categoryId: 1,
+      category_id: categories.length > 0 ? categories[0].id : 1,
       available: true,
-      maxQuantity: 1
+      max_quantity: 1
     });
     setIsAddToppingDialogOpen(true);
   };
@@ -205,8 +228,8 @@ const Toppings = () => {
     setEditCategory(category);
     categoryForm.reset({
       name: category.name,
-      minSelection: category.minSelection,
-      maxSelection: category.maxSelection,
+      min_selection: category.min_selection,
+      max_selection: category.max_selection,
       description: category.description,
       required: category.required
     });
@@ -217,22 +240,80 @@ const Toppings = () => {
     setEditCategory(null);
     categoryForm.reset({
       name: "",
-      minSelection: 0,
-      maxSelection: 1,
+      min_selection: 0,
+      max_selection: 1,
       description: "",
       required: false
     });
     setIsAddCategoryDialogOpen(true);
   };
 
-  const handleDeleteTopping = (id: number) => {
-    setToppings(toppings.filter(topping => topping.id !== id));
+  const handleDeleteTopping = async (id: number) => {
+    try {
+      const { error } = await supabase
+        .from('toppings')
+        .delete()
+        .eq('id', id);
+        
+      if (error) {
+        throw error;
+      }
+      
+      toast({
+        title: 'Success',
+        description: 'Topping deleted successfully.',
+      });
+      
+      // Optimistic update
+      setToppings(toppings.filter(topping => topping.id !== id));
+    } catch (error) {
+      console.error('Error deleting topping:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to delete topping. Please try again.',
+        variant: 'destructive',
+      });
+    }
   };
 
-  const handleDeleteCategory = (id: number) => {
-    // Delete the category and all its toppings
-    setCategories(categories.filter(category => category.id !== id));
-    setToppings(toppings.filter(topping => topping.categoryId !== id));
+  const handleDeleteCategory = async (id: number) => {
+    try {
+      // Check if there are any toppings using this category
+      const toppingsInCategory = toppings.filter(t => t.category_id === id);
+      
+      if (toppingsInCategory.length > 0) {
+        toast({
+          title: 'Cannot Delete',
+          description: 'This category has toppings. Delete the toppings first or move them to another category.',
+          variant: 'destructive',
+        });
+        return;
+      }
+      
+      const { error } = await supabase
+        .from('topping_categories')
+        .delete()
+        .eq('id', id);
+        
+      if (error) {
+        throw error;
+      }
+      
+      toast({
+        title: 'Success',
+        description: 'Category deleted successfully.',
+      });
+      
+      // Optimistic update
+      setCategories(categories.filter(category => category.id !== id));
+    } catch (error) {
+      console.error('Error deleting category:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to delete category. Please try again.',
+        variant: 'destructive',
+      });
+    }
   };
 
   const toggleCategoryExpansion = (categoryId: number) => {
@@ -243,62 +324,118 @@ const Toppings = () => {
     );
   };
 
-  const onSubmitTopping = (data: ToppingFormValues) => {
-    if (editTopping) {
-      // Update existing topping
-      setToppings(toppings.map(t => 
-        t.id === editTopping.id ? { 
-          ...t, 
-          name: data.name,
-          price: data.price,
-          categoryId: data.categoryId,
-          available: data.available,
-          maxQuantity: data.maxQuantity
-        } : t
-      ));
-    } else {
-      // Add new topping
-      const newTopping: Topping = {
-        id: Math.max(0, ...toppings.map(t => t.id)) + 1,
-        name: data.name,
-        price: data.price,
-        categoryId: data.categoryId,
-        available: data.available,
-        maxQuantity: data.maxQuantity
-      };
-      setToppings([...toppings, newTopping]);
+  const onSubmitTopping = async (data: ToppingFormValues) => {
+    try {
+      if (editTopping) {
+        // Update existing topping
+        const { error } = await supabase
+          .from('toppings')
+          .update({
+            name: data.name,
+            price: data.price,
+            category_id: data.category_id,
+            available: data.available,
+            max_quantity: data.max_quantity
+          })
+          .eq('id', editTopping.id);
+          
+        if (error) {
+          throw error;
+        }
+        
+        toast({
+          title: 'Success',
+          description: 'Topping updated successfully.',
+        });
+      } else {
+        // Add new topping
+        const { error } = await supabase
+          .from('toppings')
+          .insert([{
+            name: data.name,
+            price: data.price,
+            category_id: data.category_id,
+            available: data.available,
+            max_quantity: data.max_quantity
+          }]);
+          
+        if (error) {
+          throw error;
+        }
+        
+        toast({
+          title: 'Success',
+          description: 'Topping added successfully.',
+        });
+      }
+      
+      setIsAddToppingDialogOpen(false);
+      fetchToppings();
+    } catch (error) {
+      console.error('Error saving topping:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to save topping. Please try again.',
+        variant: 'destructive',
+      });
     }
-    setIsAddToppingDialogOpen(false);
   };
 
-  const onSubmitCategory = (data: CategoryFormValues) => {
-    if (editCategory) {
-      // Update existing category
-      setCategories(categories.map(c => 
-        c.id === editCategory.id ? { 
-          ...c, 
-          name: data.name,
-          minSelection: data.minSelection,
-          maxSelection: data.maxSelection,
-          description: data.description || "",
-          required: data.required
-        } : c
-      ));
-    } else {
-      // Add new category
-      const newCategory: ToppingCategory = {
-        id: Math.max(0, ...categories.map(c => c.id)) + 1,
-        name: data.name,
-        minSelection: data.minSelection,
-        maxSelection: data.maxSelection,
-        description: data.description || "",
-        required: data.required
-      };
-      setCategories([...categories, newCategory]);
-      // Expand the new category automatically
-      setExpandedCategories(prev => [...prev, newCategory.id]);
+  const onSubmitCategory = async (data: CategoryFormValues) => {
+    try {
+      if (editCategory) {
+        // Update existing category
+        const { error } = await supabase
+          .from('topping_categories')
+          .update({
+            name: data.name,
+            min_selection: data.min_selection,
+            max_selection: data.max_selection,
+            description: data.description || "",
+            required: data.required
+          })
+          .eq('id', editCategory.id);
+          
+        if (error) {
+          throw error;
+        }
+        
+        toast({
+          title: 'Success',
+          description: 'Category updated successfully.',
+        });
+      } else {
+        // Add new category
+        const { error } = await supabase
+          .from('topping_categories')
+          .insert([{
+            name: data.name,
+            min_selection: data.min_selection,
+            max_selection: data.max_selection,
+            description: data.description || "",
+            required: data.required
+          }]);
+          
+        if (error) {
+          throw error;
+        }
+        
+        toast({
+          title: 'Success',
+          description: 'Category added successfully.',
+        });
+      }
+      
+      setIsAddCategoryDialogOpen(false);
+      fetchToppingCategories();
+    } catch (error) {
+      console.error('Error saving category:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to save category. Please try again.',
+        variant: 'destructive',
+      });
     }
-    setIsAddCategoryDialogOpen(false);
   };
 
   // Filter toppings based on search term
@@ -309,7 +446,7 @@ const Toppings = () => {
   // Filter categories that have matching toppings or match the search term
   const filteredCategories = categories.filter(category => 
     category.name.toLowerCase().includes(filterText.toLowerCase()) ||
-    filteredToppings.some(topping => topping.categoryId === category.id)
+    filteredToppings.some(topping => topping.category_id === category.id)
   );
 
   return (
@@ -322,7 +459,7 @@ const Toppings = () => {
               <Plus className="mr-2 h-4 w-4" />
               Add Category
             </Button>
-            <Button onClick={handleAddTopping}>
+            <Button onClick={handleAddTopping} disabled={categories.length === 0}>
               <Plus className="mr-2 h-4 w-4" />
               Add Topping
             </Button>
@@ -340,108 +477,129 @@ const Toppings = () => {
           />
         </div>
         
-        <div className="space-y-4">
-          {filteredCategories.map((category) => (
-            <div key={category.id} className="border rounded-md">
-              <div 
-                className="flex justify-between items-center p-4 bg-muted/30 cursor-pointer"
-                onClick={() => toggleCategoryExpansion(category.id)}
-              >
-                <div className="flex items-center">
-                  {expandedCategories.includes(category.id) ? 
-                    <ChevronUp className="h-4 w-4 mr-2" /> : 
-                    <ChevronDown className="h-4 w-4 mr-2" />
-                  }
-                  <div>
-                    <h3 className="font-medium">{category.name}</h3>
-                    <p className="text-sm text-muted-foreground">{category.description}</p>
+        {isLoading ? (
+          <div className="flex justify-center py-8">
+            <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary"></div>
+          </div>
+        ) : categories.length === 0 ? (
+          <div className="text-center py-8 border rounded-md">
+            <p className="text-muted-foreground mb-4">No topping categories available</p>
+            <Button onClick={handleAddCategory}>
+              <Plus className="mr-2 h-4 w-4" />
+              Create Your First Category
+            </Button>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {filteredCategories.map((category) => (
+              <div key={category.id} className="border rounded-md">
+                <div 
+                  className="flex justify-between items-center p-4 bg-muted/30 cursor-pointer"
+                  onClick={() => toggleCategoryExpansion(category.id)}
+                >
+                  <div className="flex items-center">
+                    {expandedCategories.includes(category.id) ? 
+                      <ChevronUp className="h-4 w-4 mr-2" /> : 
+                      <ChevronDown className="h-4 w-4 mr-2" />
+                    }
+                    <div>
+                      <h3 className="font-medium">{category.name}</h3>
+                      <p className="text-sm text-muted-foreground">{category.description}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <span className="text-sm text-muted-foreground">
+                      {category.required ? "Required" : "Optional"} 
+                      {` (${category.min_selection}-${category.max_selection} selections)`}
+                    </span>
+                    <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={(e) => {
+                      e.stopPropagation();
+                      handleEditCategory(category);
+                    }}>
+                      <Edit className="h-4 w-4" />
+                    </Button>
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      className="h-8 w-8 p-0 text-red-500 hover:text-red-700 hover:bg-red-50"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDeleteCategory(category.id);
+                      }}
+                    >
+                      <Trash className="h-4 w-4" />
+                    </Button>
                   </div>
                 </div>
-                <div className="flex items-center space-x-2">
-                  <span className="text-sm text-muted-foreground">
-                    {category.required ? "Required" : "Optional"} 
-                    {` (${category.minSelection}-${category.maxSelection} selections)`}
-                  </span>
-                  <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={(e) => {
-                    e.stopPropagation();
-                    handleEditCategory(category);
-                  }}>
-                    <Edit className="h-4 w-4" />
-                  </Button>
-                  <Button 
-                    variant="ghost" 
-                    size="sm" 
-                    className="h-8 w-8 p-0 text-red-500 hover:text-red-700 hover:bg-red-50"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleDeleteCategory(category.id);
-                    }}
-                  >
-                    <Trash className="h-4 w-4" />
-                  </Button>
-                </div>
-              </div>
-              
-              {expandedCategories.includes(category.id) && (
-                <div className="p-4 border-t">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Name</TableHead>
-                        <TableHead>Price</TableHead>
-                        <TableHead>Max Quantity</TableHead>
-                        <TableHead>Status</TableHead>
-                        <TableHead className="text-right">Actions</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {filteredToppings
-                        .filter(topping => topping.categoryId === category.id)
-                        .map((topping) => (
-                          <TableRow key={topping.id}>
-                            <TableCell>{topping.name}</TableCell>
-                            <TableCell>${topping.price.toFixed(2)}</TableCell>
-                            <TableCell>{topping.maxQuantity}</TableCell>
-                            <TableCell>
-                              <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium ${topping.available ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}`}>
-                                {topping.available ? 'Available' : 'Unavailable'}
-                              </span>
-                            </TableCell>
-                            <TableCell className="text-right space-x-2">
-                              <Button variant="outline" size="sm" className="h-8 w-8 p-0" onClick={() => handleEditTopping(topping)}>
-                                <Edit className="h-4 w-4" />
-                              </Button>
-                              <Button 
-                                variant="outline" 
-                                size="sm" 
-                                className="h-8 w-8 p-0 text-red-500 hover:text-red-700"
-                                onClick={() => handleDeleteTopping(topping.id)}
-                              >
-                                <Trash className="h-4 w-4" />
+                
+                {expandedCategories.includes(category.id) && (
+                  <div className="p-4 border-t">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Name</TableHead>
+                          <TableHead>Price</TableHead>
+                          <TableHead>Max Quantity</TableHead>
+                          <TableHead>Status</TableHead>
+                          <TableHead className="text-right">Actions</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {filteredToppings
+                          .filter(topping => topping.category_id === category.id)
+                          .map((topping) => (
+                            <TableRow key={topping.id}>
+                              <TableCell>{topping.name}</TableCell>
+                              <TableCell>${topping.price.toFixed(2)}</TableCell>
+                              <TableCell>{topping.max_quantity}</TableCell>
+                              <TableCell>
+                                <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium ${topping.available ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}`}>
+                                  {topping.available ? 'Available' : 'Unavailable'}
+                                </span>
+                              </TableCell>
+                              <TableCell className="text-right space-x-2">
+                                <Button variant="outline" size="sm" className="h-8 w-8 p-0" onClick={() => handleEditTopping(topping)}>
+                                  <Edit className="h-4 w-4" />
+                                </Button>
+                                <Button 
+                                  variant="outline" 
+                                  size="sm" 
+                                  className="h-8 w-8 p-0 text-red-500 hover:text-red-700"
+                                  onClick={() => handleDeleteTopping(topping.id)}
+                                >
+                                  <Trash className="h-4 w-4" />
+                                </Button>
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        {filteredToppings.filter(t => t.category_id === category.id).length === 0 && (
+                          <TableRow>
+                            <TableCell colSpan={5} className="text-center py-4 text-muted-foreground">
+                              <p className="mb-2">No toppings in this category</p>
+                              <Button variant="outline" size="sm" onClick={() => {
+                                toppingForm.setValue('category_id', category.id);
+                                handleAddTopping();
+                              }}>
+                                <Plus className="mr-2 h-4 w-4" />
+                                Add Topping
                               </Button>
                             </TableCell>
                           </TableRow>
-                        ))}
-                      {filteredToppings.filter(t => t.categoryId === category.id).length === 0 && (
-                        <TableRow>
-                          <TableCell colSpan={5} className="text-center py-4 text-muted-foreground">
-                            No toppings in this category
-                          </TableCell>
-                        </TableRow>
-                      )}
-                    </TableBody>
-                  </Table>
-                </div>
-              )}
-            </div>
-          ))}
-          
-          {filteredCategories.length === 0 && (
-            <div className="text-center py-8 border rounded-md">
-              <p className="text-muted-foreground">No matching categories or toppings found</p>
-            </div>
-          )}
-        </div>
+                        )}
+                      </TableBody>
+                    </Table>
+                  </div>
+                )}
+              </div>
+            ))}
+            
+            {filteredCategories.length === 0 && !isLoading && (
+              <div className="text-center py-8 border rounded-md">
+                <p className="text-muted-foreground">No matching categories or toppings found</p>
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Topping Dialog */}
@@ -469,7 +627,7 @@ const Toppings = () => {
               
               <FormField
                 control={toppingForm.control}
-                name="categoryId"
+                name="category_id"
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Category</FormLabel>
@@ -511,7 +669,7 @@ const Toppings = () => {
               
               <FormField
                 control={toppingForm.control}
-                name="maxQuantity"
+                name="max_quantity"
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Maximum Quantity Per Item</FormLabel>
@@ -595,7 +753,7 @@ const Toppings = () => {
               <div className="grid grid-cols-2 gap-4">
                 <FormField
                   control={categoryForm.control}
-                  name="minSelection"
+                  name="min_selection"
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Minimum Selections</FormLabel>
@@ -609,7 +767,7 @@ const Toppings = () => {
                 
                 <FormField
                   control={categoryForm.control}
-                  name="maxSelection"
+                  name="max_selection"
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Maximum Selections</FormLabel>
