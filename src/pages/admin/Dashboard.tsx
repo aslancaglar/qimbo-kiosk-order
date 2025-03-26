@@ -1,15 +1,44 @@
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect } from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { BarChart, Users, ShoppingBag, DollarSign, RefreshCw } from "lucide-react";
 import AdminLayout from '../../components/admin/AdminLayout';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from "@/integrations/supabase/client";
 import { format } from 'date-fns';
 import { Order } from '@/types/orders';
 import { Badge } from "@/components/ui/badge";
+import { enableRealtimeForTables } from "@/utils/enableRealtimeForTables";
 
 const Dashboard = () => {
+  const queryClient = useQueryClient();
+
+  // Setup realtime subscription
+  useEffect(() => {
+    // Enable realtime functionality for tables
+    const setup = async () => {
+      await enableRealtimeForTables();
+    };
+    setup();
+
+    // Set up specific dashboard subscription for immediate updates
+    const channel = supabase
+      .channel('dashboard-orders-changes')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'orders' },
+        () => {
+          console.log('Dashboard detected order changes, refreshing data');
+          queryClient.invalidateQueries({ queryKey: ['dashboard-orders'] });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [queryClient]);
+
   const { data: orders = [], isLoading: isLoadingOrders } = useQuery({
     queryKey: ['dashboard-orders'],
     queryFn: async () => {
@@ -24,9 +53,9 @@ const Dashboard = () => {
         throw error;
       }
       
+      console.log('Dashboard fetched orders:', data);
       return data as Order[];
     },
-    refetchInterval: 30000, // Refresh every 30 seconds
   });
 
   // Calculate stats from real data

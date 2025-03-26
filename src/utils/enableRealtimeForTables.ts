@@ -7,32 +7,20 @@ import { supabase } from "@/integrations/supabase/client";
  */
 export const enableRealtimeForTables = async () => {
   try {
+    console.log('Setting up realtime for tables...');
+    
     // Enable real-time for orders table by listening to the relevant channel
     const ordersChannel = supabase
       .channel('orders-changes')
       .on(
         'postgres_changes',
-        { event: 'INSERT', schema: 'public', table: 'orders' },
+        { event: '*', schema: 'public', table: 'orders' },
         (payload) => {
-          console.log('Real-time notification received:', payload);
-        }
-      )
-      .on(
-        'postgres_changes',
-        { event: 'UPDATE', schema: 'public', table: 'orders' },
-        (payload) => {
-          console.log('Order updated:', payload);
-        }
-      )
-      .on(
-        'postgres_changes',
-        { event: 'DELETE', schema: 'public', table: 'orders' },
-        (payload) => {
-          console.log('Order deleted:', payload);
+          console.log('Real-time order notification received:', payload);
         }
       )
       .subscribe((status) => {
-        console.log('Realtime subscription status:', status);
+        console.log('Orders realtime subscription status:', status);
       });
     
     // Enable real-time for menu_items table
@@ -40,23 +28,9 @@ export const enableRealtimeForTables = async () => {
       .channel('menu-items-changes')
       .on(
         'postgres_changes',
-        { event: 'INSERT', schema: 'public', table: 'menu_items' },
+        { event: '*', schema: 'public', table: 'menu_items' },
         (payload) => {
-          console.log('New menu item added:', payload);
-        }
-      )
-      .on(
-        'postgres_changes',
-        { event: 'UPDATE', schema: 'public', table: 'menu_items' },
-        (payload) => {
-          console.log('Menu item updated:', payload);
-        }
-      )
-      .on(
-        'postgres_changes',
-        { event: 'DELETE', schema: 'public', table: 'menu_items' },
-        (payload) => {
-          console.log('Menu item deleted:', payload);
+          console.log('Menu item change notification:', payload);
         }
       )
       .subscribe((status) => {

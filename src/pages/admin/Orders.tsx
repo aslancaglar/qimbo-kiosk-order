@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import AdminLayout from '../../components/admin/AdminLayout';
 import { Input } from "@/components/ui/input";
 import { 
@@ -28,6 +28,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Order } from '@/types/orders';
 import { toast } from "@/components/ui/use-toast";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { enableRealtimeForTables } from "@/utils/enableRealtimeForTables";
 
 const Orders = () => {
   const [searchTerm, setSearchTerm] = useState('');
@@ -35,6 +36,42 @@ const Orders = () => {
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [isOrderDetailsOpen, setIsOrderDetailsOpen] = useState(false);
   const [autoRefresh, setAutoRefresh] = useState(true);
+  const queryClient = useQueryClient();
+
+  // Set up realtime subscription
+  useEffect(() => {
+    // Enable realtime functionality for tables
+    const setup = async () => {
+      await enableRealtimeForTables();
+    };
+    setup();
+
+    const channel = supabase
+      .channel('orders-page-changes')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'orders' },
+        (payload) => {
+          console.log('Orders page detected order changes:', payload);
+          
+          // Show toast for new orders
+          if (payload.eventType === 'INSERT') {
+            toast({
+              title: "New Order Received",
+              description: `Order #${payload.new.id} has been created`,
+            });
+          }
+          
+          // Invalidate and refetch orders data
+          queryClient.invalidateQueries({ queryKey: ['orders'] });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [queryClient]);
 
   const { data: orders = [], isLoading, isError, refetch } = useQuery({
     queryKey: ['orders'],
@@ -59,35 +96,6 @@ const Orders = () => {
     },
     refetchInterval: autoRefresh ? 10000 : false,
   });
-
-  useEffect(() => {
-    const channel = supabase
-      .channel('orders-changes')
-      .on(
-        'postgres_changes',
-        { event: 'INSERT', schema: 'public', table: 'orders' },
-        (payload) => {
-          console.log('New order received:', payload);
-          toast({
-            title: "New Order Received",
-            description: `Order #${payload.new.id} has been created`,
-          });
-          refetch();
-        }
-      )
-      .on(
-        'postgres_changes',
-        { event: 'UPDATE', schema: 'public', table: 'orders' },
-        () => {
-          refetch();
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [refetch]);
 
   const filteredOrders = orders.filter(order => {
     const matchesSearch = searchTerm === '' || 
@@ -272,7 +280,7 @@ const Orders = () => {
         ) : (
           <div className="relative flex-1 overflow-hidden border rounded-md">
             <ScrollArea className="h-[calc(100vh-280px)] min-h-[400px] w-full">
-              <div className="w-full overflow-auto">
+              <div className="min-w-full overflow-auto">
                 <Table>
                   <TableHeader className="sticky top-0 bg-white z-10">
                     <TableRow>
