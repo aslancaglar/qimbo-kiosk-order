@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import AdminLayout from '../../components/admin/AdminLayout';
@@ -36,7 +35,6 @@ const Orders = () => {
   const [isOrderDetailsOpen, setIsOrderDetailsOpen] = useState(false);
   const [autoRefresh, setAutoRefresh] = useState(true);
 
-  // Fetch orders from Supabase
   const { data: orders = [], isLoading, isError, refetch } = useQuery({
     queryKey: ['orders'],
     queryFn: async () => {
@@ -58,12 +56,10 @@ const Orders = () => {
       console.log('Fetched orders:', data);
       return data as Order[];
     },
-    refetchInterval: autoRefresh ? 10000 : false, // Auto-refresh every 10 seconds if enabled
+    refetchInterval: autoRefresh ? 10000 : false,
   });
 
-  // Set up real-time subscription for new orders
   useEffect(() => {
-    // Subscribe to changes in the orders table
     const channel = supabase
       .channel('orders-changes')
       .on(
@@ -75,25 +71,23 @@ const Orders = () => {
             title: "New Order Received",
             description: `Order #${payload.new.id} has been created`,
           });
-          refetch(); // Refresh the orders list when a new order is received
+          refetch();
         }
       )
       .on(
         'postgres_changes',
         { event: 'UPDATE', schema: 'public', table: 'orders' },
         () => {
-          refetch(); // Refresh when orders are updated
+          refetch();
         }
       )
       .subscribe();
 
-    // Cleanup subscription on component unmount
     return () => {
       supabase.removeChannel(channel);
     };
   }, [refetch]);
 
-  // Filter orders based on search term and status filter
   const filteredOrders = orders.filter(order => {
     const matchesSearch = searchTerm === '' || 
       order.id.toString().includes(searchTerm) ||
@@ -125,14 +119,12 @@ const Orders = () => {
 
   const formatDate = (dateString: string) => {
     try {
-      // First, check if dateString is defined
       if (!dateString) {
         return 'Invalid date';
       }
       
       const date = new Date(dateString);
       
-      // Check if the date is valid
       if (!isValid(date)) {
         return 'Invalid date';
       }
@@ -154,7 +146,6 @@ const Orders = () => {
     }
   };
 
-  // Function to update order status
   const handleUpdateStatus = async (newStatus: string) => {
     if (!selectedOrder) return;
     
@@ -171,13 +162,11 @@ const Orders = () => {
         description: `Order #${selectedOrder.id} status changed to ${newStatus}`,
       });
       
-      // Update local state
       setSelectedOrder({
         ...selectedOrder,
         status: newStatus
       });
       
-      // Refresh orders list
       refetch();
     } catch (error) {
       console.error('Error updating order:', error);
@@ -280,126 +269,127 @@ const Orders = () => {
             <p className="text-gray-500">No orders found matching your criteria.</p>
           </div>
         ) : (
-          <div className="flex-1 h-[calc(100vh-280px)] min-h-[400px]">
-            <ScrollArea className="h-full rounded-md border">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Order ID</TableHead>
-                    <TableHead>Customer</TableHead>
-                    <TableHead>Items</TableHead>
-                    <TableHead>Total</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Time</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredOrders.map((order) => (
-                    <TableRow key={order.id}>
-                      <TableCell className="font-medium">#{order.id}</TableCell>
-                      <TableCell>
-                        {order.customer_type === 'Table' 
-                          ? `Table #${order.table_number}` 
-                          : 'Takeaway'}
-                      </TableCell>
-                      <TableCell>{order.items_count}</TableCell>
-                      <TableCell>${order.total_amount.toFixed(2)}</TableCell>
-                      <TableCell>
-                        <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusClass(order.status)}`}>
-                          {order.status}
-                        </span>
-                      </TableCell>
-                      <TableCell>{formatDate(order.created_at)}</TableCell>
-                      <TableCell className="text-right">
-                        <Button 
-                          variant="outline" 
-                          size="sm"
-                          onClick={() => handleViewOrder(order)}
-                        >
-                          <Eye className="mr-2 h-4 w-4" />
-                          View
-                        </Button>
-                      </TableCell>
+          <div className="flex-1 h-[calc(100vh-280px)] min-h-[400px] overflow-hidden">
+            <ScrollArea className="h-full w-full rounded-md border">
+              <div className="min-w-full">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Order ID</TableHead>
+                      <TableHead>Customer</TableHead>
+                      <TableHead>Items</TableHead>
+                      <TableHead>Total</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Time</TableHead>
+                      <TableHead className="text-right">Actions</TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredOrders.map((order) => (
+                      <TableRow key={order.id}>
+                        <TableCell className="font-medium">#{order.id}</TableCell>
+                        <TableCell>
+                          {order.customer_type === 'Table' 
+                            ? `Table #${order.table_number}` 
+                            : 'Takeaway'}
+                        </TableCell>
+                        <TableCell>{order.items_count}</TableCell>
+                        <TableCell>${order.total_amount.toFixed(2)}</TableCell>
+                        <TableCell>
+                          <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusClass(order.status)}`}>
+                            {order.status}
+                          </span>
+                        </TableCell>
+                        <TableCell>{formatDate(order.created_at)}</TableCell>
+                        <TableCell className="text-right">
+                          <Button 
+                            variant="outline" 
+                            size="sm"
+                            onClick={() => handleViewOrder(order)}
+                          >
+                            <Eye className="mr-2 h-4 w-4" />
+                            View
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
             </ScrollArea>
           </div>
         )}
-      </div>
-
-      {/* Order Details Sheet */}
-      <Sheet open={isOrderDetailsOpen} onOpenChange={setIsOrderDetailsOpen}>
-        <SheetContent className="sm:max-w-md overflow-y-auto">
-          <SheetHeader>
-            <SheetTitle>Order #{selectedOrder?.id}</SheetTitle>
-            <SheetDescription>
-              {selectedOrder?.customer_type === 'Table' 
-                ? `Table #${selectedOrder.table_number}` 
-                : 'Takeaway'} · {selectedOrder ? formatDate(selectedOrder.created_at) : ''}
-            </SheetDescription>
-          </SheetHeader>
-          
-          <div className="py-6">
-            <div className="mb-4">
-              <span className={`px-2.5 py-1 rounded-full text-sm font-medium ${selectedOrder ? getStatusClass(selectedOrder.status) : ''}`}>
-                {selectedOrder?.status}
-              </span>
-            </div>
+        
+        <Sheet open={isOrderDetailsOpen} onOpenChange={setIsOrderDetailsOpen}>
+          <SheetContent className="sm:max-w-md overflow-y-auto">
+            <SheetHeader>
+              <SheetTitle>Order #{selectedOrder?.id}</SheetTitle>
+              <SheetDescription>
+                {selectedOrder?.customer_type === 'Table' 
+                  ? `Table #${selectedOrder.table_number}` 
+                  : 'Takeaway'} · {selectedOrder ? formatDate(selectedOrder.created_at) : ''}
+              </SheetDescription>
+            </SheetHeader>
             
-            <Separator className="my-4" />
-            
-            <div className="flex flex-col gap-4">
-              <div>
-                <h3 className="text-sm font-semibold mb-2">Order Summary</h3>
-                <p className="text-sm">Total Items: {selectedOrder?.items_count}</p>
-                <p className="text-sm">Total Amount: ${selectedOrder?.total_amount.toFixed(2)}</p>
+            <div className="py-6">
+              <div className="mb-4">
+                <span className={`px-2.5 py-1 rounded-full text-sm font-medium ${selectedOrder ? getStatusClass(selectedOrder.status) : ''}`}>
+                  {selectedOrder?.status}
+                </span>
               </div>
               
-              <Separator />
+              <Separator className="my-4" />
               
-              <div className="flex flex-col gap-2">
-                <h3 className="text-sm font-semibold">Update Status</h3>
-                <div className="flex flex-wrap gap-2">
-                  <Button 
-                    size="sm" 
-                    variant={selectedOrder?.status === 'In Progress' ? 'default' : 'outline'}
-                    onClick={() => handleUpdateStatus('In Progress')}
-                  >
-                    In Progress
-                  </Button>
-                  <Button 
-                    size="sm" 
-                    variant={selectedOrder?.status === 'Completed' ? 'default' : 'outline'}
-                    onClick={() => handleUpdateStatus('Completed')}
-                    className="bg-green-600 hover:bg-green-700 text-white"
-                  >
-                    Completed
-                  </Button>
-                  <Button 
-                    size="sm" 
-                    variant={selectedOrder?.status === 'Cancelled' ? 'default' : 'outline'}
-                    onClick={() => handleUpdateStatus('Cancelled')}
-                    className="bg-red-600 hover:bg-red-700 text-white"
-                  >
-                    Cancelled
+              <div className="flex flex-col gap-4">
+                <div>
+                  <h3 className="text-sm font-semibold mb-2">Order Summary</h3>
+                  <p className="text-sm">Total Items: {selectedOrder?.items_count}</p>
+                  <p className="text-sm">Total Amount: ${selectedOrder?.total_amount.toFixed(2)}</p>
+                </div>
+                
+                <Separator />
+                
+                <div className="flex flex-col gap-2">
+                  <h3 className="text-sm font-semibold">Update Status</h3>
+                  <div className="flex flex-wrap gap-2">
+                    <Button 
+                      size="sm" 
+                      variant={selectedOrder?.status === 'In Progress' ? 'default' : 'outline'}
+                      onClick={() => handleUpdateStatus('In Progress')}
+                    >
+                      In Progress
+                    </Button>
+                    <Button 
+                      size="sm" 
+                      variant={selectedOrder?.status === 'Completed' ? 'default' : 'outline'}
+                      onClick={() => handleUpdateStatus('Completed')}
+                      className="bg-green-600 hover:bg-green-700 text-white"
+                    >
+                      Completed
+                    </Button>
+                    <Button 
+                      size="sm" 
+                      variant={selectedOrder?.status === 'Cancelled' ? 'default' : 'outline'}
+                      onClick={() => handleUpdateStatus('Cancelled')}
+                      className="bg-red-600 hover:bg-red-700 text-white"
+                    >
+                      Cancelled
+                    </Button>
+                  </div>
+                </div>
+                
+                <Separator />
+                
+                <div className="flex justify-between">
+                  <Button variant="outline" asChild>
+                    <SheetClose>Close</SheetClose>
                   </Button>
                 </div>
               </div>
-              
-              <Separator />
-              
-              <div className="flex justify-between">
-                <Button variant="outline" asChild>
-                  <SheetClose>Close</SheetClose>
-                </Button>
-              </div>
             </div>
-          </div>
-        </SheetContent>
-      </Sheet>
+          </SheetContent>
+        </Sheet>
+      </div>
     </AdminLayout>
   );
 };
