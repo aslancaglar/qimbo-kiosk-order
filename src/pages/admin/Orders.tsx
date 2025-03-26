@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import AdminLayout from '../../components/admin/AdminLayout';
@@ -11,7 +12,7 @@ import {
   TableCell 
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Search, Filter, Eye, RefreshCw } from "lucide-react";
+import { Search, Filter, Eye, RefreshCw, Plus, Minus } from "lucide-react";
 import { 
   Sheet,
   SheetContent,
@@ -24,7 +25,7 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { format, isValid } from 'date-fns';
 import { supabase } from "@/integrations/supabase/client";
-import { Order } from '@/types/orders';
+import { Order, OrderItem } from '@/types/orders';
 import { toast } from "@/components/ui/use-toast";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
@@ -100,6 +101,84 @@ const Orders = () => {
     refetchOnWindowFocus: true,
     refetchOnMount: true,
     staleTime: 5000,
+  });
+
+  // New query to fetch order details with items and toppings
+  const { data: orderDetails, isLoading: isLoadingDetails, refetch: refetchDetails } = useQuery({
+    queryKey: ['orderDetails', selectedOrder?.id],
+    queryFn: async () => {
+      if (!selectedOrder) return null;
+      
+      console.log(`Fetching details for order #${selectedOrder.id}...`);
+      
+      // Fetch order items with menu item data
+      const { data: orderItems, error: itemsError } = await supabase
+        .from('order_items')
+        .select(`
+          id,
+          order_id,
+          menu_item_id,
+          quantity,
+          price,
+          notes,
+          menu_items:menu_item_id (id, name, category, price, status, has_toppings)
+        `)
+        .eq('order_id', selectedOrder.id);
+      
+      if (itemsError) {
+        console.error('Error fetching order items:', itemsError);
+        toast({
+          title: "Error fetching order items",
+          description: itemsError.message,
+          variant: "destructive",
+        });
+        throw itemsError;
+      }
+      
+      // Format the orderItems to match our types
+      const formattedItems: OrderItem[] = orderItems.map(item => ({
+        id: item.id,
+        order_id: item.order_id,
+        menu_item_id: item.menu_item_id,
+        quantity: item.quantity,
+        price: item.price,
+        notes: item.notes,
+        menu_item: item.menu_items,
+        toppings: []
+      }));
+      
+      // For each order item, fetch its toppings
+      for (const item of formattedItems) {
+        const { data: toppings, error: toppingsError } = await supabase
+          .from('order_item_toppings')
+          .select(`
+            id,
+            order_item_id,
+            topping_id,
+            price,
+            toppings:topping_id (id, name, category, price, available)
+          `)
+          .eq('order_item_id', item.id);
+          
+        if (toppingsError) {
+          console.error(`Error fetching toppings for item #${item.id}:`, toppingsError);
+          continue;
+        }
+        
+        // Map the toppings to our format
+        item.toppings = toppings.map(t => ({
+          id: t.id,
+          order_item_id: t.order_item_id,
+          topping_id: t.topping_id,
+          price: t.price,
+          topping: t.toppings
+        }));
+      }
+      
+      console.log('Fetched order details:', formattedItems);
+      return formattedItems;
+    },
+    enabled: !!selectedOrder,
   });
 
   const filteredOrders = orders.filter(order => {
@@ -365,6 +444,66 @@ const Orders = () => {
                   <h3 className="text-sm font-semibold mb-2">Order Summary</h3>
                   <p className="text-sm">Total Items: {selectedOrder?.items_count}</p>
                   <p className="text-sm">Total Amount: ${selectedOrder?.total_amount.toFixed(2)}</p>
+                </div>
+                
+                <Separator />
+                
+                {/* Order Items with Toppings */}
+                <div className="space-y-4">
+                  <h3 className="text-sm font-semibold">Order Items</h3>
+                  
+                  {isLoadingDetails ? (
+                    <div className="py-4 flex justify-center">
+                      <RefreshCw className="h-5 w-5 animate-spin text-primary" />
+                    </div>
+                  ) : orderDetails && orderDetails.length > 0 ? (
+                    <ScrollArea className="h-[280px]">
+                      <div className="space-y-4">
+                        {orderDetails.map((item) => (
+                          <div 
+                            key={item.id} 
+                            className="border rounded-md p-3 bg-background/50"
+                          >
+                            <div className="flex justify-between items-start">
+                              <div>
+                                <p className="font-medium">
+                                  {item.quantity}x {item.menu_item?.name}
+                                </p>
+                                <p className="text-sm text-muted-foreground">
+                                  ${item.price.toFixed(2)}
+                                </p>
+                                {item.notes && (
+                                  <p className="text-sm mt-1 italic text-muted-foreground">
+                                    Note: {item.notes}
+                                  </p>
+                                )}
+                              </div>
+                              <p className="font-medium">
+                                ${(item.price * item.quantity).toFixed(2)}
+                              </p>
+                            </div>
+                            
+                            {/* Toppings */}
+                            {item.toppings && item.toppings.length > 0 && (
+                              <div className="mt-2 pl-4 border-l-2 border-muted">
+                                <p className="text-xs text-muted-foreground mb-1">Toppings:</p>
+                                <div className="space-y-1">
+                                  {item.toppings.map((topping) => (
+                                    <div key={topping.id} className="flex justify-between text-sm">
+                                      <span>{topping.topping?.name}</span>
+                                      <span>${topping.price.toFixed(2)}</span>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </ScrollArea>
+                  ) : (
+                    <p className="text-sm text-muted-foreground py-2">No items found.</p>
+                  )}
                 </div>
                 
                 <Separator />

@@ -16,6 +16,8 @@ export interface OrderItem {
   quantity: number;
   price: number;
   notes: string | null;
+  menu_item?: MenuItem;
+  toppings?: OrderItemTopping[];
 }
 
 export interface OrderItemTopping {
@@ -23,6 +25,7 @@ export interface OrderItemTopping {
   order_item_id: number;
   topping_id: number;
   price: number;
+  topping?: Topping;
 }
 
 export interface MenuItem {
