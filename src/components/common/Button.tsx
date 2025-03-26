@@ -1,18 +1,16 @@
 
 import React from 'react';
-import { motion, HTMLMotionProps } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
 
-interface ButtonProps extends Omit<React.ButtonHTMLAttributes<HTMLButtonElement>, 'disabled'> {
+interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: 'primary' | 'secondary' | 'outline' | 'ghost' | 'link';
   size?: 'sm' | 'md' | 'lg' | 'icon' | 'full';
   isLoading?: boolean;
   icon?: React.ReactNode;
   iconPosition?: 'left' | 'right';
+  disabled?: boolean;
 }
-
-// Create a fixed type for the motion button that we'll use
-const MotionButton = motion.button;
 
 const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
   ({ 
@@ -43,7 +41,7 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
     };
 
     return (
-      <MotionButton
+      <motion.button
         ref={ref}
         whileTap={{ scale: 0.98 }}
         whileHover={{ scale: 1.02 }}
@@ -85,7 +83,7 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
           {children}
           {icon && iconPosition === 'right' && <span>{icon}</span>}
         </span>
-      </MotionButton>
+      </motion.button>
     );
   }
 );
