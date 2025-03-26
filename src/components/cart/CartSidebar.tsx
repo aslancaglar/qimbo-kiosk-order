@@ -2,7 +2,8 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Button from '../common/Button';
-import CartItem, { CartItemType } from './CartItem';
+import CartItem from './CartItem';
+import { CartItemType } from './types';
 import { ShoppingBag, X } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 

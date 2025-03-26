@@ -5,7 +5,8 @@ import { motion } from 'framer-motion';
 import Layout from '../layout/Layout';
 import CategorySelector from './CategorySelector';
 import ProductCard, { Product } from './ProductCard';
-import CartSidebar, { CartItemType } from '../cart/CartSidebar';
+import CartSidebar from '../cart/CartSidebar';
+import { CartItemType } from '../cart/types';
 import Button from '../common/Button';
 import { ShoppingBag, Home } from 'lucide-react';
 

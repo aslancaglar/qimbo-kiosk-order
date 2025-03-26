@@ -1,14 +1,7 @@
-
 import React from 'react';
 import { motion } from 'framer-motion';
 import { X, Minus, Plus } from 'lucide-react';
-import { Product } from '../menu/ProductCard';
-
-export interface CartItemType {
-  product: Product;
-  quantity: number;
-  options?: { name: string; value: string }[];
-}
+import { CartItemType } from './types';
 
 interface CartItemProps {
   item: CartItemType;
