@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import Button from '../common/Button';
@@ -341,7 +342,9 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onSelect }) => {
                             <div key={topping.id} className="flex justify-between items-center py-2">
                               <div>
                                 <p className="font-medium">{topping.name}</p>
-                                <p className="text-sm text-gray-500">${topping.price.toFixed(2)}</p>
+                                {topping.price > 0 && (
+                                  <p className="text-sm text-gray-500">${topping.price.toFixed(2)}</p>
+                                )}
                               </div>
                               
                               {quantity === 0 ? (
