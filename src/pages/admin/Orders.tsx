@@ -36,7 +36,6 @@ const Orders = () => {
   const [autoRefresh, setAutoRefresh] = useState(true);
   const queryClient = useQueryClient();
 
-  // Set up realtime subscription for immediate updates
   useEffect(() => {
     console.log('Setting up realtime subscription for orders page...');
     
@@ -48,14 +47,12 @@ const Orders = () => {
         (payload) => {
           console.log('Orders page detected order changes:', payload);
           
-          // Show toast for new orders
           if (payload.eventType === 'INSERT') {
             toast({
               title: "New Order Received",
               description: `Order #${payload.new.id} has been created`,
             });
             
-            // Invalidate and refetch orders data
             queryClient.invalidateQueries({ queryKey: ['orders'] });
           } else if (payload.eventType === 'UPDATE') {
             toast({
@@ -102,10 +99,9 @@ const Orders = () => {
     refetchInterval: autoRefresh ? 10000 : false,
     refetchOnWindowFocus: true,
     refetchOnMount: true,
-    staleTime: 5000, // Consider data stale after 5 seconds
+    staleTime: 5000,
   });
 
-  // Filter orders based on search term and selected status
   const filteredOrders = orders.filter(order => {
     const matchesSearch = searchTerm === '' || 
       order.id.toString().includes(searchTerm) ||
@@ -181,13 +177,11 @@ const Orders = () => {
         description: `Order #${selectedOrder.id} status changed to ${newStatus}`,
       });
       
-      // Update the selected order in the UI immediately
       setSelectedOrder({
         ...selectedOrder,
         status: newStatus
       });
       
-      // Refetch to ensure data consistency
       refetch();
     } catch (error) {
       console.error('Error updating order:', error);
@@ -299,7 +293,7 @@ const Orders = () => {
             <ScrollArea className="h-[calc(100vh-280px)] min-h-[400px] w-full">
               <div className="min-w-full overflow-auto">
                 <Table>
-                  <TableHeader className="sticky top-0 bg-white z-10">
+                  <TableHeader>
                     <TableRow>
                       <TableHead>Order ID</TableHead>
                       <TableHead>Customer</TableHead>
