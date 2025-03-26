@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import AdminLayout from '../../components/admin/AdminLayout';
 import { Input } from "@/components/ui/input";
@@ -33,6 +33,7 @@ const Orders = () => {
   const [selectedStatus, setSelectedStatus] = useState<string | null>(null);
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [isOrderDetailsOpen, setIsOrderDetailsOpen] = useState(false);
+  const [autoRefresh, setAutoRefresh] = useState(true);
 
   // Fetch orders from Supabase
   const { data: orders = [], isLoading, isError, refetch } = useQuery({
@@ -53,9 +54,43 @@ const Orders = () => {
         throw error;
       }
       
+      console.log('Fetched orders:', data);
       return data as Order[];
     },
+    refetchInterval: autoRefresh ? 10000 : false, // Auto-refresh every 10 seconds if enabled
   });
+
+  // Set up real-time subscription for new orders
+  useEffect(() => {
+    // Subscribe to changes in the orders table
+    const channel = supabase
+      .channel('orders-changes')
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'orders' },
+        (payload) => {
+          console.log('New order received:', payload);
+          toast({
+            title: "New Order Received",
+            description: `Order #${payload.new.id} has been created`,
+          });
+          refetch(); // Refresh the orders list when a new order is received
+        }
+      )
+      .on(
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'orders' },
+        () => {
+          refetch(); // Refresh when orders are updated
+        }
+      )
+      .subscribe();
+
+    // Cleanup subscription on component unmount
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [refetch]);
 
   // Filter orders based on search term and status filter
   const filteredOrders = orders.filter(order => {
@@ -118,6 +153,41 @@ const Orders = () => {
     }
   };
 
+  // Function to update order status
+  const handleUpdateStatus = async (newStatus: string) => {
+    if (!selectedOrder) return;
+    
+    try {
+      const { error } = await supabase
+        .from('orders')
+        .update({ status: newStatus })
+        .eq('id', selectedOrder.id);
+      
+      if (error) throw error;
+      
+      toast({
+        title: "Order Updated",
+        description: `Order #${selectedOrder.id} status changed to ${newStatus}`,
+      });
+      
+      // Update local state
+      setSelectedOrder({
+        ...selectedOrder,
+        status: newStatus
+      });
+      
+      // Refresh orders list
+      refetch();
+    } catch (error) {
+      console.error('Error updating order:', error);
+      toast({
+        title: "Update Failed",
+        description: "Could not update order status",
+        variant: "destructive",
+      });
+    }
+  };
+
   return (
     <AdminLayout>
       <div className="space-y-6">
@@ -135,12 +205,20 @@ const Orders = () => {
               {selectedStatus ? `Filter: ${selectedStatus}` : 'All Orders'}
             </Button>
             <Button 
+              variant={autoRefresh ? "default" : "outline"}
+              onClick={() => setAutoRefresh(!autoRefresh)}
+              className="mr-2"
+            >
+              <RefreshCw className={`mr-2 h-4 w-4 ${autoRefresh ? 'animate-spin animate-duration-[4s]' : ''}`} />
+              {autoRefresh ? 'Auto-refresh On' : 'Auto-refresh Off'}
+            </Button>
+            <Button 
               variant="outline" 
               onClick={() => refetch()}
               disabled={isLoading}
             >
               <RefreshCw className={`mr-2 h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
-              Refresh
+              Refresh Now
             </Button>
           </div>
         </div>
@@ -279,12 +357,40 @@ const Orders = () => {
               
               <Separator />
               
+              <div className="flex flex-col gap-2">
+                <h3 className="text-sm font-semibold">Update Status</h3>
+                <div className="flex flex-wrap gap-2">
+                  <Button 
+                    size="sm" 
+                    variant={selectedOrder?.status === 'In Progress' ? 'default' : 'outline'}
+                    onClick={() => handleUpdateStatus('In Progress')}
+                  >
+                    In Progress
+                  </Button>
+                  <Button 
+                    size="sm" 
+                    variant={selectedOrder?.status === 'Completed' ? 'default' : 'outline'}
+                    onClick={() => handleUpdateStatus('Completed')}
+                    className="bg-green-600 hover:bg-green-700 text-white"
+                  >
+                    Completed
+                  </Button>
+                  <Button 
+                    size="sm" 
+                    variant={selectedOrder?.status === 'Cancelled' ? 'default' : 'outline'}
+                    onClick={() => handleUpdateStatus('Cancelled')}
+                    className="bg-red-600 hover:bg-red-700 text-white"
+                  >
+                    Cancelled
+                  </Button>
+                </div>
+              </div>
+              
+              <Separator />
+              
               <div className="flex justify-between">
                 <Button variant="outline" asChild>
                   <SheetClose>Close</SheetClose>
-                </Button>
-                <Button>
-                  Update Status
                 </Button>
               </div>
             </div>
