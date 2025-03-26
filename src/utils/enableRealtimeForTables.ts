@@ -1,6 +1,7 @@
 
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/components/ui/use-toast";
+import { RealtimePostgresChangesFilter } from "@supabase/supabase-js";
 
 /**
  * Enables real-time functionality for specified tables through Supabase
@@ -15,7 +16,7 @@ export const enableRealtimeForTables = async () => {
       .channel('orders-changes')
       .on(
         'postgres_changes',
-        { event: '*', schema: 'public', table: 'orders' },
+        { event: '*', schema: 'public', table: 'orders' } as RealtimePostgresChangesFilter<any>,
         (payload) => {
           console.log('Real-time order notification received:', payload);
           
@@ -39,7 +40,9 @@ export const enableRealtimeForTables = async () => {
       )
       .subscribe((status) => {
         console.log('Orders realtime subscription status:', status);
-        if (status === 'SUBSCRIPTION_ERROR') {
+        if (status === 'SUBSCRIBED') {
+          console.log('Successfully subscribed to orders changes');
+        } else if (status === 'CHANNEL_ERROR') {
           console.error('Failed to subscribe to orders changes');
         }
       });
@@ -49,14 +52,16 @@ export const enableRealtimeForTables = async () => {
       .channel('menu-items-changes')
       .on(
         'postgres_changes',
-        { event: '*', schema: 'public', table: 'menu_items' },
+        { event: '*', schema: 'public', table: 'menu_items' } as RealtimePostgresChangesFilter<any>,
         (payload) => {
           console.log('Menu item change notification:', payload);
         }
       )
       .subscribe((status) => {
         console.log('Menu items subscription status:', status);
-        if (status === 'SUBSCRIPTION_ERROR') {
+        if (status === 'SUBSCRIBED') {
+          console.log('Successfully subscribed to menu items changes');
+        } else if (status === 'CHANNEL_ERROR') {
           console.error('Failed to subscribe to menu items changes');
         }
       });
