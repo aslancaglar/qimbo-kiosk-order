@@ -388,9 +388,6 @@ const MenuItems = () => {
                           <Input placeholder="Item name" {...field} />
                         </FormControl>
                         <FormMessage />
-                        {formState.errors.name && (
-                          <p className="text-sm text-red-500 mt-1">{formState.errors.name.message}</p>
-                        )}
                       </FormItem>
                     )}
                   />
@@ -542,7 +539,7 @@ const MenuItems = () => {
                     <DialogClose asChild>
                       <Button variant="outline">Cancel</Button>
                     </DialogClose>
-                    <Button type="submit" form={form.formState.form?.id}>{editItem ? 'Update' : 'Add'} Menu Item</Button>
+                    <Button type="submit">{editItem ? 'Update' : 'Add'} Menu Item</Button>
                   </DialogFooter>
                 </form>
               </Form>
