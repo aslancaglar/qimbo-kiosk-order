@@ -1,9 +1,10 @@
+
 import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import Layout from '../layout/Layout';
 import Button from '../common/Button';
-import { Check, Clock, Home } from 'lucide-react';
+import { Check, Clock, Home, Printer } from 'lucide-react';
 import { CartItemType } from '../cart/types';
 
 interface OrderConfirmationProps {}
@@ -14,6 +15,7 @@ const OrderConfirmation: React.FC<OrderConfirmationProps> = () => {
   const { items, orderType, tableNumber, subtotal, tax, total } = location.state || {};
   
   const [countdown, setCountdown] = useState(300); // 5 minutes in seconds
+  const [printed, setPrinted] = useState(false);
   
   // Redirect to welcome page if no items are specified
   useEffect(() => {
@@ -32,6 +34,19 @@ const OrderConfirmation: React.FC<OrderConfirmationProps> = () => {
     
     return () => clearInterval(timer);
   }, [countdown]);
+
+  // Auto print on component mount
+  useEffect(() => {
+    // Delay printing by a small amount to ensure component is fully rendered
+    if (items && items.length > 0 && !printed) {
+      const timer = setTimeout(() => {
+        printOrder();
+        setPrinted(true);
+      }, 1000);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [items, printed]);
   
   // Format time from seconds to MM:SS
   const formatTime = (seconds: number) => {
@@ -42,6 +57,124 @@ const OrderConfirmation: React.FC<OrderConfirmationProps> = () => {
   
   // Generate a random order number
   const orderNumber = Math.floor(10000 + Math.random() * 90000);
+
+  // Print order function
+  const printOrder = () => {
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) return;
+
+    const orderDate = new Date().toLocaleString();
+    
+    printWindow.document.write(`
+      <html>
+        <head>
+          <title>Order #${orderNumber}</title>
+          <style>
+            body {
+              font-family: Arial, sans-serif;
+              padding: 20px;
+              max-width: 400px;
+              margin: 0 auto;
+            }
+            h1, h2 {
+              text-align: center;
+            }
+            .order-details {
+              margin-bottom: 20px;
+            }
+            .order-item {
+              display: flex;
+              justify-content: space-between;
+              margin-bottom: 8px;
+            }
+            .divider {
+              border-top: 1px dashed #ccc;
+              margin: 15px 0;
+            }
+            .totals {
+              margin-top: 20px;
+            }
+            .total-row {
+              display: flex;
+              justify-content: space-between;
+              margin-bottom: 5px;
+            }
+            .final-total {
+              font-weight: bold;
+              font-size: 1.2em;
+              margin-top: 10px;
+              border-top: 1px solid black;
+              padding-top: 10px;
+            }
+            .footer {
+              margin-top: 30px;
+              text-align: center;
+              font-size: 0.9em;
+              color: #666;
+            }
+          </style>
+        </head>
+        <body>
+          <h1>Order Receipt</h1>
+          <div class="order-details">
+            <p><strong>Order #:</strong> ${orderNumber}</p>
+            <p><strong>Date:</strong> ${orderDate}</p>
+            <p><strong>Order Type:</strong> ${orderType === 'eat-in' ? 'Eat In' : 'Takeaway'}</p>
+            ${orderType === 'eat-in' && tableNumber ? `<p><strong>Table #:</strong> ${tableNumber}</p>` : ''}
+          </div>
+          
+          <div class="divider"></div>
+          
+          <h2>Items</h2>
+          ${items.map((item: CartItemType) => `
+            <div class="order-item">
+              <div>
+                <span>${item.quantity} x ${item.product.name}</span>
+                ${item.options && item.options.length > 0 ? 
+                  `<br><small>${item.options.map((o: {name: string, value: string}) => o.value).join(', ')}</small>` : 
+                  ''}
+              </div>
+              <span>$${(item.product.price * item.quantity).toFixed(2)}</span>
+            </div>
+          `).join('')}
+          
+          <div class="divider"></div>
+          
+          <div class="totals">
+            <div class="total-row">
+              <span>Subtotal:</span>
+              <span>$${subtotal?.toFixed(2) || '0.00'}</span>
+            </div>
+            <div class="total-row">
+              <span>Tax:</span>
+              <span>$${tax?.toFixed(2) || '0.00'}</span>
+            </div>
+            <div class="total-row final-total">
+              <span>Total:</span>
+              <span>$${total?.toFixed(2) || '0.00'}</span>
+            </div>
+          </div>
+          
+          <div class="footer">
+            <p>Thank you for your order!</p>
+          </div>
+        </body>
+      </html>
+    `);
+    
+    printWindow.document.close();
+    printWindow.focus();
+    printWindow.print();
+    
+    // Close after printing (some browsers may close automatically)
+    setTimeout(() => {
+      try {
+        printWindow.close();
+      } catch (e) {
+        console.log('Print window already closed');
+      }
+    }, 500);
+  };
   
   return (
     <Layout>
@@ -58,7 +191,15 @@ const OrderConfirmation: React.FC<OrderConfirmationProps> = () => {
           
           <h1 className="text-2xl font-semibold">Order Confirmation</h1>
           
-          <div className="w-10"></div> {/* spacer to balance header */}
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={printOrder}
+            className="rounded-full"
+            title="Print receipt"
+          >
+            <Printer size={24} />
+          </Button>
         </header>
         
         <motion.div 
