@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import Button from '../common/Button';
@@ -90,11 +89,9 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onSelect }) => {
   
   const handleAddToCart = () => {
     if (product.hasToppings && product.availableToppingCategories && product.availableToppingCategories.length > 0) {
-      // Fetch topping data and open dialog
       fetchToppingCategories();
       setIsDialogOpen(true);
     } else {
-      // No toppings needed, directly add to cart
       onSelect(product);
     }
   };
@@ -106,12 +103,10 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onSelect }) => {
     
     setIsLoading(true);
     try {
-      // Reset form when opening dialog
       form.reset({
         selectedToppings: []
       });
       
-      // Fetch topping categories that are available for this product
       const { data: categoriesData, error: categoriesError } = await supabase
         .from('topping_categories')
         .select('*')
@@ -120,7 +115,6 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onSelect }) => {
       
       if (categoriesError) throw categoriesError;
       
-      // Fetch toppings for these categories
       const toppingPromises = categoriesData.map(async category => {
         const { data: toppingsData, error: toppingsError } = await supabase
           .from('toppings')
@@ -131,7 +125,6 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onSelect }) => {
         
         if (toppingsError) throw toppingsError;
         
-        // Format the data for our component
         return {
           id: category.id,
           name: category.name,
@@ -151,7 +144,6 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onSelect }) => {
       const categories = await Promise.all(toppingPromises);
       setToppingCategories(categories);
       
-      // Initialize form with all available toppings set to quantity 0
       const allToppings = categories.flatMap(category => 
         category.toppings.map(topping => ({
           ...topping,
@@ -176,7 +168,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onSelect }) => {
   };
   
   const handleIncrementTopping = (toppingId: number) => {
-    const currentToppings = form.getValues().selectedToppings;
+    const currentToppings = [...form.getValues().selectedToppings];
     const toppingIndex = currentToppings.findIndex(t => t.id === toppingId);
     
     if (toppingIndex === -1) return;
@@ -184,10 +176,8 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onSelect }) => {
     const topping = currentToppings[toppingIndex];
     const maxQuantity = topping.maxQuantity || 1;
     
-    // Don't increment beyond max quantity
     if (topping.quantity >= maxQuantity) return;
     
-    // Check if we'd exceed category max selections
     const categoryId = topping.categoryId;
     const category = toppingCategories.find(c => c.id === categoryId);
     
@@ -197,7 +187,6 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onSelect }) => {
       .filter(t => t.categoryId === categoryId)
       .reduce((sum, t) => sum + (t.quantity > 0 ? 1 : 0), 0);
     
-    // If incrementing would exceed max selections for category, show warning
     if (topping.quantity === 0 && currentSelections >= category.maxSelection) {
       toast({
         title: 'Maximum reached',
@@ -207,44 +196,43 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onSelect }) => {
       return;
     }
     
-    // Update the topping quantity
-    const updatedToppings = [...currentToppings];
-    updatedToppings[toppingIndex].quantity += 1;
+    currentToppings[toppingIndex] = {
+      ...topping,
+      quantity: topping.quantity + 1
+    };
     
-    form.setValue('selectedToppings', updatedToppings);
+    form.setValue('selectedToppings', currentToppings, { shouldValidate: true });
   };
   
   const handleDecrementTopping = (toppingId: number) => {
-    const currentToppings = form.getValues().selectedToppings;
+    const currentToppings = [...form.getValues().selectedToppings];
     const toppingIndex = currentToppings.findIndex(t => t.id === toppingId);
     
     if (toppingIndex === -1) return;
     
     const topping = currentToppings[toppingIndex];
     
-    // Don't decrement below 0
     if (topping.quantity <= 0) return;
     
-    // Update the topping quantity
-    const updatedToppings = [...currentToppings];
-    updatedToppings[toppingIndex].quantity -= 1;
+    currentToppings[toppingIndex] = {
+      ...topping,
+      quantity: topping.quantity - 1
+    };
     
-    form.setValue('selectedToppings', updatedToppings);
+    form.setValue('selectedToppings', currentToppings, { shouldValidate: true });
   };
   
   const handleToppingSubmit = (data: ToppingsFormValues) => {
-    // Filter out toppings with quantity 0
     const selectedToppings = data.selectedToppings
       .filter(topping => topping.quantity > 0)
       .map(topping => ({
         id: topping.id,
         name: topping.name,
-        price: topping.price * topping.quantity, // Multiply price by quantity
+        price: topping.price * topping.quantity,
         categoryId: topping.categoryId,
         quantity: topping.quantity
       }));
     
-    // Validate minimum selections for each category
     const validationErrors: string[] = [];
     
     toppingCategories.forEach(category => {
@@ -258,7 +246,6 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onSelect }) => {
     });
     
     if (validationErrors.length > 0) {
-      // Show errors and stop submission
       validationErrors.forEach(error => {
         toast({
           title: 'Selection Required',
@@ -269,7 +256,6 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onSelect }) => {
       return;
     }
     
-    // Add selected toppings to cart
     onSelect(product, selectedToppings);
     setIsDialogOpen(false);
   };
@@ -348,7 +334,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onSelect }) => {
                       
                       <div className="space-y-2">
                         {category.toppings.map((topping) => {
-                          const toppingInForm = form.getValues().selectedToppings.find(t => t.id === topping.id);
+                          const toppingInForm = form.watch('selectedToppings').find(t => t.id === topping.id);
                           const quantity = toppingInForm ? toppingInForm.quantity : 0;
                           
                           return (
