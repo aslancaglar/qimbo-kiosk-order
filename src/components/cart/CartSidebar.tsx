@@ -49,115 +49,93 @@ const CartSidebar: React.FC<CartSidebarProps> = ({
     });
   };
   
-  const sidebarVariants = {
-    closed: { x: '100%', transition: { type: 'tween', duration: 0.3 } },
-    open: { x: 0, transition: { type: 'tween', duration: 0.3 } },
-  };
-  
-  const overlayVariants = {
-    closed: { opacity: 0, transition: { duration: 0.3 } },
-    open: { opacity: 1, transition: { duration: 0.3 } },
-  };
-  
   return (
-    <AnimatePresence>
-      {isOpen && (
-        <>
-          <motion.div
-            variants={overlayVariants}
-            initial="closed"
-            animate="open"
-            exit="closed"
-            className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50"
-            onClick={onClose}
-          />
+    <div className={`fixed top-0 right-0 h-screen w-[350px] bg-white shadow-lg z-50 transition-transform duration-300 transform ${isOpen ? 'translate-x-0' : 'translate-x-full'}`}>
+      <div className="h-full flex flex-col">
+        <div className="p-6 border-b border-gray-100 flex justify-between items-center">
+          <div className="flex items-center gap-2">
+            <ShoppingBag className="h-5 w-5" />
+            <h2 className="text-xl font-semibold">Your Order</h2>
+            {totalItems > 0 && (
+              <span className="bg-primary text-primary-foreground text-xs font-medium rounded-full px-2 py-0.5">
+                {totalItems}
+              </span>
+            )}
+          </div>
           
-          <motion.div
-            variants={sidebarVariants}
-            initial="closed"
-            animate="open"
-            exit="closed"
-            className="fixed top-0 right-0 h-full w-full sm:w-[450px] bg-white shadow-lg z-50 flex flex-col"
-            onClick={(e) => e.stopPropagation()}
+          <button
+            className="text-gray-500 hover:text-gray-900 p-2 -m-2"
+            onClick={onClose}
           >
-            <div className="p-6 border-b border-gray-100 flex justify-between items-center">
-              <div className="flex items-center gap-2">
-                <ShoppingBag className="h-5 w-5" />
-                <h2 className="text-xl font-semibold">Your Order</h2>
-                {totalItems > 0 && (
-                  <span className="bg-primary text-primary-foreground text-xs font-medium rounded-full px-2 py-0.5">
-                    {totalItems}
-                  </span>
-                )}
-              </div>
-              
-              <button
-                className="text-gray-500 hover:text-gray-900 p-2 -m-2"
-                onClick={onClose}
-              >
-                <X size={24} />
-              </button>
+            <X size={24} />
+          </button>
+        </div>
+        
+        {orderType === 'eat-in' && tableNumber && (
+          <div className="px-6 py-3 bg-blue-50 flex items-center text-sm">
+            <span className="font-medium text-blue-700">Table {tableNumber}</span>
+            <span className="mx-2 text-gray-400">•</span>
+            <span className="text-gray-600">Eat In</span>
+          </div>
+        )}
+        
+        {items.length === 0 ? (
+          <div className="flex-1 flex flex-col items-center justify-center p-6 text-center">
+            <ShoppingBag className="h-16 w-16 text-gray-300 mb-4" />
+            <h3 className="text-xl font-medium text-gray-900 mb-1">Your cart is empty</h3>
+            <p className="text-gray-500 mb-6">Add some delicious items to get started</p>
+            <Button variant="outline" onClick={onClose}>
+              Browse Menu
+            </Button>
+          </div>
+        ) : (
+          <>
+            <div className="flex-1 overflow-y-auto p-6">
+              <AnimatePresence initial={false}>
+                {items.map((item, index) => (
+                  <CartItem
+                    key={`${item.product.id}-${index}`}
+                    item={item}
+                    onRemove={() => onRemoveItem(index)}
+                    onIncrement={() => onIncrementItem(index)}
+                    onDecrement={() => onDecrementItem(index)}
+                  />
+                ))}
+              </AnimatePresence>
             </div>
             
-            {orderType === 'eat-in' && tableNumber && (
-              <div className="px-6 py-3 bg-blue-50 flex items-center text-sm">
-                <span className="font-medium text-blue-700">Table {tableNumber}</span>
-                <span className="mx-2 text-gray-400">•</span>
-                <span className="text-gray-600">Eat In</span>
-              </div>
-            )}
-            
-            {items.length === 0 ? (
-              <div className="flex-1 flex flex-col items-center justify-center p-6 text-center">
-                <ShoppingBag className="h-16 w-16 text-gray-300 mb-4" />
-                <h3 className="text-xl font-medium text-gray-900 mb-1">Your cart is empty</h3>
-                <p className="text-gray-500 mb-6">Add some delicious items to get started</p>
-                <Button variant="outline" onClick={onClose}>
-                  Browse Menu
-                </Button>
-              </div>
-            ) : (
-              <>
-                <div className="flex-1 overflow-y-auto p-6">
-                  <AnimatePresence initial={false}>
-                    {items.map((item, index) => (
-                      <CartItem
-                        key={`${item.product.id}-${index}`}
-                        item={item}
-                        onRemove={() => onRemoveItem(index)}
-                        onIncrement={() => onIncrementItem(index)}
-                        onDecrement={() => onDecrementItem(index)}
-                      />
-                    ))}
-                  </AnimatePresence>
+            <div className="p-6 border-t border-gray-100">
+              <div className="mb-4 space-y-2">
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-600">Subtotal</span>
+                  <span>${subtotal.toFixed(2)}</span>
                 </div>
-                
-                <div className="p-6 border-t border-gray-100">
-                  <div className="mb-4 space-y-2">
-                    <div className="flex justify-between text-sm">
-                      <span className="text-gray-600">Subtotal</span>
-                      <span>${subtotal.toFixed(2)}</span>
-                    </div>
-                    <div className="flex justify-between text-sm">
-                      <span className="text-gray-600">Tax</span>
-                      <span>${tax.toFixed(2)}</span>
-                    </div>
-                    <div className="flex justify-between font-semibold text-base pt-2">
-                      <span>Total</span>
-                      <span>${total.toFixed(2)}</span>
-                    </div>
-                  </div>
-                  
-                  <Button size="full" onClick={handleCheckout}>
-                    Checkout
-                  </Button>
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-600">Tax</span>
+                  <span>${tax.toFixed(2)}</span>
                 </div>
-              </>
-            )}
-          </motion.div>
-        </>
+                <div className="flex justify-between font-semibold text-base pt-2">
+                  <span>Total</span>
+                  <span>${total.toFixed(2)}</span>
+                </div>
+              </div>
+              
+              <Button size="full" onClick={handleCheckout}>
+                Checkout
+              </Button>
+            </div>
+          </>
+        )}
+      </div>
+      
+      {/* Overlay that only appears when cart is open on mobile */}
+      {isOpen && (
+        <div 
+          className="fixed inset-0 bg-black/40 backdrop-blur-sm z-40 md:hidden"
+          onClick={onClose}
+        />
       )}
-    </AnimatePresence>
+    </div>
   );
 };
 

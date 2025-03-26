@@ -25,7 +25,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onSelect }) => {
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3 }}
-      className="relative bg-white rounded-xl overflow-hidden shadow-card flex flex-col h-full cursor-pointer"
+      className="relative bg-white rounded-xl overflow-hidden shadow-card flex flex-col h-full cursor-pointer max-w-[250px] w-full mx-auto"
       onClick={() => onSelect(product)}
     >
       <div className="aspect-video w-full overflow-hidden">
