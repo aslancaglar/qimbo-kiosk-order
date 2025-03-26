@@ -9,7 +9,165 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      [_ in never]: never
+      menu_items: {
+        Row: {
+          category: string
+          has_toppings: boolean
+          id: number
+          name: string
+          price: number
+          status: string
+        }
+        Insert: {
+          category: string
+          has_toppings?: boolean
+          id?: number
+          name: string
+          price: number
+          status?: string
+        }
+        Update: {
+          category?: string
+          has_toppings?: boolean
+          id?: number
+          name?: string
+          price?: number
+          status?: string
+        }
+        Relationships: []
+      }
+      order_item_toppings: {
+        Row: {
+          id: number
+          order_item_id: number | null
+          price: number
+          topping_id: number | null
+        }
+        Insert: {
+          id?: number
+          order_item_id?: number | null
+          price: number
+          topping_id?: number | null
+        }
+        Update: {
+          id?: number
+          order_item_id?: number | null
+          price?: number
+          topping_id?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "order_item_toppings_order_item_id_fkey"
+            columns: ["order_item_id"]
+            isOneToOne: false
+            referencedRelation: "order_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "order_item_toppings_topping_id_fkey"
+            columns: ["topping_id"]
+            isOneToOne: false
+            referencedRelation: "toppings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      order_items: {
+        Row: {
+          id: number
+          menu_item_id: number | null
+          notes: string | null
+          order_id: number | null
+          price: number
+          quantity: number
+        }
+        Insert: {
+          id?: number
+          menu_item_id?: number | null
+          notes?: string | null
+          order_id?: number | null
+          price: number
+          quantity: number
+        }
+        Update: {
+          id?: number
+          menu_item_id?: number | null
+          notes?: string | null
+          order_id?: number | null
+          price?: number
+          quantity?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "order_items_menu_item_id_fkey"
+            columns: ["menu_item_id"]
+            isOneToOne: false
+            referencedRelation: "menu_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "order_items_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      orders: {
+        Row: {
+          created_at: string
+          customer_type: string
+          id: number
+          items_count: number
+          status: string
+          table_number: number | null
+          total_amount: number
+        }
+        Insert: {
+          created_at?: string
+          customer_type: string
+          id?: number
+          items_count: number
+          status?: string
+          table_number?: number | null
+          total_amount: number
+        }
+        Update: {
+          created_at?: string
+          customer_type?: string
+          id?: number
+          items_count?: number
+          status?: string
+          table_number?: number | null
+          total_amount?: number
+        }
+        Relationships: []
+      }
+      toppings: {
+        Row: {
+          available: boolean
+          category: string
+          id: number
+          name: string
+          price: number
+        }
+        Insert: {
+          available?: boolean
+          category: string
+          id?: number
+          name: string
+          price: number
+        }
+        Update: {
+          available?: boolean
+          category?: string
+          id?: number
+          name?: string
+          price?: number
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
