@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import AdminLayout from '../../components/admin/AdminLayout';
 import { Input } from "@/components/ui/input";
@@ -294,19 +295,19 @@ const MenuItems = () => {
         </div>
         
         <div className="flex-1 overflow-hidden rounded-md border">
-          <Table stickyHeader>
-            <TableHeader sticky>
-              <TableRow>
-                <TableHead className="bg-background">ID</TableHead>
-                <TableHead className="bg-background">Name</TableHead>
-                <TableHead className="bg-background">Category</TableHead>
-                <TableHead className="bg-background">Price</TableHead>
-                <TableHead className="bg-background">Status</TableHead>
-                <TableHead className="bg-background">Toppings</TableHead>
-                <TableHead className="bg-background text-right">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <ScrollArea className="h-[calc(100vh-240px)]">
+          <ScrollArea className="h-[calc(100vh-240px)]">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>ID</TableHead>
+                  <TableHead>Name</TableHead>
+                  <TableHead>Category</TableHead>
+                  <TableHead>Price</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Toppings</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
               <TableBody>
                 {isLoading ? (
                   <TableRow>
@@ -360,8 +361,8 @@ const MenuItems = () => {
                   </TableRow>
                 )}
               </TableBody>
-            </ScrollArea>
-          </Table>
+            </Table>
+          </ScrollArea>
         </div>
       </div>
       
