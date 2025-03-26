@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import AdminLayout from '../../components/admin/AdminLayout';
 import { Input } from "@/components/ui/input";
@@ -259,6 +258,8 @@ const MenuItems = () => {
         available_topping_categories: data.hasToppings ? data.availableToppingCategories : []
       };
       
+      console.log("Saving menu item data:", menuItemData);
+      
       if (editItem) {
         const { error } = await supabase
           .from('menu_items')
@@ -266,6 +267,7 @@ const MenuItems = () => {
           .eq('id', editItem.id);
           
         if (error) {
+          console.error("Update error:", error);
           throw error;
         }
         
@@ -279,6 +281,7 @@ const MenuItems = () => {
           .insert([menuItemData]);
           
         if (error) {
+          console.error("Insert error:", error);
           throw error;
         }
         
@@ -289,6 +292,7 @@ const MenuItems = () => {
       }
       
       setIsDialogOpen(false);
+      fetchMenuItems();
     } catch (error) {
       console.error('Error saving menu item:', error);
       toast({
@@ -524,51 +528,57 @@ const MenuItems = () => {
                             </FormDescription>
                           </div>
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            {toppingCategories.map((category) => (
-                              <FormField
-                                key={category.id}
-                                control={form.control}
-                                name="availableToppingCategories"
-                                render={({ field }) => {
-                                  return (
-                                    <FormItem
-                                      key={category.id}
-                                      className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-3"
-                                    >
-                                      <FormControl>
-                                        <Checkbox
-                                          checked={field.value?.includes(category.id)}
-                                          onCheckedChange={(checked) => {
-                                            const current = Array.isArray(field.value) ? field.value : []
-                                            return checked
-                                              ? field.onChange([...current, category.id])
-                                              : field.onChange(
-                                                  current.filter((value) => value !== category.id)
-                                                )
-                                          }}
-                                        />
-                                      </FormControl>
-                                      <div className="space-y-1 leading-none">
-                                        <FormLabel className="font-medium">
-                                          {category.name}
-                                        </FormLabel>
-                                        <FormDescription>
-                                          {category.description}
-                                          {category.required && (
-                                            <span className="text-red-500 ml-1 font-medium">
-                                              (Required)
-                                            </span>
-                                          )}
-                                        </FormDescription>
-                                        <FormDescription>
-                                          Min: {category.minSelection} / Max: {category.maxSelection} selections
-                                        </FormDescription>
-                                      </div>
-                                    </FormItem>
-                                  )
-                                }}
-                              />
-                            ))}
+                            {toppingCategories.length > 0 ? (
+                              toppingCategories.map((category) => (
+                                <FormField
+                                  key={category.id}
+                                  control={form.control}
+                                  name="availableToppingCategories"
+                                  render={({ field }) => {
+                                    return (
+                                      <FormItem
+                                        key={category.id}
+                                        className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-3"
+                                      >
+                                        <FormControl>
+                                          <Checkbox
+                                            checked={field.value?.includes(category.id)}
+                                            onCheckedChange={(checked) => {
+                                              const current = Array.isArray(field.value) ? field.value : []
+                                              return checked
+                                                ? field.onChange([...current, category.id])
+                                                : field.onChange(
+                                                    current.filter((value) => value !== category.id)
+                                                  )
+                                            }}
+                                          />
+                                        </FormControl>
+                                        <div className="space-y-1 leading-none">
+                                          <FormLabel className="font-medium">
+                                            {category.name}
+                                          </FormLabel>
+                                          <FormDescription>
+                                            {category.description}
+                                            {category.required && (
+                                              <span className="text-red-500 ml-1 font-medium">
+                                                (Required)
+                                              </span>
+                                            )}
+                                          </FormDescription>
+                                          <FormDescription>
+                                            Min: {category.minSelection} / Max: {category.maxSelection} selections
+                                          </FormDescription>
+                                        </div>
+                                      </FormItem>
+                                    )
+                                  }}
+                                />
+                              ))
+                            ) : (
+                              <div className="col-span-2 text-center p-4 border border-dashed rounded-md">
+                                <p className="text-gray-500">No topping categories available. You need to create topping categories first.</p>
+                              </div>
+                            )}
                           </div>
                           <FormMessage />
                         </FormItem>
