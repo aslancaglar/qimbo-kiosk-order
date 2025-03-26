@@ -5,6 +5,8 @@ export interface ToppingItem {
   id: number;
   name: string;
   price: number;
+  categoryId?: number;
+  maxQuantity?: number;
 }
 
 export interface CartItemType {
