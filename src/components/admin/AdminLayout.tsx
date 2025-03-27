@@ -10,7 +10,8 @@ import {
   Menu, 
   X, 
   ChevronRight,
-  Utensils
+  Utensils,
+  FolderTree
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -32,6 +33,7 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
     { name: 'Dashboard', href: '/admin', icon: LayoutDashboard },
     { name: 'Orders', href: '/admin/orders', icon: ShoppingBag },
     { name: 'Menu Items', href: '/admin/menu', icon: Package },
+    { name: 'Categories', href: '/admin/categories', icon: FolderTree },
     { name: 'Toppings', href: '/admin/toppings', icon: Package },
     { name: 'Settings', href: '/admin/settings', icon: Settings },
     { name: 'Kitchen Display', href: '/admin/kitchen', icon: Utensils },

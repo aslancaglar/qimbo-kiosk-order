@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
@@ -11,6 +12,13 @@ import { ShoppingBag, Home } from 'lucide-react';
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from '@/hooks/use-toast';
 
+interface Category {
+  id: number;
+  name: string;
+  description: string | null;
+  display_order: number;
+}
+
 const MenuPage: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
@@ -21,7 +29,7 @@ const MenuPage: React.FC = () => {
   const [cartItems, setCartItems] = useState<CartItemType[]>([]);
   const [isCartOpen, setIsCartOpen] = useState(true);
   const [products, setProducts] = useState<Product[]>([]);
-  const [categories, setCategories] = useState(['All']);
+  const [categories, setCategories] = useState<Category[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   
   useEffect(() => {
@@ -31,12 +39,54 @@ const MenuPage: React.FC = () => {
   }, [orderType, navigate]);
   
   useEffect(() => {
+    const fetchCategories = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('menu_categories')
+          .select('*')
+          .order('display_order', { ascending: true })
+          .order('name', { ascending: true });
+          
+        if (error) {
+          throw error;
+        }
+        
+        setCategories(data);
+      } catch (error) {
+        console.error('Error fetching categories:', error);
+        toast({
+          title: 'Error',
+          description: 'Failed to load menu categories. Please try again.',
+          variant: 'destructive',
+        });
+      }
+    };
+    
+    fetchCategories();
+    
+    const categoryChannel = supabase
+      .channel('menu-category-updates')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'menu_categories' },
+        () => {
+          fetchCategories();
+        }
+      )
+      .subscribe();
+      
+    return () => {
+      supabase.removeChannel(categoryChannel);
+    };
+  }, [toast]);
+  
+  useEffect(() => {
     const fetchMenuItems = async () => {
       setIsLoading(true);
       try {
         const { data, error } = await supabase
           .from('menu_items')
-          .select('*')
+          .select('*, menu_categories(name)')
           .eq('status', 'Active');
           
         if (error) {
@@ -55,9 +105,6 @@ const MenuPage: React.FC = () => {
         }));
         
         setProducts(transformedProducts);
-        
-        const uniqueCategories = ['All', ...new Set(data.map(item => item.category))];
-        setCategories(uniqueCategories);
       } catch (error) {
         console.error('Error fetching menu items:', error);
         toast({
@@ -72,7 +119,7 @@ const MenuPage: React.FC = () => {
     
     fetchMenuItems();
     
-    const channel = supabase
+    const menuChannel = supabase
       .channel('menu-updates')
       .on(
         'postgres_changes',
@@ -85,7 +132,7 @@ const MenuPage: React.FC = () => {
       .subscribe();
       
     return () => {
-      supabase.removeChannel(channel);
+      supabase.removeChannel(menuChannel);
     };
   }, [toast]);
   
@@ -122,6 +169,9 @@ const MenuPage: React.FC = () => {
       setCartItems(newItems);
     }
   };
+
+  // Convert database categories to format expected by CategorySelector
+  const categoryNames = categories.map(cat => cat.name);
   
   return (
     <Layout>
@@ -142,7 +192,7 @@ const MenuPage: React.FC = () => {
         </header>
         
         <CategorySelector 
-          categories={categories} 
+          categories={categoryNames} 
           activeCategory={activeCategory} 
           onChange={setActiveCategory} 
         />

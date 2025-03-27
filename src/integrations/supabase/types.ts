@@ -9,6 +9,36 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      appearance_settings: {
+        Row: {
+          accent_color: string | null
+          created_at: string | null
+          id: number
+          logo_url: string | null
+          primary_color: string | null
+          secondary_color: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          accent_color?: string | null
+          created_at?: string | null
+          id?: number
+          logo_url?: string | null
+          primary_color?: string | null
+          secondary_color?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          accent_color?: string | null
+          created_at?: string | null
+          id?: number
+          logo_url?: string | null
+          primary_color?: string | null
+          secondary_color?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       business_hours: {
         Row: {
           close_time: string
@@ -36,10 +66,38 @@ export type Database = {
         }
         Relationships: []
       }
+      menu_categories: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          display_order: number | null
+          id: number
+          name: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          display_order?: number | null
+          id?: number
+          name: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          display_order?: number | null
+          id?: number
+          name?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       menu_items: {
         Row: {
           available_topping_categories: number[] | null
           category: string
+          category_id: number | null
           description: string | null
           has_toppings: boolean
           id: number
@@ -51,6 +109,7 @@ export type Database = {
         Insert: {
           available_topping_categories?: number[] | null
           category: string
+          category_id?: number | null
           description?: string | null
           has_toppings?: boolean
           id?: number
@@ -62,6 +121,7 @@ export type Database = {
         Update: {
           available_topping_categories?: number[] | null
           category?: string
+          category_id?: number | null
           description?: string | null
           has_toppings?: boolean
           id?: number
@@ -70,7 +130,15 @@ export type Database = {
           price?: number
           status?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "menu_items_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "menu_categories"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       order_item_toppings: {
         Row: {
