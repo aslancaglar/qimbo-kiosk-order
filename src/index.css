@@ -91,11 +91,11 @@
   }
   
   html, body, #root {
-    @apply h-full w-full m-0 p-0 overflow-hidden;
+    @apply h-full w-full m-0 p-0;
   }
   
   body {
-    @apply bg-background text-foreground font-sans;
+    @apply bg-background text-foreground font-sans overflow-auto;
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
   }
   

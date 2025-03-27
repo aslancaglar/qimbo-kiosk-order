@@ -129,8 +129,8 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
         </SheetContent>
       </Sheet>
 
-      {/* Main content - now has more space */}
-      <main className="flex-1 flex flex-col min-h-screen">
+      {/* Main content - now has more space and allows scrolling */}
+      <main className="flex-1 flex flex-col min-h-screen overflow-auto">
         <div className="flex-1 p-6 lg:p-8 lg:ml-0">
           <div className="mb-6 text-center">
             {navigation.map((item) => {
