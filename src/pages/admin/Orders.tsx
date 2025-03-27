@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import AdminLayout from '../../components/admin/AdminLayout';
@@ -193,6 +194,8 @@ const Orders = () => {
 
   const getStatusClass = (status: string) => {
     switch (status.toLowerCase()) {
+      case "new":
+        return "bg-purple-100 text-purple-800";
       case "completed":
         return "bg-green-100 text-green-800";
       case "in progress":
@@ -280,24 +283,9 @@ const Orders = () => {
   const getStatusFilterBadgeClass = (badgeStatus: string | null, currentStatus: string | null) => {
     const isActive = badgeStatus === currentStatus;
     
-    switch(badgeStatus) {
-      case 'in progress':
-        return `cursor-pointer ${isActive 
-          ? 'bg-[hsl(215_50%_23%)] text-white' 
-          : 'bg-[hsl(215_50%_40%)] text-white opacity-70'} hover:bg-[hsl(215_50%_30%)] hover:opacity-100 transition-colors`;
-      case 'completed':
-        return `cursor-pointer ${isActive 
-          ? 'bg-[hsl(215_50%_23%)] text-white' 
-          : 'bg-[hsl(215_50%_40%)] text-white opacity-70'} hover:bg-[hsl(215_50%_30%)] hover:opacity-100 transition-colors`;
-      case 'cancelled':
-        return `cursor-pointer ${isActive 
-          ? 'bg-[hsl(215_50%_23%)] text-white' 
-          : 'bg-[hsl(215_50%_40%)] text-white opacity-70'} hover:bg-[hsl(215_50%_30%)] hover:opacity-100 transition-colors`;
-      default: // 'all' case
-        return `cursor-pointer ${isActive 
-          ? 'bg-[hsl(215_50%_23%)] text-white' 
-          : 'bg-[hsl(215_50%_40%)] text-white opacity-70'} hover:bg-[hsl(215_50%_30%)] hover:opacity-100 transition-colors`;
-    }
+    return `cursor-pointer ${isActive 
+      ? 'bg-[hsl(215_50%_23%)] text-white' 
+      : 'bg-[hsl(215_50%_40%)] text-white opacity-70'} hover:bg-[hsl(215_50%_30%)] hover:opacity-100 transition-colors`;
   };
 
   return (
@@ -353,6 +341,12 @@ const Orders = () => {
               onClick={() => setSelectedStatus(null)}
             >
               All
+            </Badge>
+            <Badge 
+              className={getStatusFilterBadgeClass('new', selectedStatus)}
+              onClick={() => setSelectedStatus('new')}
+            >
+              New
             </Badge>
             <Badge 
               className={getStatusFilterBadgeClass('in progress', selectedStatus)}
@@ -532,6 +526,13 @@ const Orders = () => {
                 <div className="flex flex-col gap-2">
                   <h3 className="text-sm font-semibold">Update Status</h3>
                   <div className="flex flex-wrap gap-2">
+                    <Button 
+                      size="sm" 
+                      variant={selectedOrder?.status === 'New' ? 'default' : 'outline'}
+                      onClick={() => handleUpdateStatus('New')}
+                    >
+                      New
+                    </Button>
                     <Button 
                       size="sm" 
                       variant={selectedOrder?.status === 'In Progress' ? 'default' : 'outline'}
