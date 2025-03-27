@@ -57,10 +57,13 @@ const AppearanceSettings = () => {
       }
 
       if (data) {
-        // Use type assertion to ensure type safety
-        setSettings(data as AppearanceSettings);
-        if (data.logo_url) {
-          setLogoPreview(data.logo_url);
+        // Make sure data is not an error before trying to use it
+        if (!('error' in data)) {
+          // Use type assertion to ensure type safety
+          setSettings(data as unknown as AppearanceSettings);
+          if (data.logo_url) {
+            setLogoPreview(data.logo_url);
+          }
         }
       }
     } catch (error) {

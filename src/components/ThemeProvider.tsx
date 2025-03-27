@@ -50,20 +50,23 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         }
 
         if (data) {
-          // Cast the data to our interface
-          const settings = data as AppearanceSettings;
-          setTheme({
-            logo: settings.logo_url,
-            primaryColor: settings.primary_color,
-            secondaryColor: settings.secondary_color,
-            accentColor: settings.accent_color,
-            loading: false
-          });
-          
-          // Apply CSS variables
-          document.documentElement.style.setProperty('--primary-color', settings.primary_color);
-          document.documentElement.style.setProperty('--secondary-color', settings.secondary_color);
-          document.documentElement.style.setProperty('--accent-color', settings.accent_color);
+          // Make sure data is not an error before trying to use it
+          if (!data.error) {
+            // Cast the data to our interface after checking it's not an error
+            const settings = data as unknown as AppearanceSettings;
+            setTheme({
+              logo: settings.logo_url,
+              primaryColor: settings.primary_color,
+              secondaryColor: settings.secondary_color,
+              accentColor: settings.accent_color,
+              loading: false
+            });
+            
+            // Apply CSS variables
+            document.documentElement.style.setProperty('--primary-color', settings.primary_color);
+            document.documentElement.style.setProperty('--secondary-color', settings.secondary_color);
+            document.documentElement.style.setProperty('--accent-color', settings.accent_color);
+          }
         }
       } catch (error) {
         console.error('Unexpected error:', error);

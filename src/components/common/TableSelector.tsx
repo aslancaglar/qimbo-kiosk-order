@@ -5,10 +5,10 @@ import Button from './Button';
 
 interface TableSelectorProps {
   onSelectTable: (tableNumber: number) => void;
-  onCancel: () => void;
+  onBack: () => void; // Changed from onCancel to onBack to match the usage
 }
 
-const TableSelector: React.FC<TableSelectorProps> = ({ onSelectTable, onCancel }) => {
+const TableSelector: React.FC<TableSelectorProps> = ({ onSelectTable, onBack }) => {
   const [tableNumber, setTableNumber] = useState<number | null>(null);
   
   // Generate table numbers (1-20)
@@ -44,7 +44,7 @@ const TableSelector: React.FC<TableSelectorProps> = ({ onSelectTable, onCancel }
         <Button 
           variant="outline" 
           size="full" 
-          onClick={onCancel}
+          onClick={onBack} // Using onBack instead of onCancel
         >
           Cancel
         </Button>
