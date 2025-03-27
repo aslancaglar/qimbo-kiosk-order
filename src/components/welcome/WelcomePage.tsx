@@ -5,7 +5,16 @@ import Button from '../common/Button';
 import TableSelector from '../common/TableSelector';
 import { useNavigate } from 'react-router-dom';
 
-const WelcomePage: React.FC = () => {
+interface RestaurantInfoProps {
+  name: string;
+  description: string;
+}
+
+interface WelcomePageProps {
+  restaurantInfo: RestaurantInfoProps | null;
+}
+
+const WelcomePage: React.FC<WelcomePageProps> = ({ restaurantInfo }) => {
   const [showTableSelector, setShowTableSelector] = useState(false);
   const navigate = useNavigate();
   
@@ -43,8 +52,12 @@ const WelcomePage: React.FC = () => {
               <div className="w-40 h-40 rounded-full mx-auto mb-6 bg-primary flex items-center justify-center">
                 <span className="text-primary-foreground text-4xl font-bold">LOGO</span>
               </div>
-              <h1 className="text-4xl font-bold mb-2 tracking-tight">Restaurant Name</h1>
-              <p className="text-gray-500">Fresh, delicious food at your fingertips</p>
+              <h1 className="text-4xl font-bold mb-2 tracking-tight">
+                {restaurantInfo?.name || 'Restaurant Name'}
+              </h1>
+              <p className="text-gray-500">
+                {restaurantInfo?.description || 'Fresh, delicious food at your fingertips'}
+              </p>
             </motion.div>
             
             <motion.h2 
