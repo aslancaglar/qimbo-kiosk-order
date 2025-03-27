@@ -10,6 +10,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { Save, Printer } from 'lucide-react';
 import { Switch } from "@/components/ui/switch";
+import { testConnection as testPrintBizApiConnection } from "../../utils/printBiz";
+import { type PrintBizConfig } from "../../utils/printBiz";
 
 const Settings = () => {
   const { toast } = useToast();
@@ -36,7 +38,7 @@ const Settings = () => {
   ]);
 
   // PrintBiz settings state
-  const [printBizSettings, setPrintBizSettings] = useState({
+  const [printBizSettings, setPrintBizSettings] = useState<PrintBizConfig>({
     api_key: '',
     api_endpoint: 'https://api.printbiz.io/v1',
     enabled: false,
@@ -139,7 +141,7 @@ const Settings = () => {
       }
 
       if (data && data.value) {
-        setPrintBizSettings(JSON.parse(data.value));
+        setPrintBizSettings(data.value as PrintBizConfig);
       }
     } catch (error) {
       console.error('Unexpected error:', error);
@@ -296,7 +298,7 @@ const Settings = () => {
         const { error } = await supabase
           .from('settings')
           .update({
-            value: JSON.stringify(printBizSettings),
+            value: printBizSettings,
             updated_at: new Date().toISOString()
           })
           .eq('id', existingData.id);
@@ -308,7 +310,7 @@ const Settings = () => {
           .from('settings')
           .insert({
             key: 'printbiz_settings',
-            value: JSON.stringify(printBizSettings),
+            value: printBizSettings,
             created_at: new Date().toISOString(),
             updated_at: new Date().toISOString()
           });
@@ -346,22 +348,21 @@ const Settings = () => {
     try {
       setLoading(true);
       
-      // This would be replaced with actual API call in production
-      // For now, we're just simulating a test print
+      // Use our actual test connection function from printBiz.ts
+      const success = await testPrintBizApiConnection(printBizSettings);
       
-      setTimeout(() => {
+      if (success) {
         toast({
           title: "Test Successful",
           description: "Successfully connected to PrintBiz API",
         });
-        setLoading(false);
-      }, 2000);
-      
-      // In real implementation, you would:
-      // 1. Make a request to the PrintBiz API using the provided credentials
-      // 2. Send a test print job
-      // 3. Check for a successful response
-      
+      } else {
+        toast({
+          title: "Test Failed",
+          description: "Failed to connect to PrintBiz API. Please check your credentials.",
+          variant: "destructive"
+        });
+      }
     } catch (error) {
       console.error('Error testing PrintBiz connection:', error);
       toast({
@@ -369,6 +370,7 @@ const Settings = () => {
         description: "Failed to connect to PrintBiz API",
         variant: "destructive"
       });
+    } finally {
       setLoading(false);
     }
   };
