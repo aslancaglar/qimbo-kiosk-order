@@ -1,10 +1,9 @@
-
 import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import Layout from '../layout/Layout';
 import Button from '../common/Button';
-import { Check, Clock, Home, Printer, Plus } from 'lucide-react';
+import { Check, Home, Printer, Plus } from 'lucide-react';
 import { CartItemType } from '../cart/types';
 import { toast } from '@/components/ui/use-toast';
 
@@ -15,7 +14,6 @@ const OrderConfirmation: React.FC<OrderConfirmationProps> = () => {
   const navigate = useNavigate();
   const { items, orderType, tableNumber, subtotal, tax, total, orderId } = location.state || {};
   
-  const [countdown, setCountdown] = useState(300); // 5 minutes in seconds
   const [printed, setPrinted] = useState(false);
   const [redirecting, setRedirecting] = useState(false);
   
@@ -35,17 +33,6 @@ const OrderConfirmation: React.FC<OrderConfirmationProps> = () => {
     
     return () => clearTimeout(redirectTimer);
   }, [navigate]);
-  
-  // Countdown timer
-  useEffect(() => {
-    if (countdown <= 0) return;
-    
-    const timer = setInterval(() => {
-      setCountdown((prev) => prev - 1);
-    }, 1000);
-    
-    return () => clearInterval(timer);
-  }, [countdown]);
 
   // Auto print on component mount
   useEffect(() => {
@@ -60,13 +47,6 @@ const OrderConfirmation: React.FC<OrderConfirmationProps> = () => {
       return () => clearTimeout(timer);
     }
   }, [items, printed]);
-  
-  // Format time from seconds to MM:SS
-  const formatTime = (seconds: number) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
-  };
   
   // Use the order ID from state or generate a random one if not available
   const orderNumber = orderId || Math.floor(10000 + Math.random() * 90000);
@@ -318,35 +298,6 @@ const OrderConfirmation: React.FC<OrderConfirmationProps> = () => {
                 Redirecting to home page in a few seconds...
               </motion.p>
             </div>
-            
-            <motion.div
-              initial={{ y: 20, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              transition={{ delay: 0.6 }}
-              className="bg-white rounded-xl shadow-card p-6 mb-8"
-            >
-              <div className="flex items-center gap-4 mb-6">
-                <div className="w-12 h-12 rounded-full bg-amber-100 flex items-center justify-center">
-                  <Clock className="h-6 w-6 text-amber-600" />
-                </div>
-                <div>
-                  <h3 className="text-lg font-medium">Estimated Wait Time</h3>
-                  <p className="text-2xl font-bold">{formatTime(countdown)}</p>
-                </div>
-              </div>
-              
-              <div className="w-full bg-gray-100 rounded-full h-2 mb-1">
-                <motion.div 
-                  className="bg-amber-500 h-2 rounded-full"
-                  initial={{ width: '0%' }}
-                  animate={{ width: `${(1 - countdown / 300) * 100}%` }}
-                  transition={{ duration: 0.5 }}
-                />
-              </div>
-              <p className="text-xs text-gray-500 text-right">
-                {Math.round((1 - countdown / 300) * 100)}% complete
-              </p>
-            </motion.div>
             
             <motion.div
               initial={{ y: 20, opacity: 0 }}
