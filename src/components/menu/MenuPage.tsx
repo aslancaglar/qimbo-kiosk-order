@@ -420,44 +420,53 @@ const MenuPage: React.FC = () => {
                 
                 {cartItems.length > 0 && (
                   <div className="mb-4 max-h-48 overflow-y-auto">
-                    {cartItems.map((item, index) => (
-                      <div key={`${item.product.id}-${index}`} className="flex items-center justify-between py-2 border-b">
-                        <div className="flex items-center">
-                          <img 
-                            src={item.product.image} 
-                            alt={item.product.name} 
-                            className="h-12 w-12 object-cover rounded mr-3" 
-                          />
-                          <div>
-                            <p className="font-medium">{item.product.name}</p>
-                            <p className="text-sm text-gray-600">${item.product.price.toFixed(2)}</p>
+                    <div className={isTablet ? "grid grid-cols-2 gap-2" : ""}>
+                      {cartItems.map((item, index) => (
+                        <div key={`${item.product.id}-${index}`} className={`${!isTablet ? "flex items-center justify-between py-2 border-b" : "bg-gray-50 rounded p-2 mb-2"}`}>
+                          <div className="flex items-center">
+                            <img 
+                              src={item.product.image} 
+                              alt={item.product.name} 
+                              className={`${isTablet ? "h-10 w-10" : "h-12 w-12"} object-cover rounded mr-3`} 
+                            />
+                            <div>
+                              <p className={`font-medium ${isTablet ? "text-sm" : ""}`}>{item.product.name}</p>
+                              <p className="text-sm text-gray-600">
+                                ${item.product.price.toFixed(2)}
+                                {isTablet && item.quantity > 1 ? ` x ${item.quantity}` : ""}
+                              </p>
+                            </div>
+                          </div>
+                          
+                          <div className="flex items-center gap-2">
+                            {!isTablet && (
+                              <>
+                                <button
+                                  onClick={() => handleDecrementItem(index)}
+                                  className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 hover:bg-gray-200"
+                                  disabled={item.quantity <= 1}
+                                >
+                                  <Minus className="h-4 w-4" />
+                                </button>
+                                <span className="w-6 text-center font-medium">{item.quantity}</span>
+                                <button
+                                  onClick={() => handleIncrementItem(index)}
+                                  className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 hover:bg-gray-200"
+                                >
+                                  <Plus className="h-4 w-4" />
+                                </button>
+                              </>
+                            )}
+                            <button
+                              onClick={() => handleRemoveItem(index)}
+                              className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 hover:bg-gray-200 ml-2"
+                            >
+                              <Trash className="h-4 w-4 text-red-500" />
+                            </button>
                           </div>
                         </div>
-                        
-                        <div className="flex items-center gap-2">
-                          <button
-                            onClick={() => handleDecrementItem(index)}
-                            className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 hover:bg-gray-200"
-                            disabled={item.quantity <= 1}
-                          >
-                            <Minus className="h-4 w-4" />
-                          </button>
-                          <span className="w-6 text-center font-medium">{item.quantity}</span>
-                          <button
-                            onClick={() => handleIncrementItem(index)}
-                            className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 hover:bg-gray-200"
-                          >
-                            <Plus className="h-4 w-4" />
-                          </button>
-                          <button
-                            onClick={() => handleRemoveItem(index)}
-                            className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 hover:bg-gray-200 ml-2"
-                          >
-                            <Trash className="h-4 w-4 text-red-500" />
-                          </button>
-                        </div>
-                      </div>
-                    ))}
+                      ))}
+                    </div>
                   </div>
                 )}
                 

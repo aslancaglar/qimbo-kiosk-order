@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Button from '../common/Button';
@@ -219,33 +220,36 @@ const CartSidebar: React.FC<CartSidebarProps> = ({
             <>
               <div className="flex-1 overflow-y-auto p-6">
                 <AnimatePresence initial={false}>
-                  {items.map((item, index) => (
-                    <motion.div
-                      key={`${item.product.id}-${index}`}
-                      initial={{ opacity: 0, height: 0 }}
-                      animate={{ opacity: 1, height: 'auto' }}
-                      exit={{ opacity: 0, height: 0 }}
-                      className="mb-4 border-b pb-4 last:border-0 last:pb-0"
-                    >
-                      <CartItem
-                        item={item}
-                        onRemove={() => onRemoveItem(index)}
-                        onIncrement={() => onIncrementItem(index)}
-                        onDecrement={() => onDecrementItem(index)}
-                      />
-                      
-                      {item.selectedToppings && item.selectedToppings.length > 0 && (
-                        <div className="pl-3 mt-2 space-y-1">
-                          {item.selectedToppings.map((topping) => (
-                            <div key={topping.id} className="flex justify-between text-sm text-gray-600">
-                              <span>+ {topping.name}</span>
-                              <span>${topping.price.toFixed(2)}</span>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </motion.div>
-                  ))}
+                  <div className={`${isTablet ? 'grid grid-cols-2 gap-3' : ''}`}>
+                    {items.map((item, index) => (
+                      <motion.div
+                        key={`${item.product.id}-${index}`}
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: 'auto' }}
+                        exit={{ opacity: 0, height: 0 }}
+                        className="mb-4 border-b pb-4 last:border-0 last:pb-0"
+                      >
+                        <CartItem
+                          item={item}
+                          onRemove={() => onRemoveItem(index)}
+                          onIncrement={() => onIncrementItem(index)}
+                          onDecrement={() => onDecrementItem(index)}
+                          isTablet={isTablet}
+                        />
+                        
+                        {item.selectedToppings && item.selectedToppings.length > 0 && (
+                          <div className="pl-3 mt-2 space-y-1">
+                            {item.selectedToppings.map((topping) => (
+                              <div key={topping.id} className="flex justify-between text-sm text-gray-600">
+                                <span>+ {topping.name}</span>
+                                <span>${topping.price.toFixed(2)}</span>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </motion.div>
+                    ))}
+                  </div>
                 </AnimatePresence>
               </div>
               
