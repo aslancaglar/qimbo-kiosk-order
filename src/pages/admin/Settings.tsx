@@ -8,12 +8,11 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
-import { Save, Printer, Globe, AlertCircle } from 'lucide-react';
+import { Save, Printer } from 'lucide-react';
 import { Switch } from "@/components/ui/switch";
-import { testConnection, registerWebhookUrl, type BizPrintConfig } from "../../utils/bizPrint";
+import { testConnection as testPrintBizApiConnection } from "../../utils/printBiz";
+import { type PrintBizConfig } from "../../utils/printBiz";
 import { Json } from "../../integrations/supabase/types";
-import { Form, FormField, FormItem, FormLabel, FormControl, FormDescription } from "@/components/ui/form";
-import { useForm } from "react-hook-form";
 
 const Settings = () => {
   const { toast } = useToast();
@@ -39,29 +38,20 @@ const Settings = () => {
     { id: 0, day_of_week: 'Sunday', open_time: '09:00', close_time: '21:00' }
   ]);
 
-  // BizPrint settings state
-  const [bizPrintSettings, setBizPrintSettings] = useState<BizPrintConfig>({
+  // PrintBiz settings state
+  const [printBizSettings, setPrintBizSettings] = useState<PrintBizConfig>({
     api_key: '',
-    api_endpoint: 'https://api.getbizprint.com/v1',
+    api_endpoint: 'https://api.printbiz.io/v1',
     enabled: false,
     default_printer_id: '',
-    auto_print: true,
-    webhook_url: '',
-    webhook_secret: ''
+    auto_print: true
   });
 
-  // Webhook URL state
-  const webhookForm = useForm({
-    defaultValues: {
-      webhook_url: ''
-    }
-  });
-
-  // Fetch restaurant info, business hours, and BizPrint settings on component mount
+  // Fetch restaurant info, business hours, and PrintBiz settings on component mount
   useEffect(() => {
     fetchRestaurantInfo();
     fetchBusinessHours();
-    fetchBizPrintSettings();
+    fetchPrintBizSettings();
   }, []);
 
   const fetchRestaurantInfo = async () => {
@@ -132,42 +122,34 @@ const Settings = () => {
     }
   };
 
-  const fetchBizPrintSettings = async () => {
+  const fetchPrintBizSettings = async () => {
     try {
       setLoading(true);
       const { data, error } = await supabase
         .from('settings')
         .select('*')
-        .eq('key', 'bizprint_settings')
+        .eq('key', 'printbiz_settings')
         .maybeSingle();
 
       if (error) {
-        console.error('Error fetching BizPrint settings:', error);
+        console.error('Error fetching PrintBiz settings:', error);
         toast({
           title: "Error",
-          description: "Failed to load BizPrint settings",
+          description: "Failed to load PrintBiz settings",
           variant: "destructive"
         });
         return;
       }
 
       if (data && data.value) {
-        const settings = data.value as Json;
-        if (typeof settings === 'object' && settings !== null && !Array.isArray(settings)) {
-          setBizPrintSettings({
-            api_key: (settings.api_key as string) || '',
-            api_endpoint: (settings.api_endpoint as string) || 'https://api.getbizprint.com/v1',
-            enabled: !!settings.enabled,
-            default_printer_id: (settings.default_printer_id as string) || '',
-            auto_print: settings.auto_print !== undefined ? !!settings.auto_print : true,
-            webhook_url: (settings.webhook_url as string) || '',
-            webhook_secret: (settings.webhook_secret as string) || ''
-          });
-          
-          if (settings.webhook_url) {
-            webhookForm.setValue('webhook_url', settings.webhook_url as string);
-          }
-        }
+        const settings = data.value as Record<string, any>;
+        setPrintBizSettings({
+          api_key: settings.api_key || '',
+          api_endpoint: settings.api_endpoint || 'https://api.printbiz.io/v1',
+          enabled: !!settings.enabled,
+          default_printer_id: settings.default_printer_id || '',
+          auto_print: settings.auto_print !== undefined ? !!settings.auto_print : true
+        });
       }
     } catch (error) {
       console.error('Unexpected error:', error);
@@ -199,16 +181,16 @@ const Settings = () => {
     );
   };
 
-  const handleBizPrintSettingChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handlePrintBizSettingChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { id, value, type, checked } = e.target;
-    setBizPrintSettings(prev => ({
+    setPrintBizSettings(prev => ({
       ...prev,
-      [id.replace('bizprint-', '')]: type === 'checkbox' ? checked : value
+      [id.replace('printbiz-', '')]: type === 'checkbox' ? checked : value
     }));
   };
 
   const handleSwitchChange = (field: string, checked: boolean) => {
-    setBizPrintSettings(prev => ({
+    setPrintBizSettings(prev => ({
       ...prev,
       [field]: checked
     }));
@@ -295,18 +277,18 @@ const Settings = () => {
     }
   };
 
-  const saveBizPrintSettings = async () => {
+  const savePrintBizSettings = async () => {
     try {
       setLoading(true);
       
       const { data: existingData, error: checkError } = await supabase
         .from('settings')
         .select('id')
-        .eq('key', 'bizprint_settings')
+        .eq('key', 'printbiz_settings')
         .maybeSingle();
         
       if (checkError) {
-        console.error('Error checking BizPrint settings:', checkError);
+        console.error('Error checking PrintBiz settings:', checkError);
         toast({
           title: "Error",
           description: "Failed to check if settings exist",
@@ -318,14 +300,12 @@ const Settings = () => {
       let saveError;
       
       const settingsValue = {
-        api_key: bizPrintSettings.api_key,
-        api_endpoint: bizPrintSettings.api_endpoint,
-        enabled: bizPrintSettings.enabled, 
-        default_printer_id: bizPrintSettings.default_printer_id,
-        auto_print: bizPrintSettings.auto_print,
-        webhook_url: bizPrintSettings.webhook_url,
-        webhook_secret: bizPrintSettings.webhook_secret
-      } as unknown as Json;
+        api_key: printBizSettings.api_key,
+        api_endpoint: printBizSettings.api_endpoint,
+        enabled: printBizSettings.enabled, 
+        default_printer_id: printBizSettings.default_printer_id,
+        auto_print: printBizSettings.auto_print
+      } as Json;
       
       if (existingData) {
         const { error } = await supabase
@@ -341,7 +321,7 @@ const Settings = () => {
         const { error } = await supabase
           .from('settings')
           .insert({
-            key: 'bizprint_settings',
+            key: 'printbiz_settings',
             value: settingsValue,
             created_at: new Date().toISOString(),
             updated_at: new Date().toISOString()
@@ -351,10 +331,10 @@ const Settings = () => {
       }
 
       if (saveError) {
-        console.error('Error saving BizPrint settings:', saveError);
+        console.error('Error saving PrintBiz settings:', saveError);
         toast({
           title: "Error",
-          description: "Failed to save BizPrint settings",
+          description: "Failed to save PrintBiz settings",
           variant: "destructive"
         });
         return;
@@ -362,7 +342,7 @@ const Settings = () => {
 
       toast({
         title: "Success",
-        description: "BizPrint settings saved successfully"
+        description: "PrintBiz settings saved successfully"
       });
     } catch (error) {
       console.error('Unexpected error:', error);
@@ -376,115 +356,29 @@ const Settings = () => {
     }
   };
 
-  const testBizPrintConnection = async () => {
+  const testPrintBizConnection = async () => {
     try {
       setLoading(true);
       
-      const success = await testConnection(bizPrintSettings);
+      const success = await testPrintBizApiConnection(printBizSettings);
       
       if (success) {
         toast({
           title: "Test Successful",
-          description: "Successfully connected to BizPrint API",
+          description: "Successfully connected to PrintBiz API",
         });
       } else {
         toast({
           title: "Test Failed",
-          description: "Failed to connect to BizPrint API. Please check your credentials.",
+          description: "Failed to connect to PrintBiz API. Please check your credentials.",
           variant: "destructive"
         });
       }
     } catch (error) {
-      console.error('Error testing BizPrint connection:', error);
+      console.error('Error testing PrintBiz connection:', error);
       toast({
         title: "Error",
-        description: "Failed to connect to BizPrint API",
-        variant: "destructive"
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const registerWebhook = async (data: { webhook_url: string }) => {
-    try {
-      setLoading(true);
-      
-      if (!bizPrintSettings.enabled || !bizPrintSettings.api_key) {
-        toast({
-          title: "Error",
-          description: "BizPrint integration must be enabled and API key must be set first",
-          variant: "destructive"
-        });
-        return;
-      }
-      
-      const updatedSettings = {
-        ...bizPrintSettings,
-        webhook_url: data.webhook_url
-      };
-      
-      const success = await registerWebhookUrl(updatedSettings, data.webhook_url);
-      
-      if (success) {
-        setBizPrintSettings(updatedSettings);
-        
-        const { data: existingData, error: checkError } = await supabase
-          .from('settings')
-          .select('id')
-          .eq('key', 'bizprint_settings')
-          .maybeSingle();
-          
-        if (checkError) {
-          console.error('Error checking BizPrint settings:', checkError);
-          toast({
-            title: "Error",
-            description: "Failed to check if settings exist",
-            variant: "destructive"
-          });
-          return;
-        }
-        
-        const settingsValue = {
-          ...updatedSettings
-        } as unknown as Json;
-        
-        if (existingData) {
-          const { error } = await supabase
-            .from('settings')
-            .update({
-              value: settingsValue,
-              updated_at: new Date().toISOString()
-            })
-            .eq('id', existingData.id);
-            
-          if (error) {
-            console.error('Error saving webhook URL:', error);
-            toast({
-              title: "Error",
-              description: "Failed to save webhook URL",
-              variant: "destructive"
-            });
-            return;
-          }
-        }
-        
-        toast({
-          title: "Success",
-          description: "Webhook URL registered and saved successfully"
-        });
-      } else {
-        toast({
-          title: "Error",
-          description: "Failed to register webhook URL with BizPrint",
-          variant: "destructive"
-        });
-      }
-    } catch (error) {
-      console.error('Error registering webhook:', error);
-      toast({
-        title: "Error",
-        description: "An error occurred while registering the webhook",
+        description: "Failed to connect to PrintBiz API",
         variant: "destructive"
       });
     } finally {
@@ -601,94 +495,78 @@ const Settings = () => {
             </Card>
           </TabsContent>
           
-          <TabsContent value="printing" className="mt-6 space-y-6">
+          <TabsContent value="printing" className="mt-6">
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Printer className="h-5 w-5" />
-                  BizPrint Integration
+                  PrintBiz Integration
                 </CardTitle>
                 <CardDescription>
-                  Configure your BizPrint cloud printing service for remote receipt printing.
+                  Configure your PrintBiz cloud printing service for remote receipt printing.
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="flex items-center space-x-2">
                   <Switch 
-                    id="bizprint-enabled"
-                    checked={bizPrintSettings.enabled}
+                    id="printbiz-enabled"
+                    checked={printBizSettings.enabled}
                     onCheckedChange={(checked) => handleSwitchChange('enabled', checked)}
                   />
-                  <Label htmlFor="bizprint-enabled">Enable BizPrint integration</Label>
+                  <Label htmlFor="printbiz-enabled">Enable PrintBiz integration</Label>
                 </div>
                 
                 <div className="pt-4 space-y-4">
                   <div className="space-y-2">
-                    <Label htmlFor="bizprint-api_key">API Key</Label>
+                    <Label htmlFor="printbiz-api_key">API Key</Label>
                     <Input 
-                      id="bizprint-api_key" 
-                      value={bizPrintSettings.api_key}
-                      onChange={handleBizPrintSettingChange}
-                      placeholder="Enter your BizPrint API key"
-                      disabled={!bizPrintSettings.enabled}
-                      type="password"
+                      id="printbiz-api_key" 
+                      value={printBizSettings.api_key}
+                      onChange={handlePrintBizSettingChange}
+                      placeholder="Enter your PrintBiz API key"
+                      disabled={!printBizSettings.enabled}
                     />
                   </div>
                   
                   <div className="space-y-2">
-                    <Label htmlFor="bizprint-api_endpoint">API Endpoint</Label>
+                    <Label htmlFor="printbiz-api_endpoint">API Endpoint</Label>
                     <Input 
-                      id="bizprint-api_endpoint" 
-                      value={bizPrintSettings.api_endpoint}
-                      onChange={handleBizPrintSettingChange}
-                      placeholder="https://api.getbizprint.com/v1"
-                      disabled={!bizPrintSettings.enabled}
+                      id="printbiz-api_endpoint" 
+                      value={printBizSettings.api_endpoint}
+                      onChange={handlePrintBizSettingChange}
+                      placeholder="https://api.printbiz.io/v1"
+                      disabled={!printBizSettings.enabled}
                     />
                   </div>
                   
                   <div className="space-y-2">
-                    <Label htmlFor="bizprint-default_printer_id">Default Printer ID</Label>
+                    <Label htmlFor="printbiz-default_printer_id">Default Printer ID</Label>
                     <Input 
-                      id="bizprint-default_printer_id" 
-                      value={bizPrintSettings.default_printer_id}
-                      onChange={handleBizPrintSettingChange}
+                      id="printbiz-default_printer_id" 
+                      value={printBizSettings.default_printer_id}
+                      onChange={handlePrintBizSettingChange}
                       placeholder="Enter your default printer ID"
-                      disabled={!bizPrintSettings.enabled}
+                      disabled={!printBizSettings.enabled}
                     />
                     <p className="text-sm text-muted-foreground">
-                      You can find printer IDs in your BizPrint dashboard
-                    </p>
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <Label htmlFor="bizprint-webhook_secret">Webhook Secret</Label>
-                    <Input 
-                      id="bizprint-webhook_secret" 
-                      value={bizPrintSettings.webhook_secret}
-                      onChange={handleBizPrintSettingChange}
-                      placeholder="Enter your webhook secret for verification"
-                      disabled={!bizPrintSettings.enabled}
-                      type="password"
-                    />
-                    <p className="text-sm text-muted-foreground">
-                      This secret is used to verify webhook requests from BizPrint
+                      You can find printer IDs in your PrintBiz dashboard
                     </p>
                   </div>
                   
                   <div className="flex items-center space-x-2 pt-2">
                     <Switch 
-                      id="bizprint-auto_print"
-                      checked={bizPrintSettings.auto_print}
+                      id="printbiz-auto_print"
+                      checked={printBizSettings.auto_print}
                       onCheckedChange={(checked) => handleSwitchChange('auto_print', checked)}
-                      disabled={!bizPrintSettings.enabled}
+                      disabled={!printBizSettings.enabled}
                     />
-                    <Label htmlFor="bizprint-auto_print">Automatically print receipts for new orders</Label>
+                    <Label htmlFor="printbiz-auto_print">Automatically print receipts for new orders</Label>
                   </div>
                   
                   <div className="flex gap-4 pt-4">
                     <Button 
-                      onClick={saveBizPrintSettings}
-                      disabled={loading || !bizPrintSettings.enabled}
+                      onClick={savePrintBizSettings}
+                      disabled={loading || !printBizSettings.enabled}
                       className="mt-2"
                     >
                       <Save className="h-4 w-4 mr-2" />
@@ -697,78 +575,14 @@ const Settings = () => {
                     
                     <Button 
                       variant="outline"
-                      onClick={testBizPrintConnection}
-                      disabled={loading || !bizPrintSettings.enabled || !bizPrintSettings.api_key}
+                      onClick={testPrintBizConnection}
+                      disabled={loading || !printBizSettings.enabled || !printBizSettings.api_key}
                       className="mt-2"
                     >
                       <Printer className="h-4 w-4 mr-2" />
                       Test Connection
                     </Button>
                   </div>
-                </div>
-              </CardContent>
-            </Card>
-            
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Globe className="h-5 w-5" />
-                  Webhook Configuration
-                </CardTitle>
-                <CardDescription>
-                  Configure a webhook URL for BizPrint to send print status updates.
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  <div className="rounded-md bg-amber-50 p-4 border border-amber-200">
-                    <div className="flex items-start">
-                      <AlertCircle className="h-5 w-5 text-amber-500 mt-0.5" />
-                      <div className="ml-3 text-sm text-amber-700">
-                        <h3 className="font-medium">Webhook Setup Information</h3>
-                        <p className="mt-1">
-                          To receive print status updates from BizPrint, you need to create a publicly accessible endpoint 
-                          that can receive webhook requests. This URL needs to be accessible from the internet.
-                        </p>
-                        <p className="mt-1">
-                          For production, create an API endpoint in your backend. For testing, you can use services 
-                          like ngrok or webhook.site. Enter the URL below and BizPrint will send print status updates 
-                          to this URL.
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                  
-                  <Form {...webhookForm}>
-                    <form onSubmit={webhookForm.handleSubmit(registerWebhook)} className="space-y-4">
-                      <FormField
-                        control={webhookForm.control}
-                        name="webhook_url"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Webhook URL</FormLabel>
-                            <FormControl>
-                              <Input 
-                                placeholder="https://your-api.com/webhooks/bizprint" 
-                                {...field} 
-                                disabled={!bizPrintSettings.enabled}
-                              />
-                            </FormControl>
-                            <FormDescription>
-                              This is the URL where BizPrint will send status updates about your print jobs.
-                            </FormDescription>
-                          </FormItem>
-                        )}
-                      />
-                      
-                      <Button 
-                        type="submit" 
-                        disabled={loading || !bizPrintSettings.enabled || !bizPrintSettings.api_key}
-                      >
-                        {loading ? 'Registering...' : 'Register Webhook URL'}
-                      </Button>
-                    </form>
-                  </Form>
                 </div>
               </CardContent>
             </Card>

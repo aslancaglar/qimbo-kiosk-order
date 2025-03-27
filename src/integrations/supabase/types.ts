@@ -225,7 +225,6 @@ export type Database = {
           id: number
           items_count: number
           order_number: string
-          print_status: string | null
           status: string
           table_number: number | null
           total_amount: number
@@ -236,7 +235,6 @@ export type Database = {
           id?: number
           items_count: number
           order_number: string
-          print_status?: string | null
           status?: string
           table_number?: number | null
           total_amount: number
@@ -247,43 +245,9 @@ export type Database = {
           id?: number
           items_count?: number
           order_number?: string
-          print_status?: string | null
           status?: string
           table_number?: number | null
           total_amount?: number
-        }
-        Relationships: []
-      }
-      print_jobs: {
-        Row: {
-          created_at: string
-          error_message: string | null
-          id: string
-          job_id: string
-          order_id: string | null
-          printer_id: string | null
-          status: string
-          updated_at: string
-        }
-        Insert: {
-          created_at?: string
-          error_message?: string | null
-          id?: string
-          job_id: string
-          order_id?: string | null
-          printer_id?: string | null
-          status: string
-          updated_at?: string
-        }
-        Update: {
-          created_at?: string
-          error_message?: string | null
-          id?: string
-          job_id?: string
-          order_id?: string | null
-          printer_id?: string | null
-          status?: string
-          updated_at?: string
         }
         Relationships: []
       }

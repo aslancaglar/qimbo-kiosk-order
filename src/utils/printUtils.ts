@@ -1,6 +1,6 @@
 
 import { CartItemType } from "../components/cart/types";
-import { sendPrintJob, BizPrintConfig, PrintResponse } from "./bizPrint";
+import { sendPrintJob, PrintBizConfig } from "./printBiz";
 
 // Format order for printing
 export const formatOrderReceipt = (
@@ -15,7 +15,7 @@ export const formatOrderReceipt = (
   const orderDate = new Date().toLocaleString();
   
   // This formats the receipt as HTML for browser printing
-  // In a real implementation with BizPrint, you might need to format differently
+  // In a real implementation with PrintBiz, you might need to format differently
   // based on their API requirements (HTML, plain text, template language, etc.)
   
   return `
@@ -177,9 +177,9 @@ export const printOrderBrowser = (
   }
 };
 
-// Print order using BizPrint cloud printing
-export const printOrderViaBizPrint = async (
-  bizPrintConfig: BizPrintConfig,
+// Print order using PrintBiz cloud printing
+export const printOrderViaPrintBiz = async (
+  printBizConfig: PrintBizConfig,
   orderNumber: string | number,
   items: CartItemType[],
   orderType: string,
@@ -187,11 +187,11 @@ export const printOrderViaBizPrint = async (
   subtotal: number,
   tax: number,
   total: number
-): Promise<PrintResponse> => {
-  if (!bizPrintConfig.enabled || !bizPrintConfig.api_key) {
-    console.log('BizPrint is not enabled, falling back to browser printing');
+): Promise<boolean> => {
+  if (!printBizConfig.enabled || !printBizConfig.api_key) {
+    console.log('PrintBiz is not enabled, falling back to browser printing');
     printOrderBrowser(orderNumber, items, orderType, tableNumber, subtotal, tax, total);
-    return { success: false, message: 'BizPrint is not enabled' };
+    return false;
   }
   
   try {
@@ -206,9 +206,9 @@ export const printOrderViaBizPrint = async (
     );
     
     const printJob = {
-      printer_id: bizPrintConfig.default_printer_id,
+      printer_id: printBizConfig.default_printer_id,
       content,
-      print_type: 'receipt' as const,
+      type: 'receipt' as const,
       copies: 1,
       metadata: {
         order_id: orderNumber,
@@ -217,23 +217,19 @@ export const printOrderViaBizPrint = async (
       }
     };
     
-    const response = await sendPrintJob(bizPrintConfig, printJob);
+    const success = await sendPrintJob(printBizConfig, printJob);
     
-    if (!response.success) {
-      console.log('Failed to print via BizPrint, falling back to browser printing');
+    if (!success) {
+      console.log('Failed to print via PrintBiz, falling back to browser printing');
       printOrderBrowser(orderNumber, items, orderType, tableNumber, subtotal, tax, total);
-      return response;
+      return false;
     }
     
-    console.log(`Print job sent successfully. Job ID: ${response.job_id}`);
-    return response;
+    return true;
   } catch (error) {
-    console.error('Error printing via BizPrint:', error);
+    console.error('Error printing via PrintBiz:', error);
     console.log('Falling back to browser printing');
     printOrderBrowser(orderNumber, items, orderType, tableNumber, subtotal, tax, total);
-    return { 
-      success: false, 
-      message: error instanceof Error ? error.message : 'Unknown error'
-    };
+    return false;
   }
 };
