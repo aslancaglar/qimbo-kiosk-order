@@ -39,8 +39,9 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
 
   return (
     <div className="flex min-h-screen bg-background">
-      {/* Sidebar for desktop */}
-      <aside className="hidden lg:flex flex-col w-64 border-r bg-card">
+      {/* Desktop sidebar - hidden by default */}
+      <aside className="hidden lg:flex flex-col w-0 border-r bg-card overflow-hidden transition-all duration-300 ease-in-out" 
+             style={{ width: open ? '16rem' : '0' }}>
         <div className="p-6">
           <h1 className="text-xl font-bold">Admin Panel</h1>
         </div>
@@ -69,6 +70,17 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
           </Button>
         </div>
       </aside>
+
+      {/* Sidebar trigger button for desktop - always visible */}
+      <Button
+        variant="outline"
+        size="icon"
+        className="hidden lg:flex fixed left-4 top-4 z-40"
+        onClick={() => setOpen(!open)}
+      >
+        {open ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+        <span className="sr-only">Toggle Menu</span>
+      </Button>
 
       {/* Mobile sidebar */}
       <Sheet open={open} onOpenChange={setOpen}>
@@ -115,9 +127,9 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
         </SheetContent>
       </Sheet>
 
-      {/* Main content */}
+      {/* Main content - now has more space */}
       <main className="flex-1 flex flex-col min-h-screen">
-        <div className="flex-1 p-6 lg:p-8">
+        <div className="flex-1 p-6 lg:p-8 lg:ml-0">
           <div className="mb-6 text-center">
             {navigation.map((item) => {
               if (location.pathname === item.href || 
