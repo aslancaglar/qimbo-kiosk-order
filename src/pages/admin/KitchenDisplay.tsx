@@ -14,6 +14,7 @@ import { Separator } from '@/components/ui/separator';
 import { Button } from '@/components/ui/button';
 import { format, formatDistance } from 'date-fns';
 
+// Sound notification for new orders
 const notificationSound = new Audio('/notification.mp3');
 
 const KitchenDisplay = () => {
@@ -35,6 +36,7 @@ const KitchenDisplay = () => {
   const queryClient = useQueryClient();
   const prevOrdersRef = useRef<Order[]>([]);
   
+  // Fetch all orders
   const { data: orders = [], isLoading, isError, refetch } = useQuery({
     queryKey: ['kds-orders'],
     queryFn: async () => {
@@ -53,6 +55,7 @@ const KitchenDisplay = () => {
     refetchInterval: 10000,
   });
   
+  // Organize orders into columns based on status
   useEffect(() => {
     if (orders) {
       const newColumns = {
@@ -65,6 +68,7 @@ const KitchenDisplay = () => {
       
       setColumns(newColumns);
       
+      // Check for new orders to play sound
       if (prevOrdersRef.current.length > 0 && orders.length > prevOrdersRef.current.length) {
         const prevIds = new Set(prevOrdersRef.current.map(order => order.id));
         const newOrder = orders.find(order => !prevIds.has(order.id));
@@ -81,11 +85,14 @@ const KitchenDisplay = () => {
     }
   }, [orders]);
   
+  // Handle drag and drop between columns
   const onDragEnd = async (result: any) => {
     const { destination, source, draggableId } = result;
     
+    // If dropped outside a droppable area
     if (!destination) return;
     
+    // If dropped in the same place
     if (destination.droppableId === source.droppableId && destination.index === source.index) {
       return;
     }
@@ -94,9 +101,11 @@ const KitchenDisplay = () => {
     const order = orders.find(o => o.id === orderId);
     if (!order) return;
     
+    // Determine new status based on destination column
     let newStatus = destination.droppableId;
     
     try {
+      // Update order status in database
       const { error } = await supabase
         .from('orders')
         .update({ status: newStatus })
@@ -104,19 +113,23 @@ const KitchenDisplay = () => {
         
       if (error) throw error;
       
+      // Optimistically update UI
       const sourceColumn = columns[source.droppableId as keyof typeof columns];
       const destColumn = columns[destination.droppableId as keyof typeof columns];
       
       const newSourceColumn = [...sourceColumn];
       const newDestColumn = [...destColumn];
       
+      // Remove from source
       const [movedOrder] = newSourceColumn.splice(source.index, 1);
       
+      // Insert at destination
       newDestColumn.splice(destination.index, 0, {
         ...movedOrder,
         status: newStatus
       });
       
+      // Update columns state
       setColumns({
         ...columns,
         [source.droppableId]: newSourceColumn,
@@ -125,6 +138,7 @@ const KitchenDisplay = () => {
       
       toast.success(`Order #${orderId} moved to ${destination.droppableId}`);
       
+      // Invalidate the query to refetch
       queryClient.invalidateQueries({ queryKey: ['kds-orders'] });
     } catch (error) {
       console.error('Failed to update order status:', error);
@@ -132,9 +146,11 @@ const KitchenDisplay = () => {
     }
   };
   
+  // Fetch order details for the modal
   const fetchOrderDetails = async (orderId: number) => {
     setIsLoadingDetails(true);
     try {
+      // Fetch order items with menu item data
       const { data: orderItems, error: itemsError } = await supabase
         .from('order_items')
         .select(`
@@ -150,6 +166,7 @@ const KitchenDisplay = () => {
       
       if (itemsError) throw itemsError;
       
+      // Format the orderItems to match our types
       const formattedItems: OrderItem[] = orderItems.map(item => ({
         id: item.id,
         order_id: item.order_id,
@@ -161,6 +178,7 @@ const KitchenDisplay = () => {
         toppings: []
       }));
       
+      // For each order item, fetch its toppings
       for (const item of formattedItems) {
         const { data: toppings, error: toppingsError } = await supabase
           .from('order_item_toppings')
@@ -178,6 +196,7 @@ const KitchenDisplay = () => {
           continue;
         }
         
+        // Map the toppings to our format
         item.toppings = toppings.map(t => ({
           id: t.id,
           order_item_id: t.order_item_id,
@@ -196,12 +215,14 @@ const KitchenDisplay = () => {
     }
   };
   
+  // Handle opening the order details modal
   const handleOpenOrderDetails = (order: Order) => {
     setSelectedOrder(order);
     setIsModalOpen(true);
     fetchOrderDetails(order.id);
   };
   
+  // Set up real-time listeners for order updates
   useEffect(() => {
     const channel = supabase
       .channel('kds-orders-channel')
@@ -212,12 +233,14 @@ const KitchenDisplay = () => {
           console.log('Order update received:', payload);
           
           if (payload.eventType === 'INSERT') {
+            // Play notification for new orders
             notificationSound.play().catch(e => console.error('Failed to play notification sound:', e));
             toast.success(`New Order #${payload.new.id} Received!`, {
               description: `${payload.new.items_count} items - $${payload.new.total_amount.toFixed(2)}`,
             });
           }
           
+          // Refetch orders to update the display
           queryClient.invalidateQueries({ queryKey: ['kds-orders'] });
         }
       )
@@ -230,6 +253,7 @@ const KitchenDisplay = () => {
     };
   }, [queryClient]);
   
+  // Render the KDS columns
   const renderColumns = () => {
     return (
       <DragDropContext onDragEnd={onDragEnd}>
@@ -257,10 +281,10 @@ const KitchenDisplay = () => {
                   <div
                     {...provided.droppableProps}
                     ref={provided.innerRef}
-                    className="flex-1 bg-gray-50 rounded-md overflow-hidden"
+                    className="flex-1 bg-gray-50 rounded-md p-2 overflow-hidden"
                   >
-                    <ScrollArea className="h-full">
-                      <div className="space-y-3 p-3">
+                    <ScrollArea className="h-full pr-2">
+                      <div className="space-y-3 min-h-full">
                         {columnOrders.length === 0 ? (
                           <div className="h-32 flex items-center justify-center text-muted-foreground text-sm border border-dashed rounded-md">
                             No orders in this column
@@ -335,6 +359,7 @@ const KitchenDisplay = () => {
     );
   };
   
+  // Render the order details modal
   const renderOrderDetailsModal = () => {
     if (!selectedOrder) return null;
     
@@ -360,7 +385,7 @@ const KitchenDisplay = () => {
           </DialogHeader>
           
           <ScrollArea className="max-h-[60vh]">
-            <div className="space-y-4 p-1 pr-4">
+            <div className="space-y-4 p-1">
               <div className="grid grid-cols-2 gap-4 text-sm">
                 <Card>
                   <CardHeader className="p-3 pb-0">
@@ -608,9 +633,7 @@ const KitchenDisplay = () => {
             </div>
           </div>
         ) : (
-          <div className="flex-1">
-            {renderColumns()}
-          </div>
+          renderColumns()
         )}
         
         {renderOrderDetailsModal()}
