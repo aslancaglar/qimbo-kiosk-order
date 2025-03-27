@@ -224,6 +224,7 @@ export type Database = {
           customer_type: string
           id: number
           items_count: number
+          order_number: string
           status: string
           table_number: number | null
           total_amount: number
@@ -233,6 +234,7 @@ export type Database = {
           customer_type: string
           id?: number
           items_count: number
+          order_number: string
           status?: string
           table_number?: number | null
           total_amount: number
@@ -242,6 +244,7 @@ export type Database = {
           customer_type?: string
           id?: number
           items_count?: number
+          order_number?: string
           status?: string
           table_number?: number | null
           total_amount?: number
