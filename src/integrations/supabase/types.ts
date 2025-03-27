@@ -9,6 +9,33 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      business_hours: {
+        Row: {
+          close_time: string
+          created_at: string | null
+          day_of_week: string
+          id: number
+          open_time: string
+          updated_at: string | null
+        }
+        Insert: {
+          close_time: string
+          created_at?: string | null
+          day_of_week: string
+          id?: number
+          open_time: string
+          updated_at?: string | null
+        }
+        Update: {
+          close_time?: string
+          created_at?: string | null
+          day_of_week?: string
+          id?: number
+          open_time?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       menu_items: {
         Row: {
           available_topping_categories: number[] | null
@@ -150,6 +177,36 @@ export type Database = {
           status?: string
           table_number?: number | null
           total_amount?: number
+        }
+        Relationships: []
+      }
+      restaurant_info: {
+        Row: {
+          address: string | null
+          created_at: string | null
+          description: string | null
+          id: number
+          name: string
+          phone: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          address?: string | null
+          created_at?: string | null
+          description?: string | null
+          id?: number
+          name: string
+          phone?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          address?: string | null
+          created_at?: string | null
+          description?: string | null
+          id?: number
+          name?: string
+          phone?: string | null
+          updated_at?: string | null
         }
         Relationships: []
       }
