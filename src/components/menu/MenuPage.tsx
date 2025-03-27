@@ -6,18 +6,20 @@ import CategorySelector from './CategorySelector';
 import ProductCard, { Product } from './ProductCard';
 import CartSidebar from '../cart/CartSidebar';
 import { CartItemType, ToppingItem } from '../cart/types';
-import Button from '../common/Button';
-import { ShoppingBag, Home, Trash, Plus, Minus } from 'lucide-react';
+import { Button } from '../ui/button';
+import { ShoppingBag, Home, Trash, Plus, Minus, Eye } from 'lucide-react';
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from '@/hooks/use-toast';
 import CancelOrderDialog from './CancelOrderDialog';
 import { useIsMobile } from '@/hooks/use-mobile';
+
 interface Category {
   id: number;
   name: string;
   description: string | null;
   display_order: number;
 }
+
 const MenuPage: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
@@ -36,11 +38,13 @@ const MenuPage: React.FC = () => {
   const [categories, setCategories] = useState<Category[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [showCancelDialog, setShowCancelDialog] = useState(false);
+
   useEffect(() => {
     if (!orderType) {
       navigate('/');
     }
   }, [orderType, navigate]);
+
   useEffect(() => {
     const fetchCategories = async () => {
       try {
@@ -77,6 +81,7 @@ const MenuPage: React.FC = () => {
       supabase.removeChannel(categoryChannel);
     };
   }, [toast]);
+
   useEffect(() => {
     const fetchMenuItems = async () => {
       setIsLoading(true);
@@ -123,12 +128,15 @@ const MenuPage: React.FC = () => {
       supabase.removeChannel(menuChannel);
     };
   }, [toast]);
+
   useEffect(() => {
     if (cartItems.length > 0 && !isCartOpen) {
       setIsCartOpen(true);
     }
   }, [cartItems, isCartOpen]);
+
   const filteredProducts = activeCategory === 'All' ? products : products.filter(product => product.category === activeCategory);
+
   const handleProductSelect = (product: Product, selectedToppings?: ToppingItem[]) => {
     const existingItemIndex = cartItems.findIndex(item => {
       if (item.product.id !== product.id) return false;
@@ -150,6 +158,7 @@ const MenuPage: React.FC = () => {
       setCartItems([...cartItems, newItem]);
     }
   };
+
   const handleRemoveItem = (index: number) => {
     const newItems = [...cartItems];
     newItems.splice(index, 1);
@@ -158,11 +167,13 @@ const MenuPage: React.FC = () => {
       setIsCartOpen(false);
     }
   };
+
   const handleIncrementItem = (index: number) => {
     const newItems = [...cartItems];
     newItems[index].quantity += 1;
     setCartItems(newItems);
   };
+
   const handleDecrementItem = (index: number) => {
     const newItems = [...cartItems];
     if (newItems[index].quantity > 1) {
@@ -170,9 +181,11 @@ const MenuPage: React.FC = () => {
       setCartItems(newItems);
     }
   };
+
   const handleCancelOrderClick = () => {
     setShowCancelDialog(true);
   };
+
   const handleConfirmCancel = () => {
     setCartItems([]);
     setIsCartOpen(false);
@@ -182,6 +195,7 @@ const MenuPage: React.FC = () => {
       description: "Your order has been cancelled"
     });
   };
+
   const handleConfirmOrder = async () => {
     if (cartItems.length === 0) return;
     try {
@@ -273,6 +287,7 @@ const MenuPage: React.FC = () => {
       });
     }
   };
+
   const totalItems = cartItems.reduce((sum, item) => sum + item.quantity, 0);
   const subtotal = cartItems.reduce((sum, item) => {
     let itemTotal = item.product.price * item.quantity;
@@ -282,7 +297,13 @@ const MenuPage: React.FC = () => {
     }
     return sum + itemTotal;
   }, 0);
+
   const categoryNames = categories.map(cat => cat.name);
+
+  const toggleCart = () => {
+    setIsCartOpen(!isCartOpen);
+  };
+
   return <Layout>
       <div className="flex flex-col h-screen">
         <header className="flex justify-between items-center p-4 bg-red-600 text-white">
@@ -315,25 +336,33 @@ const MenuPage: React.FC = () => {
           </div>
         </div>
         
+        {!isCartOpen && cartItems.length > 0 && (
+          <div className="fixed bottom-4 right-4 z-40">
+            <Button 
+              onClick={toggleCart} 
+              className="rounded-full shadow-lg bg-red-600 hover:bg-red-700 text-white px-4 py-2 flex items-center gap-2"
+            >
+              <Eye size={18} />
+              <span>View Order ({totalItems})</span>
+            </Button>
+          </div>
+        )}
+        
         <AnimatePresence>
-          {isCartOpen && <motion.div initial={{
-          y: 300
-        }} animate={{
-          y: 0
-        }} exit={{
-          y: 300,
-          opacity: 0
-        }} transition={{
-          duration: 0.3,
-          ease: "easeInOut"
-        }} className="bg-white border-t border-gray-200 shadow-lg">
+          {isCartOpen && <motion.div 
+            initial={{ y: 300 }}
+            animate={{ y: 0 }} 
+            exit={{ y: 300, opacity: 0 }}
+            transition={{ duration: 0.3, ease: "easeInOut" }}
+            className="bg-white border-t border-gray-200 shadow-lg"
+          >
               <div className="p-4 md:pb-[60px] py-[12px] rounded-none">
                 <div className="flex justify-between items-center mb-3">
                   <div className="flex items-center gap-2">
                     <ShoppingBag className="h-5 w-5 text-red-600" />
                     <h2 className="text-lg font-semibold">YOUR ORDER ({totalItems})</h2>
                   </div>
-                  <Button variant="ghost" size="sm" onClick={() => setIsCartOpen(false)} className="text-gray-500 hover:text-gray-700">
+                  <Button variant="outline" size="sm" onClick={toggleCart} className="border rounded-full px-4">
                     Hide
                   </Button>
                 </div>
@@ -392,4 +421,5 @@ const MenuPage: React.FC = () => {
       </div>
     </Layout>;
 };
+
 export default MenuPage;
