@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import { 
@@ -9,7 +10,7 @@ import {
   Menu, 
   X, 
   ChevronRight,
-  KitchenIcon
+  Utensils
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -33,7 +34,7 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
     { name: 'Menu Items', href: '/admin/menu', icon: Package },
     { name: 'Toppings', href: '/admin/toppings', icon: Package },
     { name: 'Settings', href: '/admin/settings', icon: Settings },
-    { name: 'Kitchen Display', href: '/admin/kitchen', icon: KitchenIcon },
+    { name: 'Kitchen Display', href: '/admin/kitchen', icon: Utensils },
   ];
 
   return (
