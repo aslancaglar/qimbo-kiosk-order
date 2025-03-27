@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Button from '../common/Button';
@@ -35,9 +36,12 @@ const CartSidebar: React.FC<CartSidebarProps> = ({
   
   const totalItems = items.reduce((sum, item) => sum + item.quantity, 0);
   
+  // Calculate subtotal including toppings
   const subtotal = items.reduce((sum, item) => {
+    // Base price of the product × quantity
     let itemTotal = item.product.price * item.quantity;
     
+    // Add cost of toppings × quantity
     if (item.selectedToppings && item.selectedToppings.length > 0) {
       const toppingsPrice = item.selectedToppings.reduce(
         (toppingSum, topping) => toppingSum + topping.price, 0
@@ -48,15 +52,17 @@ const CartSidebar: React.FC<CartSidebarProps> = ({
     return sum + itemTotal;
   }, 0);
   
-  const tax = subtotal * 0.1;
+  const tax = subtotal * 0.1; // 10% tax rate
   const total = subtotal + tax;
   
   const saveOrderToDatabase = async (orderData: any) => {
     try {
       console.log('Saving order to database with data:', JSON.stringify(orderData, null, 2));
       
+      // Generate a random 5-digit order number
       const orderNumber = Math.floor(10000 + Math.random() * 90000).toString();
       
+      // 1. First create the order
       const { data: orderResult, error: orderError } = await supabase
         .from('orders')
         .insert({
@@ -64,8 +70,8 @@ const CartSidebar: React.FC<CartSidebarProps> = ({
           table_number: orderData.orderType === 'eat-in' ? orderData.tableNumber : null,
           items_count: orderData.items.reduce((sum: number, item: CartItemType) => sum + item.quantity, 0),
           total_amount: orderData.total,
-          status: 'New',
-          order_number: orderNumber
+          status: 'New', // Changed from 'In Progress' to 'New'
+          order_number: orderNumber // Add the order number
         })
         .select('id')
         .single();
@@ -77,6 +83,7 @@ const CartSidebar: React.FC<CartSidebarProps> = ({
       
       console.log('Order created successfully with ID:', orderResult.id);
       
+      // 2. Create order items
       for (const item of orderData.items) {
         const { data: orderItemResult, error: orderItemError } = await supabase
           .from('order_items')
@@ -92,11 +99,12 @@ const CartSidebar: React.FC<CartSidebarProps> = ({
         
         if (orderItemError) {
           console.error('Error creating order item:', orderItemError);
-          continue;
+          continue; // Try to create other items
         }
         
         console.log('Order item created successfully with ID:', orderItemResult.id);
         
+        // 3. Create order item toppings
         if (item.selectedToppings && item.selectedToppings.length > 0) {
           for (const topping of item.selectedToppings) {
             const { error: toppingError } = await supabase
@@ -109,7 +117,7 @@ const CartSidebar: React.FC<CartSidebarProps> = ({
             
             if (toppingError) {
               console.error('Error creating order item topping:', toppingError);
-              continue;
+              continue; // Try to create other toppings
             }
           }
         }
@@ -142,9 +150,11 @@ const CartSidebar: React.FC<CartSidebarProps> = ({
       
       console.log('Starting checkout process with order data:', orderData);
       
+      // Save order to database first
       const orderId = await saveOrderToDatabase(orderData);
       console.log(`Order #${orderId} saved successfully to database`);
       
+      // Navigate to confirmation page with order data
       navigate('/confirmation', { 
         state: { 
           ...orderData,
@@ -152,6 +162,7 @@ const CartSidebar: React.FC<CartSidebarProps> = ({
         } 
       });
       
+      // Show success toast
       toast({
         title: "Order Submitted",
         description: `Your order #${orderId} has been placed successfully!`,
@@ -168,100 +179,97 @@ const CartSidebar: React.FC<CartSidebarProps> = ({
   
   return (
     <>
-      {isOpen && (
-        <div 
-          className="fixed top-0 right-0 h-full w-[350px] bg-white shadow-lg z-50"
-        >
-          <div className="h-full flex flex-col">
-            <div className="p-6 border-b border-gray-100 flex justify-between items-center">
-              <div className="flex items-center gap-2">
-                <ShoppingBag className="h-5 w-5" />
-                <h2 className="text-xl font-semibold">Your Order</h2>
-                {totalItems > 0 && (
-                  <span className="bg-primary text-primary-foreground text-xs font-medium rounded-full px-2 py-0.5">
-                    {totalItems}
-                  </span>
-                )}
-              </div>
-              <Button variant="ghost" size="icon" onClick={onClose} className="text-gray-500 hover:text-gray-700">
-                <X className="h-5 w-5" />
-              </Button>
+      {/* Fixed position cart sidebar - always visible */}
+      <div 
+        className="fixed top-0 right-0 h-full w-[350px] bg-white shadow-lg z-50"
+      >
+        <div className="h-full flex flex-col">
+          <div className="p-6 border-b border-gray-100 flex justify-between items-center">
+            <div className="flex items-center gap-2">
+              <ShoppingBag className="h-5 w-5" />
+              <h2 className="text-xl font-semibold">Your Order</h2>
+              {totalItems > 0 && (
+                <span className="bg-primary text-primary-foreground text-xs font-medium rounded-full px-2 py-0.5">
+                  {totalItems}
+                </span>
+              )}
             </div>
-            
-            {orderType === 'eat-in' && tableNumber && (
-              <div className="px-6 py-3 bg-blue-50 flex items-center text-sm">
-                <span className="font-medium text-blue-700">Table {tableNumber}</span>
-                <span className="mx-2 text-gray-400">•</span>
-                <span className="text-gray-600">Eat In</span>
+          </div>
+          
+          {orderType === 'eat-in' && tableNumber && (
+            <div className="px-6 py-3 bg-blue-50 flex items-center text-sm">
+              <span className="font-medium text-blue-700">Table {tableNumber}</span>
+              <span className="mx-2 text-gray-400">•</span>
+              <span className="text-gray-600">Eat In</span>
+            </div>
+          )}
+          
+          {items.length === 0 ? (
+            <div className="flex-1 flex flex-col items-center justify-center p-6 text-center">
+              <ShoppingBag className="h-16 w-16 text-gray-300 mb-4" />
+              <h3 className="text-xl font-medium text-gray-900 mb-1">Your cart is empty</h3>
+              <p className="text-gray-500 mb-6">Add some delicious items to get started</p>
+            </div>
+          ) : (
+            <>
+              <div className="flex-1 overflow-y-auto p-6 md:pb-[60px]">
+                <AnimatePresence initial={false}>
+                  {items.map((item, index) => (
+                    <motion.div
+                      key={`${item.product.id}-${index}`}
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: 'auto' }}
+                      exit={{ opacity: 0, height: 0 }}
+                      className="mb-4 border-b pb-4 last:border-0 last:pb-0"
+                    >
+                      <CartItem
+                        item={item}
+                        onRemove={() => onRemoveItem(index)}
+                        onIncrement={() => onIncrementItem(index)}
+                        onDecrement={() => onDecrementItem(index)}
+                        isTablet={!isMobile && window.innerWidth < 1025}
+                      />
+                      
+                      {/* Display toppings if any */}
+                      {item.selectedToppings && item.selectedToppings.length > 0 && (
+                        <div className="pl-3 mt-2 space-y-1">
+                          {item.selectedToppings.map((topping) => (
+                            <div key={topping.id} className="flex justify-between text-sm text-gray-600">
+                              <span>+ {topping.name}</span>
+                              <span>${topping.price.toFixed(2)}</span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </motion.div>
+                  ))}
+                </AnimatePresence>
               </div>
-            )}
-            
-            {items.length === 0 ? (
-              <div className="flex-1 flex flex-col items-center justify-center p-6 text-center">
-                <ShoppingBag className="h-16 w-16 text-gray-300 mb-4" />
-                <h3 className="text-xl font-medium text-gray-900 mb-1">Your cart is empty</h3>
-                <p className="text-gray-500 mb-6">Add some delicious items to get started</p>
-              </div>
-            ) : (
-              <>
-                <div className="flex-1 overflow-y-auto p-6 md:pb-[60px]">
-                  <AnimatePresence initial={false}>
-                    {items.map((item, index) => (
-                      <motion.div
-                        key={`${item.product.id}-${index}`}
-                        initial={{ opacity: 0, height: 0 }}
-                        animate={{ opacity: 1, height: 'auto' }}
-                        exit={{ opacity: 0, height: 0 }}
-                        className="mb-4 border-b pb-4 last:border-0 last:pb-0"
-                      >
-                        <CartItem
-                          item={item}
-                          onRemove={() => onRemoveItem(index)}
-                          onIncrement={() => onIncrementItem(index)}
-                          onDecrement={() => onDecrementItem(index)}
-                          isTablet={!isMobile && window.innerWidth < 1025}
-                        />
-                        
-                        {item.selectedToppings && item.selectedToppings.length > 0 && (
-                          <div className="pl-3 mt-2 space-y-1">
-                            {item.selectedToppings.map((topping) => (
-                              <div key={topping.id} className="flex justify-between text-sm text-gray-600">
-                                <span>+ {topping.name}</span>
-                                <span>${topping.price.toFixed(2)}</span>
-                              </div>
-                            ))}
-                          </div>
-                        )}
-                      </motion.div>
-                    ))}
-                  </AnimatePresence>
+              
+              <div className="p-6 border-t border-gray-100">
+                <div className="mb-4 space-y-2">
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-600">Subtotal</span>
+                    <span>${subtotal.toFixed(2)}</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-600">Tax</span>
+                    <span>${tax.toFixed(2)}</span>
+                  </div>
+                  <div className="flex justify-between font-semibold text-base pt-2">
+                    <span>Total</span>
+                    <span>${total.toFixed(2)}</span>
+                  </div>
                 </div>
                 
-                <div className="p-6 border-t border-gray-100">
-                  <div className="mb-4 space-y-2">
-                    <div className="flex justify-between text-sm">
-                      <span className="text-gray-600">Subtotal</span>
-                      <span>${items.reduce((sum, item) => sum + (item.product.price * item.quantity), 0).toFixed(2)}</span>
-                    </div>
-                    <div className="flex justify-between text-sm">
-                      <span className="text-gray-600">Tax</span>
-                      <span>${(items.reduce((sum, item) => sum + (item.product.price * item.quantity), 0) * 0.1).toFixed(2)}</span>
-                    </div>
-                    <div className="flex justify-between font-semibold text-base pt-2">
-                      <span>Total</span>
-                      <span>${(items.reduce((sum, item) => sum + (item.product.price * item.quantity), 0) * 1.1).toFixed(2)}</span>
-                    </div>
-                  </div>
-                  
-                  <Button size="full" onClick={handleCheckout} disabled={items.length === 0}>
-                    Checkout
-                  </Button>
-                </div>
-              </>
-            )}
-          </div>
+                <Button size="full" onClick={handleCheckout} disabled={items.length === 0}>
+                  Checkout
+                </Button>
+              </div>
+            </>
+          )}
         </div>
-      )}
+      </div>
     </>
   );
 };
