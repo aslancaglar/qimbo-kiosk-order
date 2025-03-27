@@ -240,7 +240,7 @@ const MenuPage: React.FC = () => {
           .from('order_items')
           .insert({
             order_id: orderResult.id,
-            menu_item_id: item.product.id,
+            menu_item_id: parseInt(item.product.id),
             quantity: item.quantity,
             price: item.product.price,
             notes: item.notes || null,
