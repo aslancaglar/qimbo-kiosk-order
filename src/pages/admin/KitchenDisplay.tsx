@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import AdminLayout from '../../components/admin/AdminLayout';
@@ -281,10 +282,10 @@ const KitchenDisplay = () => {
                   <div
                     {...provided.droppableProps}
                     ref={provided.innerRef}
-                    className="flex-1 bg-gray-50 rounded-md p-2 overflow-hidden"
+                    className="flex-1 bg-gray-50 rounded-md overflow-hidden"
                   >
-                    <ScrollArea className="h-full pr-2">
-                      <div className="space-y-3 min-h-full">
+                    <ScrollArea className="h-full">
+                      <div className="p-2 space-y-3">
                         {columnOrders.length === 0 ? (
                           <div className="h-32 flex items-center justify-center text-muted-foreground text-sm border border-dashed rounded-md">
                             No orders in this column
