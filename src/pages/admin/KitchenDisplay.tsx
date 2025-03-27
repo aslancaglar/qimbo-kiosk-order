@@ -282,11 +282,11 @@ const KitchenDisplay = () => {
                   <div
                     {...provided.droppableProps}
                     ref={provided.innerRef}
-                    className="flex-1 bg-gray-50 rounded-md"
+                    className="flex-1 bg-gray-50 rounded-md overflow-y-auto"
                     style={{ height: 'calc(100% - 40px)' }}
                   >
-                    <ScrollArea className="h-full" style={{ maxHeight: '100%' }}>
-                      <div className="p-2 space-y-3 pr-3">
+                    <ScrollArea className="h-full w-full">
+                      <div className="p-2 space-y-3 pr-6">
                         {columnOrders.length === 0 ? (
                           <div className="h-32 flex items-center justify-center text-muted-foreground text-sm border border-dashed rounded-md">
                             No orders in this column
