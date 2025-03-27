@@ -26,6 +26,16 @@ const OrderConfirmation: React.FC<OrderConfirmationProps> = () => {
     }
   }, [items, navigate]);
   
+  // Add a new effect for the 6-second redirect
+  useEffect(() => {
+    const redirectTimer = setTimeout(() => {
+      setRedirecting(true);
+      navigate('/', { replace: true });
+    }, 6000); // 6 seconds
+    
+    return () => clearTimeout(redirectTimer);
+  }, [navigate]);
+  
   // Countdown timer
   useEffect(() => {
     if (countdown <= 0) return;
@@ -37,7 +47,7 @@ const OrderConfirmation: React.FC<OrderConfirmationProps> = () => {
     return () => clearInterval(timer);
   }, [countdown]);
 
-  // Auto print on component mount and redirect after printing
+  // Auto print on component mount
   useEffect(() => {
     // Only print if we have items and haven't printed yet
     if (items && items.length > 0 && !printed) {
@@ -45,17 +55,11 @@ const OrderConfirmation: React.FC<OrderConfirmationProps> = () => {
       const timer = setTimeout(() => {
         printOrder();
         setPrinted(true);
-        
-        // Redirect to welcome page after a brief delay
-        setTimeout(() => {
-          setRedirecting(true);
-          navigate('/', { replace: true });
-        }, 500);
       }, 1000);
       
       return () => clearTimeout(timer);
     }
-  }, [items, printed, navigate]);
+  }, [items, printed]);
   
   // Format time from seconds to MM:SS
   const formatTime = (seconds: number) => {
@@ -302,7 +306,16 @@ const OrderConfirmation: React.FC<OrderConfirmationProps> = () => {
                 transition={{ delay: 0.6 }}
                 className="text-gray-500 mt-4"
               >
-                Printing your receipt and redirecting you...
+                Printing your receipt...
+              </motion.p>
+              
+              <motion.p
+                initial={{ y: 20, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                transition={{ delay: 0.7 }}
+                className="text-gray-500 mt-2"
+              >
+                Redirecting to home page in a few seconds...
               </motion.p>
             </div>
             
