@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import Button from '../common/Button';
@@ -61,7 +60,6 @@ interface ProductCardProps {
   onSelect: (product: Product, selectedToppings?: ToppingItem[]) => void;
 }
 
-// Schema for the form validation
 const toppingsFormSchema = z.object({
   selectedToppings: z.array(z.object({
     id: z.number(),
@@ -279,7 +277,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onSelect }) => {
       exit={{ opacity: 0 }}
       className="bg-white rounded-lg shadow-md overflow-hidden h-full flex flex-col"
     >
-      <div className="h-40 overflow-hidden">
+      <div className="h-32 overflow-hidden">
         <img 
           src={product.image} 
           alt={product.name} 
@@ -287,14 +285,14 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onSelect }) => {
         />
       </div>
       
-      <div className="p-4 flex-1 flex flex-col">
-        <h3 className="font-semibold text-lg mb-1">{product.name}</h3>
-        <p className="text-gray-600 text-sm mb-2 flex-1">{product.description}</p>
+      <div className="p-3 flex-1 flex flex-col">
+        <h3 className="font-semibold text-sm mb-1">{product.name}</h3>
+        <p className="text-gray-600 text-xs mb-2 flex-1 line-clamp-2">{product.description}</p>
         
         <div className="flex justify-between items-center mt-auto">
-          <span className="font-bold">${product.price.toFixed(2)}</span>
-          <Button size="sm" onClick={handleAddToCart}>
-            <ShoppingBag className="mr-1 h-4 w-4" />
+          <span className="font-bold text-sm">${product.price.toFixed(2)}</span>
+          <Button size="sm" onClick={handleAddToCart} className="bg-red-600 hover:bg-red-700 text-white text-xs py-1 px-2">
+            <ShoppingBag className="mr-1 h-3 w-3" />
             Add
           </Button>
         </div>

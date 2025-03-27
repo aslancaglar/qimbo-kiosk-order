@@ -6,42 +6,101 @@ interface CategorySelectorProps {
   categories: string[];
   activeCategory: string;
   onChange: (category: string) => void;
+  orientation?: 'horizontal' | 'vertical';
 }
 
 const CategorySelector: React.FC<CategorySelectorProps> = ({
   categories,
   activeCategory,
   onChange,
+  orientation = 'horizontal',
 }) => {
+  const isVertical = orientation === 'vertical';
+  
   return (
     <motion.div
       initial={{ opacity: 0, y: -10 }}
       animate={{ opacity: 1, y: 0 }}
-      className="w-full overflow-x-auto py-4 px-6"
+      className={`w-full ${isVertical ? 'h-full py-2' : 'overflow-x-auto py-4 px-6'}`}
     >
-      <div className="flex gap-4 min-w-max">
+      <div className={`${isVertical 
+        ? 'flex flex-col gap-1 items-center' 
+        : 'flex gap-4 min-w-max'}`}>
+        {/* Always include All category */}
+        <CategoryButton
+          category="All"
+          isActive={activeCategory === 'All'}
+          onChange={onChange}
+          isVertical={isVertical}
+        />
+        
         {categories.map((category) => (
-          <button
+          <CategoryButton
             key={category}
-            onClick={() => onChange(category)}
-            className={`relative px-5 py-2 rounded-md text-base font-medium transition-colors ${
-              activeCategory === category
-                ? 'text-primary'
-                : 'text-gray-600 hover:text-gray-900'
-            }`}
-          >
-            {activeCategory === category && (
-              <motion.div
-                layoutId="activeCategory"
-                className="absolute inset-0 bg-gray-100 rounded-md z-0"
-                transition={{ type: 'spring', duration: 0.5 }}
-              />
-            )}
-            <span className="relative z-10">{category}</span>
-          </button>
+            category={category}
+            isActive={activeCategory === category}
+            onChange={onChange}
+            isVertical={isVertical}
+          />
         ))}
       </div>
     </motion.div>
+  );
+};
+
+interface CategoryButtonProps {
+  category: string;
+  isActive: boolean;
+  onChange: (category: string) => void;
+  isVertical: boolean;
+}
+
+const CategoryButton: React.FC<CategoryButtonProps> = ({
+  category,
+  isActive,
+  onChange,
+  isVertical,
+}) => {
+  return (
+    <button
+      onClick={() => onChange(category)}
+      className={`relative ${isVertical 
+        ? 'px-2 py-3 w-full text-center flex flex-col items-center justify-center' 
+        : 'px-5 py-2 rounded-md'} text-base font-medium transition-colors`}
+    >
+      {isActive && (
+        <motion.div
+          layoutId={`activeCategory-${isVertical ? 'vertical' : 'horizontal'}`}
+          className={`absolute ${isVertical 
+            ? 'left-0 w-1 h-full bg-red-600' 
+            : 'inset-0 bg-gray-100 rounded-md'} z-0`}
+          transition={{ type: 'spring', duration: 0.5 }}
+        />
+      )}
+      
+      {/* Icon for categories - simple emoji placeholders */}
+      {isVertical && (
+        <div className="mb-1 text-xl">
+          {category === 'All' && '🍽️'}
+          {category === 'Burgers' && '🍔'}
+          {category === 'Pizza' && '🍕'}
+          {category === 'Pasta' && '🍝'}
+          {category === 'Salad' && '🥗'}
+          {category === 'Dessert' && '🍰'}
+          {category === 'Drinks' && '🥤'}
+          {category === 'Sides' && '🍟'}
+          {(!['All', 'Burgers', 'Pizza', 'Pasta', 'Salad', 'Dessert', 'Drinks', 'Sides'].includes(category)) && '📋'}
+        </div>
+      )}
+      
+      <span className={`relative z-10 ${isVertical ? 'text-xs' : ''} ${
+        isActive
+          ? isVertical ? 'text-red-600 font-bold' : 'text-primary' 
+          : 'text-gray-600 hover:text-gray-900'
+      }`}>
+        {isVertical ? (category.length > 7 ? category.substring(0, 7) + '...' : category) : category}
+      </span>
+    </button>
   );
 };
 
