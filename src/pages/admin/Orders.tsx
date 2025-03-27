@@ -274,7 +274,30 @@ const Orders = () => {
   const getFilterBadgeClass = (isSelected: boolean) => {
     return `cursor-pointer ${isSelected 
       ? 'bg-[hsl(215_50%_23%)] text-white hover:bg-[hsl(215_50%_30%)]' 
-      : 'bg-secondary hover:bg-secondary/80'} transition-colors`;
+      : 'bg-secondary hover:bg-[hsl(215_50%_30%)]'} transition-colors`;
+  };
+
+  const getStatusFilterBadgeClass = (badgeStatus: string | null, currentStatus: string | null) => {
+    const isActive = badgeStatus === currentStatus;
+    
+    switch(badgeStatus) {
+      case 'in progress':
+        return `cursor-pointer ${isActive 
+          ? 'bg-[hsl(215_50%_23%)] text-white' 
+          : 'bg-[hsl(215_50%_40%)] text-white opacity-70'} hover:bg-[hsl(215_50%_30%)] hover:opacity-100 transition-colors`;
+      case 'completed':
+        return `cursor-pointer ${isActive 
+          ? 'bg-[hsl(215_50%_23%)] text-white' 
+          : 'bg-[hsl(215_50%_40%)] text-white opacity-70'} hover:bg-[hsl(215_50%_30%)] hover:opacity-100 transition-colors`;
+      case 'cancelled':
+        return `cursor-pointer ${isActive 
+          ? 'bg-[hsl(215_50%_23%)] text-white' 
+          : 'bg-[hsl(215_50%_40%)] text-white opacity-70'} hover:bg-[hsl(215_50%_30%)] hover:opacity-100 transition-colors`;
+      default: // 'all' case
+        return `cursor-pointer ${isActive 
+          ? 'bg-[hsl(215_50%_23%)] text-white' 
+          : 'bg-[hsl(215_50%_40%)] text-white opacity-70'} hover:bg-[hsl(215_50%_30%)] hover:opacity-100 transition-colors`;
+    }
   };
 
   return (
@@ -326,25 +349,25 @@ const Orders = () => {
           
           <div className="flex gap-2">
             <Badge 
-              className={getFilterBadgeClass(selectedStatus === null)}
+              className={getStatusFilterBadgeClass(null, selectedStatus)}
               onClick={() => setSelectedStatus(null)}
             >
               All
             </Badge>
             <Badge 
-              className={getFilterBadgeClass(selectedStatus === 'in progress')}
+              className={getStatusFilterBadgeClass('in progress', selectedStatus)}
               onClick={() => setSelectedStatus('in progress')}
             >
               In Progress
             </Badge>
             <Badge 
-              className={getFilterBadgeClass(selectedStatus === 'completed')}
+              className={getStatusFilterBadgeClass('completed', selectedStatus)}
               onClick={() => setSelectedStatus('completed')}
             >
               Completed
             </Badge>
             <Badge 
-              className={getFilterBadgeClass(selectedStatus === 'cancelled')}
+              className={getStatusFilterBadgeClass('cancelled', selectedStatus)}
               onClick={() => setSelectedStatus('cancelled')}
             >
               Cancelled
