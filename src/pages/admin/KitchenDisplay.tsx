@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import AdminLayout from '../../components/admin/AdminLayout';
@@ -257,7 +258,7 @@ const KitchenDisplay = () => {
   const renderColumns = () => {
     return (
       <DragDropContext onDragEnd={onDragEnd}>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 h-[calc(100vh-180px)]">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 h-[calc(100vh-180px)] overflow-hidden">
           {Object.entries(columns).map(([columnId, columnOrders]) => (
             <div key={columnId} className="flex flex-col h-full">
               <div className={`mb-2 rounded-md p-2 font-semibold text-white ${
@@ -284,7 +285,7 @@ const KitchenDisplay = () => {
                     className="flex-1 bg-gray-50 rounded-md p-2 overflow-hidden"
                   >
                     <ScrollArea className="h-full pr-2">
-                      <div className="space-y-3 min-h-full">
+                      <div className="space-y-3 pb-2">
                         {columnOrders.length === 0 ? (
                           <div className="h-32 flex items-center justify-center text-muted-foreground text-sm border border-dashed rounded-md">
                             No orders in this column
@@ -384,7 +385,7 @@ const KitchenDisplay = () => {
             </DialogDescription>
           </DialogHeader>
           
-          <ScrollArea className="max-h-[60vh]">
+          <ScrollArea className="max-h-[60vh] overflow-y-auto">
             <div className="space-y-4 p-1">
               <div className="grid grid-cols-2 gap-4 text-sm">
                 <Card>
@@ -607,7 +608,7 @@ const KitchenDisplay = () => {
   
   return (
     <AdminLayout>
-      <div className="space-y-6 h-full flex flex-col">
+      <div className="space-y-6 h-full flex flex-col overflow-hidden">
         <div className="flex justify-between items-center">
           <h1 className="text-3xl font-bold">Kitchen Display System</h1>
           <div className="flex gap-2">
@@ -633,7 +634,9 @@ const KitchenDisplay = () => {
             </div>
           </div>
         ) : (
-          renderColumns()
+          <div className="flex-1 overflow-hidden">
+            {renderColumns()}
+          </div>
         )}
         
         {renderOrderDetailsModal()}
