@@ -57,9 +57,6 @@ const CartSidebar: React.FC<CartSidebarProps> = ({
     try {
       console.log('Saving order to database with data:', JSON.stringify(orderData, null, 2));
       
-      // Generate the order number (5-digit) before saving to database
-      const orderNumber = Math.floor(10000 + Math.random() * 90000);
-      
       // 1. First create the order
       const { data: orderResult, error: orderError } = await supabase
         .from('orders')
@@ -69,7 +66,6 @@ const CartSidebar: React.FC<CartSidebarProps> = ({
           items_count: orderData.items.reduce((sum: number, item: CartItemType) => sum + item.quantity, 0),
           total_amount: orderData.total,
           status: 'New', // Changed from 'In Progress' to 'New'
-          order_number: orderNumber, // Store the generated order number
         })
         .select('id')
         .single();
@@ -79,7 +75,7 @@ const CartSidebar: React.FC<CartSidebarProps> = ({
         throw orderError;
       }
       
-      console.log(`Order #${orderNumber} created successfully with ID:`, orderResult.id);
+      console.log('Order created successfully with ID:', orderResult.id);
       
       // 2. Create order items
       for (const item of orderData.items) {
@@ -121,7 +117,7 @@ const CartSidebar: React.FC<CartSidebarProps> = ({
         }
       }
       
-      return { id: orderResult.id, orderNumber: orderNumber };
+      return orderResult.id;
     } catch (error) {
       console.error('Error saving order:', error);
       toast({
@@ -149,22 +145,21 @@ const CartSidebar: React.FC<CartSidebarProps> = ({
       console.log('Starting checkout process with order data:', orderData);
       
       // Save order to database first
-      const { id, orderNumber } = await saveOrderToDatabase(orderData);
-      console.log(`Order #${orderNumber} (ID: ${id}) saved successfully to database`);
+      const orderId = await saveOrderToDatabase(orderData);
+      console.log(`Order #${orderId} saved successfully to database`);
       
       // Navigate to confirmation page with order data
       navigate('/confirmation', { 
         state: { 
           ...orderData,
-          orderId: id,
-          orderNumber: orderNumber
+          orderId
         } 
       });
       
       // Show success toast
       toast({
         title: "Order Submitted",
-        description: `Your order #${orderNumber} has been placed successfully!`,
+        description: `Your order #${orderId} has been placed successfully!`,
       });
     } catch (error) {
       console.error('Checkout error:', error);

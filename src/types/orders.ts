@@ -7,7 +7,6 @@ export interface Order {
   total_amount: number;
   status: string; // Now can include "New", "Pending", "In Progress", "Completed", "Cancelled"
   created_at: string;
-  order_number?: number; // Add the order_number field
 }
 
 export interface OrderItem {
