@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -137,7 +136,6 @@ const MenuPage: React.FC = () => {
   }, [toast]);
   
   useEffect(() => {
-    // Show cart when items are added
     if (cartItems.length > 0 && !isCartOpen) {
       setIsCartOpen(true);
     }
@@ -162,7 +160,6 @@ const MenuPage: React.FC = () => {
     newItems.splice(index, 1);
     setCartItems(newItems);
     
-    // Hide cart when all items are removed
     if (newItems.length === 0) {
       setIsCartOpen(false);
     }
@@ -182,7 +179,122 @@ const MenuPage: React.FC = () => {
     }
   };
   
-  // Calculate cart totals
+  const handleCancelOrder = () => {
+    setCartItems([]);
+    setIsCartOpen(false);
+  };
+  
+  const handleConfirmOrder = async () => {
+    if (cartItems.length === 0) return;
+    
+    try {
+      const subtotal = cartItems.reduce((sum, item) => {
+        let itemTotal = item.product.price * item.quantity;
+        if (item.selectedToppings && item.selectedToppings.length > 0) {
+          const toppingsPrice = item.selectedToppings.reduce(
+            (toppingSum, topping) => toppingSum + topping.price, 0
+          );
+          itemTotal += toppingsPrice * item.quantity;
+        }
+        return sum + itemTotal;
+      }, 0);
+      
+      const tax = subtotal * 0.1;
+      const total = subtotal + tax;
+      
+      const orderData = { 
+        items: cartItems, 
+        orderType, 
+        tableNumber,
+        subtotal,
+        tax,
+        total
+      };
+      
+      console.log('Starting checkout process with order data:', orderData);
+      
+      const orderNumber = Math.floor(10000 + Math.random() * 90000).toString();
+      
+      const { data: orderResult, error: orderError } = await supabase
+        .from('orders')
+        .insert({
+          customer_type: orderType === 'eat-in' ? 'Table' : 'Takeaway',
+          table_number: orderType === 'eat-in' ? tableNumber : null,
+          items_count: cartItems.reduce((sum, item) => sum + item.quantity, 0),
+          total_amount: total,
+          status: 'New',
+          order_number: orderNumber
+        })
+        .select('id')
+        .single();
+      
+      if (orderError) {
+        console.error('Error creating order:', orderError);
+        throw orderError;
+      }
+      
+      console.log('Order created successfully with ID:', orderResult.id);
+      
+      for (const item of cartItems) {
+        const { data: orderItemResult, error: orderItemError } = await supabase
+          .from('order_items')
+          .insert({
+            order_id: orderResult.id,
+            menu_item_id: item.product.id,
+            quantity: item.quantity,
+            price: item.product.price,
+            notes: item.notes || null,
+          })
+          .select('id')
+          .single();
+        
+        if (orderItemError) {
+          console.error('Error creating order item:', orderItemError);
+          continue;
+        }
+        
+        if (item.selectedToppings && item.selectedToppings.length > 0) {
+          for (const topping of item.selectedToppings) {
+            const { error: toppingError } = await supabase
+              .from('order_item_toppings')
+              .insert({
+                order_item_id: orderItemResult.id,
+                topping_id: topping.id,
+                price: topping.price,
+              });
+            
+            if (toppingError) {
+              console.error('Error creating order item topping:', toppingError);
+              continue;
+            }
+          }
+        }
+      }
+      
+      navigate('/confirmation', { 
+        state: { 
+          ...orderData,
+          orderId: orderResult.id
+        } 
+      });
+      
+      toast({
+        title: "Order Submitted",
+        description: `Your order #${orderResult.id} has been placed successfully!`,
+      });
+      
+      setCartItems([]);
+      setIsCartOpen(false);
+    } catch (error) {
+      console.error('Checkout error:', error);
+      toast({
+        title: "Error",
+        description: "Could not complete checkout. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+  
   const totalItems = cartItems.reduce((sum, item) => sum + item.quantity, 0);
   const subtotal = cartItems.reduce((sum, item) => {
     let itemTotal = item.product.price * item.quantity;
@@ -195,13 +307,11 @@ const MenuPage: React.FC = () => {
     return sum + itemTotal;
   }, 0);
 
-  // Convert database categories to format expected by CategorySelector
   const categoryNames = categories.map(cat => cat.name);
   
   return (
     <Layout>
       <div className="flex flex-col h-screen">
-        {/* Header with brand colors */}
         <header className="flex justify-between items-center p-4 bg-red-600 text-white">
           <Button 
             variant="ghost" 
@@ -217,9 +327,7 @@ const MenuPage: React.FC = () => {
           <div className="w-10"></div>
         </header>
         
-        {/* Main content area with products and categories */}
         <div className="flex flex-1 overflow-hidden bg-amber-50">
-          {/* Categories sidebar - now on the LEFT */}
           <div className="w-20 md:w-24 bg-gradient-to-b from-yellow-400 to-yellow-500 overflow-y-auto">
             <CategorySelector 
               categories={categoryNames} 
@@ -229,7 +337,6 @@ const MenuPage: React.FC = () => {
             />
           </div>
           
-          {/* Menu items area */}
           <div className="flex-1 overflow-y-auto p-4">
             <div className="mb-4">
               <h2 className="text-xl font-bold text-red-700">PROMOTION</h2>
@@ -257,7 +364,6 @@ const MenuPage: React.FC = () => {
           </div>
         </div>
         
-        {/* Cart at the bottom */}
         <AnimatePresence>
           {isCartOpen && (
             <motion.div
@@ -333,20 +439,13 @@ const MenuPage: React.FC = () => {
                 <div className="grid grid-cols-2 gap-3">
                   <Button
                     variant="outline"
-                    onClick={() => setIsCartOpen(false)}
+                    onClick={handleCancelOrder}
                     className="bg-gray-200 hover:bg-gray-300 text-black"
                   >
                     Cancel Order
                   </Button>
                   <Button
-                    onClick={() => {
-                      // We'll pass the cart items to the CartSidebar component for checkout
-                      const cartSidebarElement = document.getElementById('cart-sidebar-checkout');
-                      if (cartSidebarElement) {
-                        const handleCheckoutEvent = new CustomEvent('handle-checkout');
-                        cartSidebarElement.dispatchEvent(handleCheckoutEvent);
-                      }
-                    }}
+                    onClick={handleConfirmOrder}
                     className="bg-red-600 hover:bg-red-700 text-white"
                   >
                     CONFIRM ORDER
@@ -356,20 +455,6 @@ const MenuPage: React.FC = () => {
             </motion.div>
           )}
         </AnimatePresence>
-        
-        {/* Hidden CartSidebar for checkout functionality */}
-        <div id="cart-sidebar-checkout" className="hidden">
-          <CartSidebar 
-            isOpen={false} 
-            onClose={() => {}} 
-            items={cartItems} 
-            onRemoveItem={handleRemoveItem}
-            onIncrementItem={handleIncrementItem}
-            onDecrementItem={handleDecrementItem}
-            orderType={orderType}
-            tableNumber={tableNumber}
-          />
-        </div>
       </div>
     </Layout>
   );
