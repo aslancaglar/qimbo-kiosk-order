@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Button from '../common/Button';
@@ -56,6 +57,9 @@ const CartSidebar: React.FC<CartSidebarProps> = ({
     try {
       console.log('Saving order to database with data:', JSON.stringify(orderData, null, 2));
       
+      // Generate a random 5-digit order number
+      const orderNumber = Math.floor(10000 + Math.random() * 90000).toString();
+      
       // 1. First create the order
       const { data: orderResult, error: orderError } = await supabase
         .from('orders')
@@ -65,6 +69,7 @@ const CartSidebar: React.FC<CartSidebarProps> = ({
           items_count: orderData.items.reduce((sum: number, item: CartItemType) => sum + item.quantity, 0),
           total_amount: orderData.total,
           status: 'New', // Changed from 'In Progress' to 'New'
+          order_number: orderNumber // Add the order number
         })
         .select('id')
         .single();
