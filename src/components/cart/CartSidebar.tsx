@@ -1,5 +1,5 @@
 
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Button from '../common/Button';
 import CartItem from './CartItem';
@@ -31,22 +31,6 @@ const CartSidebar: React.FC<CartSidebarProps> = ({
   tableNumber,
 }) => {
   const navigate = useNavigate();
-  const [isAndroidTablet, setIsAndroidTablet] = useState(false);
-  
-  // Check if we're on an Android tablet
-  useEffect(() => {
-    const checkAndroidTablet = () => {
-      // Access the global isAndroidTablet value set by Layout component
-      setIsAndroidTablet(window.isAndroidTablet || false);
-    };
-    
-    checkAndroidTablet();
-    window.addEventListener('resize', checkAndroidTablet);
-    
-    return () => {
-      window.removeEventListener('resize', checkAndroidTablet);
-    };
-  }, []);
   
   const totalItems = items.reduce((sum, item) => sum + item.quantity, 0);
   
@@ -195,7 +179,7 @@ const CartSidebar: React.FC<CartSidebarProps> = ({
     <>
       {/* Fixed position cart sidebar - always visible */}
       <div 
-        className={`fixed top-0 right-0 h-full w-[350px] bg-white shadow-lg z-50 ${isAndroidTablet ? 'pb-[100px]' : ''}`}
+        className="fixed top-0 right-0 h-full w-[350px] bg-white shadow-lg z-50"
       >
         <div className="h-full flex flex-col">
           <div className="p-6 border-b border-gray-100 flex justify-between items-center">
@@ -259,7 +243,7 @@ const CartSidebar: React.FC<CartSidebarProps> = ({
                 </AnimatePresence>
               </div>
               
-              <div className={`p-6 border-t border-gray-100 ${isAndroidTablet ? 'mb-[50px]' : ''}`}>
+              <div className="p-6 border-t border-gray-100">
                 <div className="mb-4 space-y-2">
                   <div className="flex justify-between text-sm">
                     <span className="text-gray-600">Subtotal</span>

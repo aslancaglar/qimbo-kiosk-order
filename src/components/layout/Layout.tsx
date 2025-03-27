@@ -30,11 +30,6 @@ const Layout: React.FC<LayoutProps> = ({ children, className = '' }) => {
     };
   }, [isMobile]);
 
-  // Make isAndroidTablet available to all children via React Context
-  React.useEffect(() => {
-    window.isAndroidTablet = isAndroidTablet;
-  }, [isAndroidTablet]);
-
   return (
     <motion.div 
       className={`h-screen w-screen flex flex-col overflow-hidden bg-background ${isAndroidTablet ? 'pb-[100px]' : ''} ${className}`}

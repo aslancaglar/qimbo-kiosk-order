@@ -32,7 +32,6 @@ const MenuPage: React.FC = () => {
   const [categories, setCategories] = useState<Category[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [showCancelDialog, setShowCancelDialog] = useState(false);
-  const [isAndroidTablet, setIsAndroidTablet] = useState(false);
   
   useEffect(() => {
     if (!orderType) {
@@ -143,19 +142,6 @@ const MenuPage: React.FC = () => {
       setIsCartOpen(true);
     }
   }, [cartItems, isCartOpen]);
-  
-  useEffect(() => {
-    const checkAndroidTablet = () => {
-      setIsAndroidTablet(window.isAndroidTablet || false);
-    };
-    
-    checkAndroidTablet();
-    window.addEventListener('resize', checkAndroidTablet);
-    
-    return () => {
-      window.removeEventListener('resize', checkAndroidTablet);
-    };
-  }, []);
   
   const filteredProducts = activeCategory === 'All'
     ? products
@@ -397,7 +383,7 @@ const MenuPage: React.FC = () => {
               animate={{ y: 0 }}
               exit={{ y: 300, opacity: 0 }}
               transition={{ duration: 0.3, ease: "easeInOut" }}
-              className={`bg-white border-t border-gray-200 shadow-lg ${isAndroidTablet ? 'pb-[100px]' : ''}`}
+              className="bg-white border-t border-gray-200 shadow-lg"
             >
               <div className="p-4">
                 <div className="flex justify-between items-center mb-3">
