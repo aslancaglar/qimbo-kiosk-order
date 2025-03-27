@@ -8,17 +8,20 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
-import { Save, Printer } from 'lucide-react';
+import { Save, Printer, Settings2 } from 'lucide-react';
 import { Switch } from "@/components/ui/switch";
 import { testConnection as testPrintBizApiConnection } from "../../utils/printBiz";
 import { type PrintBizConfig } from "../../utils/printBiz";
 import { Json } from "../../integrations/supabase/types";
 
+interface OrderingSettings {
+  requireTableSelection: boolean;
+}
+
 const Settings = () => {
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
 
-  // Restaurant info state
   const [restaurantInfo, setRestaurantInfo] = useState({
     id: 1,
     name: '',
@@ -27,7 +30,6 @@ const Settings = () => {
     description: ''
   });
 
-  // Business hours state
   const [businessHours, setBusinessHours] = useState([
     { id: 0, day_of_week: 'Monday', open_time: '09:00', close_time: '21:00' },
     { id: 0, day_of_week: 'Tuesday', open_time: '09:00', close_time: '21:00' },
@@ -38,7 +40,6 @@ const Settings = () => {
     { id: 0, day_of_week: 'Sunday', open_time: '09:00', close_time: '21:00' }
   ]);
 
-  // PrintBiz settings state
   const [printBizSettings, setPrintBizSettings] = useState<PrintBizConfig>({
     api_key: '',
     api_endpoint: 'https://api.printbiz.io/v1',
@@ -47,11 +48,15 @@ const Settings = () => {
     auto_print: true
   });
 
-  // Fetch restaurant info, business hours, and PrintBiz settings on component mount
+  const [orderingSettings, setOrderingSettings] = useState<OrderingSettings>({
+    requireTableSelection: true
+  });
+
   useEffect(() => {
     fetchRestaurantInfo();
     fetchBusinessHours();
     fetchPrintBizSettings();
+    fetchOrderingSettings();
   }, []);
 
   const fetchRestaurantInfo = async () => {
@@ -163,6 +168,43 @@ const Settings = () => {
     }
   };
 
+  const fetchOrderingSettings = async () => {
+    try {
+      setLoading(true);
+      const { data, error } = await supabase
+        .from('settings')
+        .select('*')
+        .eq('key', 'ordering_settings')
+        .maybeSingle();
+
+      if (error) {
+        console.error('Error fetching ordering settings:', error);
+        toast({
+          title: "Error",
+          description: "Failed to load ordering settings",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      if (data && data.value) {
+        const settings = data.value as Record<string, any>;
+        setOrderingSettings({
+          requireTableSelection: settings.requireTableSelection !== undefined ? !!settings.requireTableSelection : true
+        });
+      }
+    } catch (error) {
+      console.error('Unexpected error:', error);
+      toast({
+        title: "Error",
+        description: "An unexpected error occurred",
+        variant: "destructive"
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleInfoChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { id, value } = e.target;
     setRestaurantInfo(prev => ({
@@ -191,6 +233,13 @@ const Settings = () => {
 
   const handleSwitchChange = (field: string, checked: boolean) => {
     setPrintBizSettings(prev => ({
+      ...prev,
+      [field]: checked
+    }));
+  };
+
+  const handleOrderingSettingChange = (field: string, checked: boolean) => {
+    setOrderingSettings(prev => ({
       ...prev,
       [field]: checked
     }));
@@ -356,6 +405,81 @@ const Settings = () => {
     }
   };
 
+  const saveOrderingSettings = async () => {
+    try {
+      setLoading(true);
+      
+      const { data: existingData, error: checkError } = await supabase
+        .from('settings')
+        .select('id')
+        .eq('key', 'ordering_settings')
+        .maybeSingle();
+        
+      if (checkError) {
+        console.error('Error checking ordering settings:', checkError);
+        toast({
+          title: "Error",
+          description: "Failed to check if settings exist",
+          variant: "destructive"
+        });
+        return;
+      }
+      
+      let saveError;
+      
+      const settingsValue = {
+        requireTableSelection: orderingSettings.requireTableSelection
+      } as Json;
+      
+      if (existingData) {
+        const { error } = await supabase
+          .from('settings')
+          .update({
+            value: settingsValue,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', existingData.id);
+          
+        saveError = error;
+      } else {
+        const { error } = await supabase
+          .from('settings')
+          .insert({
+            key: 'ordering_settings',
+            value: settingsValue,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+          });
+          
+        saveError = error;
+      }
+
+      if (saveError) {
+        console.error('Error saving ordering settings:', saveError);
+        toast({
+          title: "Error",
+          description: "Failed to save ordering settings",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      toast({
+        title: "Success",
+        description: "Ordering settings saved successfully"
+      });
+    } catch (error) {
+      console.error('Unexpected error:', error);
+      toast({
+        title: "Error",
+        description: "An unexpected error occurred",
+        variant: "destructive"
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const testPrintBizConnection = async () => {
     try {
       setLoading(true);
@@ -392,6 +516,7 @@ const Settings = () => {
         <Tabs defaultValue="general">
           <TabsList>
             <TabsTrigger value="general">General</TabsTrigger>
+            <TabsTrigger value="ordering">Ordering</TabsTrigger>
             <TabsTrigger value="printing">Printing</TabsTrigger>
             <TabsTrigger value="appearance">Appearance</TabsTrigger>
             <TabsTrigger value="notifications">Notifications</TabsTrigger>
@@ -491,6 +616,44 @@ const Settings = () => {
                     {loading ? 'Saving...' : 'Save Hours'}
                   </Button>
                 </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+          
+          <TabsContent value="ordering" className="mt-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Settings2 className="h-5 w-5" />
+                  Ordering Options
+                </CardTitle>
+                <CardDescription>
+                  Configure ordering options and customer experience settings.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="flex items-center space-x-2">
+                  <Switch 
+                    id="require-table-selection"
+                    checked={orderingSettings.requireTableSelection}
+                    onCheckedChange={(checked) => handleOrderingSettingChange('requireTableSelection', checked)}
+                  />
+                  <Label htmlFor="require-table-selection">
+                    Require table selection for dine-in orders
+                  </Label>
+                </div>
+                <p className="text-sm text-muted-foreground pl-7">
+                  When disabled, customers can place dine-in orders without selecting a table number.
+                </p>
+                
+                <Button 
+                  onClick={saveOrderingSettings}
+                  disabled={loading}
+                  className="mt-4"
+                >
+                  <Save className="h-4 w-4 mr-2" />
+                  {loading ? 'Saving...' : 'Save Settings'}
+                </Button>
               </CardContent>
             </Card>
           </TabsContent>

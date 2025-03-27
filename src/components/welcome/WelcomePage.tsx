@@ -1,9 +1,10 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Button from '../common/Button';
 import TableSelector from '../common/TableSelector';
 import { useNavigate } from 'react-router-dom';
+import { supabase } from '../../integrations/supabase/client';
 
 interface RestaurantInfoProps {
   name: string;
@@ -14,16 +15,59 @@ interface WelcomePageProps {
   restaurantInfo: RestaurantInfoProps | null;
 }
 
+interface OrderingSettings {
+  requireTableSelection: boolean;
+}
+
 const WelcomePage: React.FC<WelcomePageProps> = ({ restaurantInfo }) => {
   const [showTableSelector, setShowTableSelector] = useState(false);
+  const [orderingSettings, setOrderingSettings] = useState<OrderingSettings>({
+    requireTableSelection: true
+  });
   const navigate = useNavigate();
+  
+  // Fetch ordering settings when component mounts
+  useEffect(() => {
+    const fetchOrderingSettings = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('settings')
+          .select('*')
+          .eq('key', 'ordering_settings')
+          .maybeSingle();
+
+        if (error) {
+          console.error('Error fetching ordering settings:', error);
+          return;
+        }
+
+        if (data && data.value) {
+          const settings = data.value as Record<string, any>;
+          setOrderingSettings({
+            requireTableSelection: settings.requireTableSelection !== undefined 
+              ? !!settings.requireTableSelection 
+              : true
+          });
+        }
+      } catch (error) {
+        console.error('Unexpected error fetching ordering settings:', error);
+      }
+    };
+
+    fetchOrderingSettings();
+  }, []);
   
   const handleTakeaway = () => {
     navigate('/menu', { state: { orderType: 'takeaway' } });
   };
   
   const handleEatIn = () => {
-    setShowTableSelector(true);
+    // If table selection is not required, go directly to menu
+    if (!orderingSettings.requireTableSelection) {
+      navigate('/menu', { state: { orderType: 'eat-in' } });
+    } else {
+      setShowTableSelector(true);
+    }
   };
   
   const handleTableSelected = (tableNumber: number) => {
