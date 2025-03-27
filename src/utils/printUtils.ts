@@ -1,6 +1,5 @@
 
 import { CartItemType } from "../components/cart/types";
-import { sendPrintJob, PrintBizConfig } from "./printBiz";
 
 // Format order for printing
 export const formatOrderReceipt = (
@@ -13,10 +12,6 @@ export const formatOrderReceipt = (
   total: number
 ): string => {
   const orderDate = new Date().toLocaleString();
-  
-  // This formats the receipt as HTML for browser printing
-  // In a real implementation with PrintBiz, you might need to format differently
-  // based on their API requirements (HTML, plain text, template language, etc.)
   
   return `
     <html>
@@ -177,9 +172,9 @@ export const printOrderBrowser = (
   }
 };
 
-// Print order using PrintBiz cloud printing
-export const printOrderViaPrintBiz = async (
-  printBizConfig: PrintBizConfig,
+// Print order - this is now just a wrapper around browser printing 
+// since PrintBiz integration is removed
+export const printOrder = (
   orderNumber: string | number,
   items: CartItemType[],
   orderType: string,
@@ -187,49 +182,6 @@ export const printOrderViaPrintBiz = async (
   subtotal: number,
   tax: number,
   total: number
-): Promise<boolean> => {
-  if (!printBizConfig.enabled || !printBizConfig.api_key) {
-    console.log('PrintBiz is not enabled, falling back to browser printing');
-    printOrderBrowser(orderNumber, items, orderType, tableNumber, subtotal, tax, total);
-    return false;
-  }
-  
-  try {
-    const content = formatOrderReceipt(
-      orderNumber,
-      items,
-      orderType,
-      tableNumber,
-      subtotal,
-      tax,
-      total
-    );
-    
-    const printJob = {
-      printer_id: printBizConfig.default_printer_id,
-      content,
-      type: 'receipt' as const,
-      copies: 1,
-      metadata: {
-        order_id: orderNumber,
-        order_type: orderType,
-        table: tableNumber
-      }
-    };
-    
-    const success = await sendPrintJob(printBizConfig, printJob);
-    
-    if (!success) {
-      console.log('Failed to print via PrintBiz, falling back to browser printing');
-      printOrderBrowser(orderNumber, items, orderType, tableNumber, subtotal, tax, total);
-      return false;
-    }
-    
-    return true;
-  } catch (error) {
-    console.error('Error printing via PrintBiz:', error);
-    console.log('Falling back to browser printing');
-    printOrderBrowser(orderNumber, items, orderType, tableNumber, subtotal, tax, total);
-    return false;
-  }
+): void => {
+  printOrderBrowser(orderNumber, items, orderType, tableNumber, subtotal, tax, total);
 };
