@@ -14,14 +14,15 @@ const Layout: React.FC<LayoutProps> = ({ children, className = '' }) => {
   return (
     <motion.div 
       className={`fixed inset-0 flex flex-col overflow-hidden bg-background ${
-        isMobile ? 'pb-safe' : ''
+        isMobile ? 'pb-safe pt-safe px-safe' : ''
       } ${className}`}
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{ duration: 0.3 }}
       style={{
-        height: isMobile ? 'calc(100dvh)' : '100vh', // Use dynamic viewport height on mobile
+        height: '100dvh', // Always use dynamic viewport height for all devices
         width: '100%',
+        maxHeight: '-webkit-fill-available', // Fix for some mobile browsers
       }}
     >
       {children}
