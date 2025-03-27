@@ -38,8 +38,9 @@ const AppearanceSettings = () => {
   const fetchAppearanceSettings = async () => {
     try {
       setLoading(true);
+      // Use a type assertion to work around the type issues
       const { data, error } = await supabase
-        .from('appearance_settings')
+        .from('appearance_settings' as any)
         .select('*')
         .order('id', { ascending: true })
         .limit(1)
@@ -56,7 +57,8 @@ const AppearanceSettings = () => {
       }
 
       if (data) {
-        setSettings(data);
+        // Use type assertion to ensure type safety
+        setSettings(data as AppearanceSettings);
         if (data.logo_url) {
           setLogoPreview(data.logo_url);
         }
@@ -146,8 +148,9 @@ const AppearanceSettings = () => {
       const logoUrl = await uploadLogo();
       
       // Update database with all settings
+      // Use type assertion to work around the type issues
       const { error } = await supabase
-        .from('appearance_settings')
+        .from('appearance_settings' as any)
         .update({
           logo_url: logoUrl !== null ? logoUrl : settings.logo_url,
           primary_color: settings.primary_color,

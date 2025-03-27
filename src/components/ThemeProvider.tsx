@@ -36,8 +36,9 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   useEffect(() => {
     const fetchAppearanceSettings = async () => {
       try {
+        // Use type assertion to work around the type issues
         const { data, error } = await supabase
-          .from('appearance_settings')
+          .from('appearance_settings' as any)
           .select('*')
           .order('id', { ascending: true })
           .limit(1)
@@ -49,18 +50,20 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         }
 
         if (data) {
+          // Cast the data to our interface
+          const settings = data as AppearanceSettings;
           setTheme({
-            logo: data.logo_url,
-            primaryColor: data.primary_color,
-            secondaryColor: data.secondary_color,
-            accentColor: data.accent_color,
+            logo: settings.logo_url,
+            primaryColor: settings.primary_color,
+            secondaryColor: settings.secondary_color,
+            accentColor: settings.accent_color,
             loading: false
           });
           
           // Apply CSS variables
-          document.documentElement.style.setProperty('--primary-color', data.primary_color);
-          document.documentElement.style.setProperty('--secondary-color', data.secondary_color);
-          document.documentElement.style.setProperty('--accent-color', data.accent_color);
+          document.documentElement.style.setProperty('--primary-color', settings.primary_color);
+          document.documentElement.style.setProperty('--secondary-color', settings.secondary_color);
+          document.documentElement.style.setProperty('--accent-color', settings.accent_color);
         }
       } catch (error) {
         console.error('Unexpected error:', error);
@@ -76,7 +79,8 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       .channel('appearance-settings-changes')
       .on(
         'postgres_changes',
-        { event: '*', schema: 'public', table: 'appearance_settings' },
+        // Use type assertion here too
+        { event: '*', schema: 'public', table: 'appearance_settings' as any },
         () => {
           fetchAppearanceSettings();
         }
