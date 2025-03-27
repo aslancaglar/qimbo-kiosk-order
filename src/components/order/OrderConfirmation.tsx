@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
@@ -13,7 +12,7 @@ interface OrderConfirmationProps {}
 const OrderConfirmation: React.FC<OrderConfirmationProps> = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  const { items, orderType, tableNumber, subtotal, tax, total, orderId, orderNumber } = location.state || {};
+  const { items, orderType, tableNumber, subtotal, tax, total, orderId } = location.state || {};
   
   const [printed, setPrinted] = useState(false);
   const [redirecting, setRedirecting] = useState(false);
@@ -49,6 +48,9 @@ const OrderConfirmation: React.FC<OrderConfirmationProps> = () => {
     }
   }, [items, printed]);
   
+  // Use the order ID from state or generate a random one if not available
+  const orderNumber = orderId || Math.floor(10000 + Math.random() * 90000);
+
   // Print order function
   const printOrder = () => {
     try {

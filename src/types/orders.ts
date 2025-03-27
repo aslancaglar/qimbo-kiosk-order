@@ -1,7 +1,6 @@
 
 export interface Order {
   id: number;
-  order_number: string; // Added order_number field for consistency
   customer_type: string;
   table_number: number | null;
   items_count: number;
