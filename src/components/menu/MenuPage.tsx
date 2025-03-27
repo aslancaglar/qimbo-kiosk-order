@@ -414,14 +414,6 @@ const MenuPage: React.FC = () => {
                     <ShoppingBag className="h-5 w-5 text-red-600" />
                     <h2 className="text-lg font-semibold">YOUR ORDER ({totalItems})</h2>
                   </div>
-                  <Button 
-                    variant="ghost" 
-                    size="sm" 
-                    onClick={() => setIsCartOpen(false)}
-                    className="text-gray-500 hover:text-gray-700"
-                  >
-                    Hide
-                  </Button>
                 </div>
                 
                 {cartItems.length > 0 && (
