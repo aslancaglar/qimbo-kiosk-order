@@ -30,6 +30,10 @@
     --accent-foreground: 222.2 47.4% 11.2%;
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 210 40% 98%;
+    
+    /* Admin panel specific colors */
+    --admin-column-header: 215 50% 23%;
+    --admin-column-header-foreground: 210 40% 98%;
 
     /* Border and input styles */
     --border: 214.3 31.8% 91.4%;
@@ -97,6 +101,13 @@
   
   h1, h2, h3, h4, h5, h6 {
     @apply font-medium tracking-tight;
+  }
+}
+
+/* Admin panel specific styles */
+@layer components {
+  .admin-column-header {
+    @apply bg-[hsl(var(--admin-column-header))] text-[hsl(var(--admin-column-header-foreground))] font-semibold px-4 py-3 rounded-t-lg;
   }
 }
 
