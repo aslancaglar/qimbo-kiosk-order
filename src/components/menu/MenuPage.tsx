@@ -11,7 +11,6 @@ import { ShoppingBag, Home, Trash, Plus, Minus } from 'lucide-react';
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from '@/hooks/use-toast';
 import CancelOrderDialog from './CancelOrderDialog';
-import { useIsMobile } from '@/hooks/use-mobile';
 
 interface Category {
   id: number;
@@ -25,7 +24,6 @@ const MenuPage: React.FC = () => {
   const navigate = useNavigate();
   const { orderType, tableNumber } = location.state || {};
   const { toast } = useToast();
-  const isMobile = useIsMobile();
   
   const [activeCategory, setActiveCategory] = useState('All');
   const [cartItems, setCartItems] = useState<CartItemType[]>([]);
@@ -34,24 +32,6 @@ const MenuPage: React.FC = () => {
   const [categories, setCategories] = useState<Category[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [showCancelDialog, setShowCancelDialog] = useState(false);
-  const [isAndroidTablet, setIsAndroidTablet] = useState(false);
-  
-  useEffect(() => {
-    const checkAndroidTablet = () => {
-      const userAgent = navigator.userAgent.toLowerCase();
-      const isAndroid = userAgent.indexOf('android') > -1;
-      const isTablet = window.innerWidth >= 600 && window.innerWidth <= 1200 && !isMobile;
-      
-      setIsAndroidTablet(isAndroid && isTablet);
-    };
-    
-    checkAndroidTablet();
-    window.addEventListener('resize', checkAndroidTablet);
-    
-    return () => {
-      window.removeEventListener('resize', checkAndroidTablet);
-    };
-  }, [isMobile]);
   
   useEffect(() => {
     if (!orderType) {
@@ -403,9 +383,9 @@ const MenuPage: React.FC = () => {
               animate={{ y: 0 }}
               exit={{ y: 300, opacity: 0 }}
               transition={{ duration: 0.3, ease: "easeInOut" }}
-              className={`bg-white border-t border-gray-200 shadow-lg ${isAndroidTablet ? 'mb-[200px]' : ''}`}
+              className="bg-white border-t border-gray-200 shadow-lg"
             >
-              <div className={`p-4 ${isAndroidTablet ? 'pb-[200px]' : ''}`}>
+              <div className="p-4">
                 <div className="flex justify-between items-center mb-3">
                   <div className="flex items-center gap-2">
                     <ShoppingBag className="h-5 w-5 text-red-600" />
