@@ -8,10 +8,12 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
-import { Save, Printer } from 'lucide-react';
+import { Save, Printer, Globe, AlertCircle } from 'lucide-react';
 import { Switch } from "@/components/ui/switch";
-import { testConnection, type BizPrintConfig } from "../../utils/bizPrint";
+import { testConnection, registerWebhookUrl, type BizPrintConfig } from "../../utils/bizPrint";
 import { Json } from "../../integrations/supabase/types";
+import { Form, FormField, FormItem, FormLabel, FormControl, FormDescription } from "@/components/ui/form";
+import { useForm } from "react-hook-form";
 
 const Settings = () => {
   const { toast } = useToast();
@@ -43,7 +45,16 @@ const Settings = () => {
     api_endpoint: 'https://api.getbizprint.com/v1',
     enabled: false,
     default_printer_id: '',
-    auto_print: true
+    auto_print: true,
+    webhook_url: '',
+    webhook_secret: ''
+  });
+
+  // Webhook URL state
+  const webhookForm = useForm({
+    defaultValues: {
+      webhook_url: ''
+    }
   });
 
   // Fetch restaurant info, business hours, and BizPrint settings on component mount
@@ -148,8 +159,14 @@ const Settings = () => {
             api_endpoint: (settings.api_endpoint as string) || 'https://api.getbizprint.com/v1',
             enabled: !!settings.enabled,
             default_printer_id: (settings.default_printer_id as string) || '',
-            auto_print: settings.auto_print !== undefined ? !!settings.auto_print : true
+            auto_print: settings.auto_print !== undefined ? !!settings.auto_print : true,
+            webhook_url: (settings.webhook_url as string) || '',
+            webhook_secret: (settings.webhook_secret as string) || ''
           });
+          
+          if (settings.webhook_url) {
+            webhookForm.setValue('webhook_url', settings.webhook_url as string);
+          }
         }
       }
     } catch (error) {
@@ -305,7 +322,9 @@ const Settings = () => {
         api_endpoint: bizPrintSettings.api_endpoint,
         enabled: bizPrintSettings.enabled, 
         default_printer_id: bizPrintSettings.default_printer_id,
-        auto_print: bizPrintSettings.auto_print
+        auto_print: bizPrintSettings.auto_print,
+        webhook_url: bizPrintSettings.webhook_url,
+        webhook_secret: bizPrintSettings.webhook_secret
       } as unknown as Json;
       
       if (existingData) {
@@ -380,6 +399,92 @@ const Settings = () => {
       toast({
         title: "Error",
         description: "Failed to connect to BizPrint API",
+        variant: "destructive"
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const registerWebhook = async (data: { webhook_url: string }) => {
+    try {
+      setLoading(true);
+      
+      if (!bizPrintSettings.enabled || !bizPrintSettings.api_key) {
+        toast({
+          title: "Error",
+          description: "BizPrint integration must be enabled and API key must be set first",
+          variant: "destructive"
+        });
+        return;
+      }
+      
+      const updatedSettings = {
+        ...bizPrintSettings,
+        webhook_url: data.webhook_url
+      };
+      
+      const success = await registerWebhookUrl(updatedSettings, data.webhook_url);
+      
+      if (success) {
+        setBizPrintSettings(updatedSettings);
+        
+        const { data: existingData, error: checkError } = await supabase
+          .from('settings')
+          .select('id')
+          .eq('key', 'bizprint_settings')
+          .maybeSingle();
+          
+        if (checkError) {
+          console.error('Error checking BizPrint settings:', checkError);
+          toast({
+            title: "Error",
+            description: "Failed to check if settings exist",
+            variant: "destructive"
+          });
+          return;
+        }
+        
+        const settingsValue = {
+          ...updatedSettings
+        } as unknown as Json;
+        
+        if (existingData) {
+          const { error } = await supabase
+            .from('settings')
+            .update({
+              value: settingsValue,
+              updated_at: new Date().toISOString()
+            })
+            .eq('id', existingData.id);
+            
+          if (error) {
+            console.error('Error saving webhook URL:', error);
+            toast({
+              title: "Error",
+              description: "Failed to save webhook URL",
+              variant: "destructive"
+            });
+            return;
+          }
+        }
+        
+        toast({
+          title: "Success",
+          description: "Webhook URL registered and saved successfully"
+        });
+      } else {
+        toast({
+          title: "Error",
+          description: "Failed to register webhook URL with BizPrint",
+          variant: "destructive"
+        });
+      }
+    } catch (error) {
+      console.error('Error registering webhook:', error);
+      toast({
+        title: "Error",
+        description: "An error occurred while registering the webhook",
         variant: "destructive"
       });
     } finally {
@@ -496,7 +601,7 @@ const Settings = () => {
             </Card>
           </TabsContent>
           
-          <TabsContent value="printing" className="mt-6">
+          <TabsContent value="printing" className="mt-6 space-y-6">
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
@@ -526,6 +631,7 @@ const Settings = () => {
                       onChange={handleBizPrintSettingChange}
                       placeholder="Enter your BizPrint API key"
                       disabled={!bizPrintSettings.enabled}
+                      type="password"
                     />
                   </div>
                   
@@ -551,6 +657,21 @@ const Settings = () => {
                     />
                     <p className="text-sm text-muted-foreground">
                       You can find printer IDs in your BizPrint dashboard
+                    </p>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="bizprint-webhook_secret">Webhook Secret</Label>
+                    <Input 
+                      id="bizprint-webhook_secret" 
+                      value={bizPrintSettings.webhook_secret}
+                      onChange={handleBizPrintSettingChange}
+                      placeholder="Enter your webhook secret for verification"
+                      disabled={!bizPrintSettings.enabled}
+                      type="password"
+                    />
+                    <p className="text-sm text-muted-foreground">
+                      This secret is used to verify webhook requests from BizPrint
                     </p>
                   </div>
                   
@@ -584,6 +705,70 @@ const Settings = () => {
                       Test Connection
                     </Button>
                   </div>
+                </div>
+              </CardContent>
+            </Card>
+            
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Globe className="h-5 w-5" />
+                  Webhook Configuration
+                </CardTitle>
+                <CardDescription>
+                  Configure a webhook URL for BizPrint to send print status updates.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <div className="rounded-md bg-amber-50 p-4 border border-amber-200">
+                    <div className="flex items-start">
+                      <AlertCircle className="h-5 w-5 text-amber-500 mt-0.5" />
+                      <div className="ml-3 text-sm text-amber-700">
+                        <h3 className="font-medium">Webhook Setup Information</h3>
+                        <p className="mt-1">
+                          To receive print status updates from BizPrint, you need to create a publicly accessible endpoint 
+                          that can receive webhook requests. This URL needs to be accessible from the internet.
+                        </p>
+                        <p className="mt-1">
+                          For production, create an API endpoint in your backend. For testing, you can use services 
+                          like ngrok or webhook.site. Enter the URL below and BizPrint will send print status updates 
+                          to this URL.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <Form {...webhookForm}>
+                    <form onSubmit={webhookForm.handleSubmit(registerWebhook)} className="space-y-4">
+                      <FormField
+                        control={webhookForm.control}
+                        name="webhook_url"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Webhook URL</FormLabel>
+                            <FormControl>
+                              <Input 
+                                placeholder="https://your-api.com/webhooks/bizprint" 
+                                {...field} 
+                                disabled={!bizPrintSettings.enabled}
+                              />
+                            </FormControl>
+                            <FormDescription>
+                              This is the URL where BizPrint will send status updates about your print jobs.
+                            </FormDescription>
+                          </FormItem>
+                        )}
+                      />
+                      
+                      <Button 
+                        type="submit" 
+                        disabled={loading || !bizPrintSettings.enabled || !bizPrintSettings.api_key}
+                      >
+                        {loading ? 'Registering...' : 'Register Webhook URL'}
+                      </Button>
+                    </form>
+                  </Form>
                 </div>
               </CardContent>
             </Card>
