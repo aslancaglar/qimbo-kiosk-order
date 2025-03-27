@@ -219,6 +219,16 @@ const MenuPage: React.FC = () => {
         
         {/* Main content area with products and categories */}
         <div className="flex flex-1 overflow-hidden bg-amber-50">
+          {/* Categories sidebar - now on the LEFT */}
+          <div className="w-20 md:w-24 bg-gradient-to-b from-yellow-400 to-yellow-500 overflow-y-auto">
+            <CategorySelector 
+              categories={categoryNames} 
+              activeCategory={activeCategory} 
+              onChange={setActiveCategory}
+              orientation="vertical"
+            />
+          </div>
+          
           {/* Menu items area */}
           <div className="flex-1 overflow-y-auto p-4">
             <div className="mb-4">
@@ -244,16 +254,6 @@ const MenuPage: React.FC = () => {
                 <p className="text-gray-500 text-lg">No items found in this category</p>
               </div>
             )}
-          </div>
-          
-          {/* Categories sidebar - now on the right */}
-          <div className="w-20 md:w-24 bg-gradient-to-b from-yellow-400 to-yellow-500 overflow-y-auto">
-            <CategorySelector 
-              categories={categoryNames} 
-              activeCategory={activeCategory} 
-              onChange={setActiveCategory}
-              orientation="vertical"
-            />
           </div>
         </div>
         
