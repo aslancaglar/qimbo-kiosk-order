@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import AdminLayout from '../../components/admin/AdminLayout';
@@ -6,7 +5,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Order, OrderItem } from '@/types/orders';
 import { toast } from 'sonner';
 import { DragDropContext, Droppable, Draggable } from 'react-beautiful-dnd';
-import { Bell, Clock, CheckCircle, Info } from 'lucide-react';
+import { Bell, Clock, CheckCircle, Info, Plus } from 'lucide-react';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -20,11 +19,11 @@ const notificationSound = new Audio('/notification.mp3');
 
 const KitchenDisplay = () => {
   const [columns, setColumns] = useState<{
-    'New Orders': Order[];
+    'New': Order[];
     'In Progress': Order[];
     'Completed': Order[];
   }>({
-    'New Orders': [],
+    'New': [],
     'In Progress': [],
     'Completed': [],
   });
@@ -60,10 +59,8 @@ const KitchenDisplay = () => {
   useEffect(() => {
     if (orders) {
       const newColumns = {
-        'New Orders': orders.filter(order => 
-          order.status !== 'In Progress' && 
-          order.status !== 'Completed' && 
-          order.status !== 'Cancelled'
+        'New': orders.filter(order => 
+          order.status === 'New'
         ),
         'In Progress': orders.filter(order => order.status === 'In Progress'),
         'Completed': orders.filter(order => order.status === 'Completed'),
@@ -106,9 +103,6 @@ const KitchenDisplay = () => {
     
     // Determine new status based on destination column
     let newStatus = destination.droppableId;
-    if (newStatus === 'New Orders') {
-      newStatus = 'Pending'; // Using Pending as the status for new orders
-    }
     
     try {
       // Update order status in database
@@ -267,12 +261,12 @@ const KitchenDisplay = () => {
           {Object.entries(columns).map(([columnId, columnOrders]) => (
             <div key={columnId} className="flex flex-col h-full">
               <div className={`mb-2 rounded-md p-2 font-semibold text-white ${
-                columnId === 'New Orders' ? 'bg-blue-600' : 
+                columnId === 'New' ? 'bg-purple-600' : 
                 columnId === 'In Progress' ? 'bg-amber-600' : 
                 'bg-green-600'
               } flex items-center justify-between`}>
                 <span className="flex items-center gap-2">
-                  {columnId === 'New Orders' && <Bell size={18} />}
+                  {columnId === 'New' && <Plus size={18} />}
                   {columnId === 'In Progress' && <Clock size={18} />}
                   {columnId === 'Completed' && <CheckCircle size={18} />}
                   {columnId}
@@ -504,7 +498,32 @@ const KitchenDisplay = () => {
               </Button>
             </div>
             <div className="flex gap-2">
-              {selectedOrder.status !== 'In Progress' && (
+              {selectedOrder.status === 'New' && (
+                <Button 
+                  onClick={async () => {
+                    try {
+                      const { error } = await supabase
+                        .from('orders')
+                        .update({ status: 'In Progress' })
+                        .eq('id', selectedOrder.id);
+                      
+                      if (error) throw error;
+                      
+                      setSelectedOrder({...selectedOrder, status: 'In Progress'});
+                      toast.success(`Order #${selectedOrder.id} marked as In Progress`);
+                      queryClient.invalidateQueries({ queryKey: ['kds-orders'] });
+                    } catch (error) {
+                      console.error('Failed to update order status:', error);
+                      toast.error('Failed to update order status');
+                    }
+                  }}
+                  className="bg-amber-600 hover:bg-amber-700"
+                >
+                  Start Preparing
+                </Button>
+              )}
+              
+              {selectedOrder.status !== 'In Progress' && selectedOrder.status !== 'New' && (
                 <Button 
                   onClick={async () => {
                     try {

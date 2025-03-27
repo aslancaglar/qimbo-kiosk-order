@@ -24,7 +24,7 @@ export const enableRealtimeForTables = async () => {
           if (payload.eventType === 'INSERT') {
             toast({
               title: "New Order Received",
-              description: `Order #${payload.new.id} has been created`,
+              description: `Order #${payload.new.id} has been created with status: ${payload.new.status}`,
             });
             
             // Log to verify we're receiving new orders
@@ -33,7 +33,7 @@ export const enableRealtimeForTables = async () => {
             console.log('Order updated:', payload.new);
             toast({
               title: "Order Updated",
-              description: `Order #${payload.new.id} has been updated`,
+              description: `Order #${payload.new.id} status changed to ${payload.new.status}`,
             });
           }
         }
