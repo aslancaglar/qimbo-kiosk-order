@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import AdminLayout from '../../components/admin/AdminLayout';
@@ -284,8 +283,8 @@ const KitchenDisplay = () => {
                     ref={provided.innerRef}
                     className="flex-1 bg-gray-50 rounded-md p-2 overflow-hidden"
                   >
-                    <ScrollArea className="h-full pr-2">
-                      <div className="space-y-3 pb-2">
+                    <ScrollArea className="h-full">
+                      <div className="space-y-3 pb-4 pr-2">
                         {columnOrders.length === 0 ? (
                           <div className="h-32 flex items-center justify-center text-muted-foreground text-sm border border-dashed rounded-md">
                             No orders in this column
@@ -385,8 +384,8 @@ const KitchenDisplay = () => {
             </DialogDescription>
           </DialogHeader>
           
-          <ScrollArea className="max-h-[60vh] overflow-y-auto">
-            <div className="space-y-4 p-1">
+          <ScrollArea className="max-h-[60vh]">
+            <div className="space-y-4 p-1 pr-4">
               <div className="grid grid-cols-2 gap-4 text-sm">
                 <Card>
                   <CardHeader className="p-3 pb-0">
