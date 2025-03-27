@@ -32,12 +32,29 @@ const MenuPage: React.FC = () => {
   const [categories, setCategories] = useState<Category[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [showCancelDialog, setShowCancelDialog] = useState(false);
+  const [isTablet, setIsTablet] = useState(false);
   
   useEffect(() => {
     if (!orderType) {
       navigate('/');
     }
   }, [orderType, navigate]);
+  
+  useEffect(() => {
+    const checkIfTablet = () => {
+      const width = window.innerWidth;
+      return width >= 600 && width <= 1024;
+    };
+    
+    setIsTablet(checkIfTablet());
+    
+    const handleResize = () => {
+      setIsTablet(checkIfTablet());
+    };
+    
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
   
   useEffect(() => {
     const fetchCategories = async () => {
@@ -383,7 +400,7 @@ const MenuPage: React.FC = () => {
               animate={{ y: 0 }}
               exit={{ y: 300, opacity: 0 }}
               transition={{ duration: 0.3, ease: "easeInOut" }}
-              className="bg-white border-t border-gray-200 shadow-lg"
+              className={`bg-white border-t border-gray-200 shadow-lg ${isTablet ? 'pb-[100px]' : ''}`}
             >
               <div className="p-4">
                 <div className="flex justify-between items-center mb-3">
