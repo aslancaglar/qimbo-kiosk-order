@@ -118,6 +118,19 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
       {/* Main content */}
       <main className="flex-1 flex flex-col min-h-screen">
         <div className="flex-1 p-6 lg:p-8">
+          <div className="mb-6 text-center">
+            {navigation.map((item) => {
+              if (location.pathname === item.href || 
+                 (item.href !== '/admin' && location.pathname.startsWith(item.href))) {
+                return (
+                  <h1 key={item.name} className="text-2xl font-bold tracking-tight mb-4">
+                    {item.name}
+                  </h1>
+                );
+              }
+              return null;
+            })}
+          </div>
           {children}
         </div>
       </main>
