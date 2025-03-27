@@ -1,4 +1,3 @@
-
 // BizPrint API integration utility
 
 export interface BizPrintConfig {
@@ -193,21 +192,14 @@ export const validateWebhookSignature = (
   body: string, 
   secret: string
 ): boolean => {
-  // This is a placeholder for signature validation
-  // In a real implementation, you would validate the signature using crypto
-  
-  /* Real implementation example:
-  
-  const hmac = crypto.createHmac('sha256', secret);
-  const computedSignature = hmac.update(body).digest('hex');
-  return crypto.timingSafeEqual(
-    Buffer.from(signature),
-    Buffer.from(computedSignature)
-  );
-  */
-  
+  // In a browser environment, we can't use crypto to validate HMAC
+  // This would need to be done server-side
+  // This is a placeholder that will always return true
+  // The actual implementation is in the Edge Function
   console.log('Validating webhook signature', { signature, secret });
-  // Just for simulation, always return true
+  
+  // Just for simulation in browser context, always return true
+  // The real validation happens in the Edge Function
   return true;
 };
 
