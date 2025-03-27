@@ -5,7 +5,7 @@ export interface Order {
   table_number: number | null;
   items_count: number;
   total_amount: number;
-  status: string;
+  status: string; // Now can include "New", "Pending", "In Progress", "Completed", "Cancelled"
   created_at: string;
 }
 

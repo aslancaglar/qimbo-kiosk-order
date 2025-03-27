@@ -1,146 +1,126 @@
-
-import { ReactNode } from 'react';
+import React from 'react';
+import { NavLink, useLocation } from 'react-router-dom';
 import { 
-  Sidebar, 
-  SidebarContent, 
-  SidebarHeader, 
-  SidebarFooter,
-  SidebarGroup,
-  SidebarGroupLabel,
-  SidebarGroupContent,
-  SidebarMenu,
-  SidebarMenuItem,
-  SidebarMenuButton,
-  SidebarTrigger
-} from "@/components/ui/sidebar";
-import { SidebarProvider } from "@/components/ui/sidebar";
-import { BarChart, Settings, ShoppingBag, PanelRight, LogOut, Tag } from "lucide-react";
-import { NavLink, useNavigate } from 'react-router-dom';
+  LayoutDashboard, 
+  ShoppingBag, 
+  Package, 
+  Settings, 
+  LogOut, 
+  Menu, 
+  X, 
+  ChevronRight,
+  KitchenIcon
+} from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 
 interface AdminLayoutProps {
-  children: ReactNode;
+  children: React.ReactNode;
 }
 
-const AdminLayout = ({ children }: AdminLayoutProps) => {
-  const navigate = useNavigate();
-  
-  const handleLogout = () => {
-    // In a real app, this would handle authentication logout
-    navigate('/');
-  };
-  
+const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
+  const [open, setOpen] = React.useState(false);
+  const location = useLocation();
+
+  const baseClasses = "flex items-center py-2 px-3 rounded-md text-sm font-medium transition-colors";
+  const activeClass = "bg-primary text-primary-foreground";
+  const inactiveClass = "hover:bg-muted";
+
+  const navigation = [
+    { name: 'Dashboard', href: '/admin', icon: LayoutDashboard },
+    { name: 'Orders', href: '/admin/orders', icon: ShoppingBag },
+    { name: 'Menu Items', href: '/admin/menu', icon: Package },
+    { name: 'Toppings', href: '/admin/toppings', icon: Package },
+    { name: 'Settings', href: '/admin/settings', icon: Settings },
+    { name: 'Kitchen Display', href: '/admin/kitchen', icon: KitchenIcon },
+  ];
+
   return (
-    <SidebarProvider>
-      <div className="h-screen flex w-full bg-gray-50 overflow-hidden">
-        <Sidebar className="border-r border-gray-200">
-          <SidebarHeader className="px-6 py-3">
-            <h2 className="text-xl font-bold">Admin Panel</h2>
-          </SidebarHeader>
-          
-          <SidebarContent>
-            <SidebarGroup>
-              <SidebarGroupLabel>Management</SidebarGroupLabel>
-              <SidebarGroupContent>
-                <SidebarMenu>
-                  <SidebarMenuItem>
-                    <SidebarMenuButton asChild>
-                      <NavLink 
-                        to="/admin" 
-                        end
-                        className={({ isActive }) => 
-                          isActive ? "text-primary font-medium" : "text-gray-500 hover:text-gray-900"
-                        }
-                      >
-                        <BarChart className="h-5 w-5" />
-                        <span>Dashboard</span>
-                      </NavLink>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                  
-                  <SidebarMenuItem>
-                    <SidebarMenuButton asChild>
-                      <NavLink 
-                        to="/admin/orders" 
-                        className={({ isActive }) => 
-                          isActive ? "text-primary font-medium" : "text-gray-500 hover:text-gray-900"
-                        }
-                      >
-                        <ShoppingBag className="h-5 w-5" />
-                        <span>Orders</span>
-                      </NavLink>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                  
-                  <SidebarMenuItem>
-                    <SidebarMenuButton asChild>
-                      <NavLink 
-                        to="/admin/menu" 
-                        className={({ isActive }) => 
-                          isActive ? "text-primary font-medium" : "text-gray-500 hover:text-gray-900"
-                        }
-                      >
-                        <PanelRight className="h-5 w-5" />
-                        <span>Menu Items</span>
-                      </NavLink>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                  
-                  <SidebarMenuItem>
-                    <SidebarMenuButton asChild>
-                      <NavLink 
-                        to="/admin/toppings" 
-                        className={({ isActive }) => 
-                          isActive ? "text-primary font-medium" : "text-gray-500 hover:text-gray-900"
-                        }
-                      >
-                        <Tag className="h-5 w-5" />
-                        <span>Toppings</span>
-                      </NavLink>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                  
-                  <SidebarMenuItem>
-                    <SidebarMenuButton asChild>
-                      <NavLink 
-                        to="/admin/settings" 
-                        className={({ isActive }) => 
-                          isActive ? "text-primary font-medium" : "text-gray-500 hover:text-gray-900"
-                        }
-                      >
-                        <Settings className="h-5 w-5" />
-                        <span>Settings</span>
-                      </NavLink>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                </SidebarMenu>
-              </SidebarGroupContent>
-            </SidebarGroup>
-          </SidebarContent>
-          
-          <SidebarFooter className="border-t border-gray-200 p-4">
-            <button 
-              onClick={handleLogout}
-              className="flex items-center gap-2 text-gray-500 hover:text-gray-900 w-full px-3 py-2 rounded-md hover:bg-gray-100"
-            >
-              <LogOut className="h-5 w-5" />
-              <span>Logout</span>
-            </button>
-          </SidebarFooter>
-        </Sidebar>
-        
-        <div className="flex-1 flex flex-col overflow-hidden">
-          <div className="flex items-center p-4 border-b border-gray-200 bg-white">
-            <SidebarTrigger />
-            <h1 className="text-xl font-semibold ml-4">Restaurant Admin</h1>
-          </div>
-          <main className="flex-1 overflow-auto">
-            <div className="p-6">
-              {children}
-            </div>
-          </main>
+    <div className="flex min-h-screen bg-background">
+      {/* Sidebar for desktop */}
+      <aside className="hidden lg:flex flex-col w-64 border-r bg-card">
+        <div className="p-6">
+          <h1 className="text-xl font-bold">Admin Panel</h1>
         </div>
-      </div>
-    </SidebarProvider>
+        <ScrollArea className="flex-1 py-2 px-4">
+          <nav className="space-y-1">
+            {navigation.map((item) => (
+              <NavLink
+                key={item.name}
+                to={item.href}
+                className={({ isActive }) => 
+                  `${baseClasses} ${isActive ? activeClass : inactiveClass}`
+                }
+              >
+                <item.icon className="w-5 h-5 mr-3" />
+                <span>{item.name}</span>
+              </NavLink>
+            ))}
+          </nav>
+        </ScrollArea>
+        <div className="p-4 border-t">
+          <Button variant="outline" className="w-full justify-start" asChild>
+            <NavLink to="/">
+              <LogOut className="w-5 h-5 mr-3" />
+              Exit Admin
+            </NavLink>
+          </Button>
+        </div>
+      </aside>
+
+      {/* Mobile sidebar */}
+      <Sheet open={open} onOpenChange={setOpen}>
+        <SheetTrigger asChild>
+          <Button variant="outline" size="icon" className="lg:hidden absolute left-4 top-4 z-50">
+            <Menu className="h-5 w-5" />
+            <span className="sr-only">Toggle Menu</span>
+          </Button>
+        </SheetTrigger>
+        <SheetContent side="left" className="w-64 p-0">
+          <div className="p-6 border-b flex items-center justify-between">
+            <h1 className="text-xl font-bold">Admin Panel</h1>
+            <Button variant="ghost" size="icon" onClick={() => setOpen(false)}>
+              <X className="h-5 w-5" />
+              <span className="sr-only">Close</span>
+            </Button>
+          </div>
+          <ScrollArea className="flex-1 py-2 px-4 h-[calc(100vh-136px)]">
+            <nav className="space-y-1">
+              {navigation.map((item) => (
+                <NavLink
+                  key={item.name}
+                  to={item.href}
+                  className={({ isActive }) => 
+                    `${baseClasses} ${isActive ? activeClass : inactiveClass}`
+                  }
+                  onClick={() => setOpen(false)}
+                >
+                  <item.icon className="w-5 h-5 mr-3" />
+                  <span>{item.name}</span>
+                  <ChevronRight className="w-4 h-4 ml-auto" />
+                </NavLink>
+              ))}
+            </nav>
+          </ScrollArea>
+          <div className="p-4 border-t">
+            <Button variant="outline" className="w-full justify-start" asChild onClick={() => setOpen(false)}>
+              <NavLink to="/">
+                <LogOut className="w-5 h-5 mr-3" />
+                Exit Admin
+              </NavLink>
+            </Button>
+          </div>
+        </SheetContent>
+      </Sheet>
+
+      {/* Main content */}
+      <main className="flex-1 flex flex-col min-h-screen">
+        <div className="flex-1 p-6 lg:p-8">
+          {children}
+        </div>
+      </main>
+    </div>
   );
 };
 

@@ -15,6 +15,7 @@ import Orders from "./pages/admin/Orders";
 import MenuItems from "./pages/admin/MenuItems";
 import Toppings from "./pages/admin/Toppings";
 import Settings from "./pages/admin/Settings";
+import KitchenDisplay from "./pages/admin/KitchenDisplay";
 
 // Add framer-motion for animations
 import { AnimatePresence } from "framer-motion";
@@ -69,6 +70,7 @@ const App = () => {
               <Route path="/admin/menu" element={<MenuItems />} />
               <Route path="/admin/toppings" element={<Toppings />} />
               <Route path="/admin/settings" element={<Settings />} />
+              <Route path="/admin/kitchen" element={<KitchenDisplay />} />
               
               {/* 404 route */}
               <Route path="*" element={<NotFound />} />
