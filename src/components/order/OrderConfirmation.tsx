@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
@@ -12,7 +13,7 @@ interface OrderConfirmationProps {}
 const OrderConfirmation: React.FC<OrderConfirmationProps> = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  const { items, orderType, tableNumber, subtotal, tax, total, orderId } = location.state || {};
+  const { items, orderType, tableNumber, subtotal, tax, total, orderId, orderNumber } = location.state || {};
   
   const [printed, setPrinted] = useState(false);
   const [redirecting, setRedirecting] = useState(false);
@@ -48,8 +49,8 @@ const OrderConfirmation: React.FC<OrderConfirmationProps> = () => {
     }
   }, [items, printed]);
   
-  // Use the order ID from state or generate a random one if not available
-  const orderNumber = orderId || Math.floor(10000 + Math.random() * 90000);
+  // Use the provided order number or fall back to the ID if needed
+  const displayOrderNumber = orderNumber || Math.floor(10000 + Math.random() * 90000);
 
   // Print order function
   const printOrder = () => {
@@ -68,7 +69,7 @@ const OrderConfirmation: React.FC<OrderConfirmationProps> = () => {
       iframe.contentDocument.write(`
         <html>
           <head>
-            <title>Order #${orderNumber}</title>
+            <title>Order #${displayOrderNumber}</title>
             <style>
               body {
                 font-family: Arial, sans-serif;
@@ -124,7 +125,7 @@ const OrderConfirmation: React.FC<OrderConfirmationProps> = () => {
           <body>
             <h1>Order Receipt</h1>
             <div class="order-details">
-              <p><strong>Order #:</strong> ${orderNumber}</p>
+              <p><strong>Order #:</strong> ${displayOrderNumber}</p>
               <p><strong>Date:</strong> ${orderDate}</p>
               <p><strong>Order Type:</strong> ${orderType === 'eat-in' ? 'Eat In' : 'Takeaway'}</p>
               ${orderType === 'eat-in' && tableNumber ? `<p><strong>Table #:</strong> ${tableNumber}</p>` : ''}
@@ -266,7 +267,7 @@ const OrderConfirmation: React.FC<OrderConfirmationProps> = () => {
                 animate={{ y: 0, opacity: 1 }}
                 transition={{ delay: 0.4 }}
               >
-                Your order #{orderNumber} has been placed
+                Your order #{displayOrderNumber} has been placed
               </motion.p>
               
               {orderType === 'eat-in' && tableNumber && (
