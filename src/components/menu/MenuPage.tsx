@@ -10,6 +10,7 @@ import Button from '../common/Button';
 import { ShoppingBag, Home, Trash, Plus, Minus } from 'lucide-react';
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from '@/hooks/use-toast';
+import CancelOrderDialog from './CancelOrderDialog';
 
 interface Category {
   id: number;
@@ -30,6 +31,7 @@ const MenuPage: React.FC = () => {
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [showCancelDialog, setShowCancelDialog] = useState(false);
   
   useEffect(() => {
     if (!orderType) {
@@ -179,9 +181,19 @@ const MenuPage: React.FC = () => {
     }
   };
   
-  const handleCancelOrder = () => {
+  const handleCancelOrderClick = () => {
+    setShowCancelDialog(true);
+  };
+  
+  const handleConfirmCancel = () => {
     setCartItems([]);
     setIsCartOpen(false);
+    setShowCancelDialog(false);
+    
+    toast({
+      title: "Order Cancelled",
+      description: "Your order has been cancelled",
+    });
   };
   
   const handleConfirmOrder = async () => {
@@ -369,7 +381,8 @@ const MenuPage: React.FC = () => {
             <motion.div
               initial={{ y: 300 }}
               animate={{ y: 0 }}
-              exit={{ y: 300 }}
+              exit={{ y: 300, opacity: 0 }}
+              transition={{ duration: 0.3, ease: "easeInOut" }}
               className="bg-white border-t border-gray-200 shadow-lg"
             >
               <div className="p-4">
@@ -439,7 +452,7 @@ const MenuPage: React.FC = () => {
                 <div className="grid grid-cols-2 gap-3">
                   <Button
                     variant="outline"
-                    onClick={handleCancelOrder}
+                    onClick={handleCancelOrderClick}
                     className="bg-gray-200 hover:bg-gray-300 text-black"
                   >
                     Cancel Order
@@ -455,6 +468,12 @@ const MenuPage: React.FC = () => {
             </motion.div>
           )}
         </AnimatePresence>
+        
+        <CancelOrderDialog 
+          isOpen={showCancelDialog}
+          onClose={() => setShowCancelDialog(false)}
+          onConfirm={handleConfirmCancel}
+        />
       </div>
     </Layout>
   );
