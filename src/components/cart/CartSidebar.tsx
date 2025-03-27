@@ -53,9 +53,17 @@ const CartSidebar: React.FC<CartSidebarProps> = ({
   const tax = subtotal * 0.1; // 10% tax rate
   const total = subtotal + tax;
   
+  // Generate a 5-digit order number
+  const generateOrderNumber = () => {
+    return Math.floor(10000 + Math.random() * 90000).toString();
+  };
+  
   const saveOrderToDatabase = async (orderData: any) => {
     try {
+      // Generate a consistent order number to use throughout the app
+      const orderNumber = generateOrderNumber();
       console.log('Saving order to database with data:', JSON.stringify(orderData, null, 2));
+      console.log('Order number:', orderNumber);
       
       // 1. First create the order
       const { data: orderResult, error: orderError } = await supabase
@@ -66,6 +74,7 @@ const CartSidebar: React.FC<CartSidebarProps> = ({
           items_count: orderData.items.reduce((sum: number, item: CartItemType) => sum + item.quantity, 0),
           total_amount: orderData.total,
           status: 'New', // Changed from 'In Progress' to 'New'
+          order_number: orderNumber, // Add the order number to the database
         })
         .select('id')
         .single();
@@ -76,6 +85,7 @@ const CartSidebar: React.FC<CartSidebarProps> = ({
       }
       
       console.log('Order created successfully with ID:', orderResult.id);
+      console.log('Order number:', orderNumber);
       
       // 2. Create order items
       for (const item of orderData.items) {
@@ -117,7 +127,7 @@ const CartSidebar: React.FC<CartSidebarProps> = ({
         }
       }
       
-      return orderResult.id;
+      return { id: orderResult.id, orderNumber };
     } catch (error) {
       console.error('Error saving order:', error);
       toast({
@@ -145,21 +155,25 @@ const CartSidebar: React.FC<CartSidebarProps> = ({
       console.log('Starting checkout process with order data:', orderData);
       
       // Save order to database first
-      const orderId = await saveOrderToDatabase(orderData);
-      console.log(`Order #${orderId} saved successfully to database`);
+      const result = await saveOrderToDatabase(orderData);
+      const orderId = result.id;
+      const orderNumber = result.orderNumber;
+      
+      console.log(`Order #${orderNumber} (ID: ${orderId}) saved successfully to database`);
       
       // Navigate to confirmation page with order data
       navigate('/confirmation', { 
         state: { 
           ...orderData,
-          orderId
+          orderId,
+          orderNumber
         } 
       });
       
       // Show success toast
       toast({
         title: "Order Submitted",
-        description: `Your order #${orderId} has been placed successfully!`,
+        description: `Your order #${orderNumber} has been placed successfully!`,
       });
     } catch (error) {
       console.error('Checkout error:', error);
