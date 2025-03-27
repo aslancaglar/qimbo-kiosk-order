@@ -65,7 +65,7 @@ const CartSidebar: React.FC<CartSidebarProps> = ({
           table_number: orderData.orderType === 'eat-in' ? orderData.tableNumber : null,
           items_count: orderData.items.reduce((sum: number, item: CartItemType) => sum + item.quantity, 0),
           total_amount: orderData.total,
-          status: 'In Progress',
+          status: 'New', // Changed from 'In Progress' to 'New'
         })
         .select('id')
         .single();
