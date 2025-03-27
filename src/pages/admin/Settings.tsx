@@ -12,6 +12,7 @@ import { Save, Printer } from 'lucide-react';
 import { Switch } from "@/components/ui/switch";
 import { testConnection as testPrintBizApiConnection } from "../../utils/printBiz";
 import { type PrintBizConfig } from "../../utils/printBiz";
+import { Json } from "../../integrations/supabase/types";
 
 const Settings = () => {
   const { toast } = useToast();
@@ -141,7 +142,14 @@ const Settings = () => {
       }
 
       if (data && data.value) {
-        setPrintBizSettings(data.value as PrintBizConfig);
+        const settings = data.value as Record<string, any>;
+        setPrintBizSettings({
+          api_key: settings.api_key || '',
+          api_endpoint: settings.api_endpoint || 'https://api.printbiz.io/v1',
+          enabled: !!settings.enabled,
+          default_printer_id: settings.default_printer_id || '',
+          auto_print: settings.auto_print !== undefined ? !!settings.auto_print : true
+        });
       }
     } catch (error) {
       console.error('Unexpected error:', error);
@@ -232,7 +240,6 @@ const Settings = () => {
     try {
       setLoading(true);
       
-      // Update each day's business hours
       for (const hours of businessHours) {
         const { error } = await supabase
           .from('business_hours')
@@ -274,7 +281,6 @@ const Settings = () => {
     try {
       setLoading(true);
       
-      // Check if settings record exists
       const { data: existingData, error: checkError } = await supabase
         .from('settings')
         .select('id')
@@ -293,24 +299,30 @@ const Settings = () => {
       
       let saveError;
       
+      const settingsValue = {
+        api_key: printBizSettings.api_key,
+        api_endpoint: printBizSettings.api_endpoint,
+        enabled: printBizSettings.enabled, 
+        default_printer_id: printBizSettings.default_printer_id,
+        auto_print: printBizSettings.auto_print
+      } as Json;
+      
       if (existingData) {
-        // Update existing record
         const { error } = await supabase
           .from('settings')
           .update({
-            value: printBizSettings,
+            value: settingsValue,
             updated_at: new Date().toISOString()
           })
           .eq('id', existingData.id);
           
         saveError = error;
       } else {
-        // Insert new record
         const { error } = await supabase
           .from('settings')
           .insert({
             key: 'printbiz_settings',
-            value: printBizSettings,
+            value: settingsValue,
             created_at: new Date().toISOString(),
             updated_at: new Date().toISOString()
           });
@@ -348,7 +360,6 @@ const Settings = () => {
     try {
       setLoading(true);
       
-      // Use our actual test connection function from printBiz.ts
       const success = await testPrintBizApiConnection(printBizSettings);
       
       if (success) {
