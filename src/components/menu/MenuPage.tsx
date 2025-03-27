@@ -150,13 +150,34 @@ const MenuPage: React.FC = () => {
     : products.filter(product => product.category === activeCategory);
   
   const handleProductSelect = (product: Product, selectedToppings?: ToppingItem[]) => {
-    const newItem: CartItemType = {
-      product,
-      quantity: 1,
-      selectedToppings
-    };
+    const existingItemIndex = cartItems.findIndex(item => {
+      if (item.product.id !== product.id) return false;
+      
+      if (!selectedToppings && !item.selectedToppings) return true;
+      
+      if (!selectedToppings || !item.selectedToppings) return false;
+      
+      if (selectedToppings.length !== item.selectedToppings.length) return false;
+      
+      return selectedToppings.every(topping => 
+        item.selectedToppings?.some(itemTopping => 
+          itemTopping.id === topping.id
+        )
+      );
+    });
     
-    setCartItems([...cartItems, newItem]);
+    if (existingItemIndex !== -1) {
+      const updatedItems = [...cartItems];
+      updatedItems[existingItemIndex].quantity += 1;
+      setCartItems(updatedItems);
+    } else {
+      const newItem: CartItemType = {
+        product,
+        quantity: 1,
+        selectedToppings
+      };
+      setCartItems([...cartItems, newItem]);
+    }
   };
   
   const handleRemoveItem = (index: number) => {
