@@ -1,9 +1,9 @@
 
-// PrintBiz API integration utility
+// BizPrint API integration utility
 
-export interface PrintBizConfig {
+export interface BizPrintConfig {
   api_key: string;
-  api_endpoint: string;
+  api_endpoint: string; // Default: "https://api.getbizprint.com/v1"
   enabled: boolean;
   default_printer_id: string;
   auto_print: boolean;
@@ -12,25 +12,25 @@ export interface PrintBizConfig {
 export interface PrintJob {
   printer_id: string;
   content: string;
-  type: 'receipt' | 'kitchen' | 'label';
+  print_type: 'receipt' | 'kitchen' | 'label';
   copies?: number;
   metadata?: Record<string, any>;
 }
 
 /**
- * Send a print job to PrintBiz cloud printing service
+ * Send a print job to BizPrint cloud printing service
  */
-export const sendPrintJob = async (config: PrintBizConfig, job: PrintJob): Promise<boolean> => {
+export const sendPrintJob = async (config: BizPrintConfig, job: PrintJob): Promise<boolean> => {
   if (!config.enabled || !config.api_key) {
-    console.error('PrintBiz is not enabled or API key is missing');
+    console.error('BizPrint is not enabled or API key is missing');
     return false;
   }
 
   try {
-    // In a real implementation, this would make an actual API call to PrintBiz
+    // In a real implementation, this would make an actual API call to BizPrint
     // For now, we're just simulating the API call
     
-    console.log('Sending print job to PrintBiz:', job);
+    console.log('Sending print job to BizPrint:', job);
     
     // Simulate API call
     await new Promise(resolve => setTimeout(resolve, 500));
@@ -44,14 +44,15 @@ export const sendPrintJob = async (config: PrintBizConfig, job: PrintJob): Promi
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${config.api_key}`
+        'Authorization': `Bearer ${config.api_key}`,
+        'X-BizPrint-Client': 'BizPrint-React'
       },
       body: JSON.stringify(job)
     });
 
     if (!response.ok) {
       const error = await response.json();
-      console.error('PrintBiz API error:', error);
+      console.error('BizPrint API error:', error);
       return false;
     }
 
@@ -59,22 +60,22 @@ export const sendPrintJob = async (config: PrintBizConfig, job: PrintJob): Promi
     */
     
   } catch (error) {
-    console.error('Error sending print job to PrintBiz:', error);
+    console.error('Error sending print job to BizPrint:', error);
     return false;
   }
 };
 
 /**
- * Fetch available printers from PrintBiz
+ * Fetch available printers from BizPrint
  */
-export const fetchPrinters = async (config: PrintBizConfig): Promise<any[]> => {
+export const fetchPrinters = async (config: BizPrintConfig): Promise<any[]> => {
   if (!config.enabled || !config.api_key) {
-    console.error('PrintBiz is not enabled or API key is missing');
+    console.error('BizPrint is not enabled or API key is missing');
     return [];
   }
 
   try {
-    // In a real implementation, this would make an actual API call to PrintBiz
+    // In a real implementation, this would make an actual API call to BizPrint
     // For now, we're just returning some sample data
     
     // Simulate API call
@@ -92,13 +93,14 @@ export const fetchPrinters = async (config: PrintBizConfig): Promise<any[]> => {
     const response = await fetch(`${config.api_endpoint}/printers`, {
       method: 'GET',
       headers: {
-        'Authorization': `Bearer ${config.api_key}`
+        'Authorization': `Bearer ${config.api_key}`,
+        'X-BizPrint-Client': 'BizPrint-React'
       }
     });
 
     if (!response.ok) {
       const error = await response.json();
-      console.error('PrintBiz API error:', error);
+      console.error('BizPrint API error:', error);
       return [];
     }
 
@@ -107,22 +109,22 @@ export const fetchPrinters = async (config: PrintBizConfig): Promise<any[]> => {
     */
     
   } catch (error) {
-    console.error('Error fetching printers from PrintBiz:', error);
+    console.error('Error fetching printers from BizPrint:', error);
     return [];
   }
 };
 
 /**
- * Test connection to PrintBiz API
+ * Test connection to BizPrint API
  */
-export const testConnection = async (config: PrintBizConfig): Promise<boolean> => {
+export const testConnection = async (config: BizPrintConfig): Promise<boolean> => {
   if (!config.enabled || !config.api_key) {
-    console.error('PrintBiz is not enabled or API key is missing');
+    console.error('BizPrint is not enabled or API key is missing');
     return false;
   }
 
   try {
-    // In a real implementation, this would make an actual API call to PrintBiz
+    // In a real implementation, this would make an actual API call to BizPrint
     // For now, we're just simulating the API call
     
     // Simulate API call
@@ -136,7 +138,8 @@ export const testConnection = async (config: PrintBizConfig): Promise<boolean> =
     const response = await fetch(`${config.api_endpoint}/status`, {
       method: 'GET',
       headers: {
-        'Authorization': `Bearer ${config.api_key}`
+        'Authorization': `Bearer ${config.api_key}`,
+        'X-BizPrint-Client': 'BizPrint-React'
       }
     });
 
@@ -144,7 +147,7 @@ export const testConnection = async (config: PrintBizConfig): Promise<boolean> =
     */
     
   } catch (error) {
-    console.error('Error testing connection to PrintBiz:', error);
+    console.error('Error testing connection to BizPrint:', error);
     return false;
   }
 };

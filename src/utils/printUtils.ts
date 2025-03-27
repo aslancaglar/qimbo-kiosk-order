@@ -1,6 +1,6 @@
 
 import { CartItemType } from "../components/cart/types";
-import { sendPrintJob, PrintBizConfig } from "./printBiz";
+import { sendPrintJob, BizPrintConfig } from "./bizPrint";
 
 // Format order for printing
 export const formatOrderReceipt = (
@@ -15,7 +15,7 @@ export const formatOrderReceipt = (
   const orderDate = new Date().toLocaleString();
   
   // This formats the receipt as HTML for browser printing
-  // In a real implementation with PrintBiz, you might need to format differently
+  // In a real implementation with BizPrint, you might need to format differently
   // based on their API requirements (HTML, plain text, template language, etc.)
   
   return `
@@ -177,9 +177,9 @@ export const printOrderBrowser = (
   }
 };
 
-// Print order using PrintBiz cloud printing
-export const printOrderViaPrintBiz = async (
-  printBizConfig: PrintBizConfig,
+// Print order using BizPrint cloud printing
+export const printOrderViaBizPrint = async (
+  bizPrintConfig: BizPrintConfig,
   orderNumber: string | number,
   items: CartItemType[],
   orderType: string,
@@ -188,8 +188,8 @@ export const printOrderViaPrintBiz = async (
   tax: number,
   total: number
 ): Promise<boolean> => {
-  if (!printBizConfig.enabled || !printBizConfig.api_key) {
-    console.log('PrintBiz is not enabled, falling back to browser printing');
+  if (!bizPrintConfig.enabled || !bizPrintConfig.api_key) {
+    console.log('BizPrint is not enabled, falling back to browser printing');
     printOrderBrowser(orderNumber, items, orderType, tableNumber, subtotal, tax, total);
     return false;
   }
@@ -206,9 +206,9 @@ export const printOrderViaPrintBiz = async (
     );
     
     const printJob = {
-      printer_id: printBizConfig.default_printer_id,
+      printer_id: bizPrintConfig.default_printer_id,
       content,
-      type: 'receipt' as const,
+      print_type: 'receipt' as const,
       copies: 1,
       metadata: {
         order_id: orderNumber,
@@ -217,17 +217,17 @@ export const printOrderViaPrintBiz = async (
       }
     };
     
-    const success = await sendPrintJob(printBizConfig, printJob);
+    const success = await sendPrintJob(bizPrintConfig, printJob);
     
     if (!success) {
-      console.log('Failed to print via PrintBiz, falling back to browser printing');
+      console.log('Failed to print via BizPrint, falling back to browser printing');
       printOrderBrowser(orderNumber, items, orderType, tableNumber, subtotal, tax, total);
       return false;
     }
     
     return true;
   } catch (error) {
-    console.error('Error printing via PrintBiz:', error);
+    console.error('Error printing via BizPrint:', error);
     console.log('Falling back to browser printing');
     printOrderBrowser(orderNumber, items, orderType, tableNumber, subtotal, tax, total);
     return false;
