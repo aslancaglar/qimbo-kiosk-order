@@ -51,8 +51,8 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
         if (data) {
           // Make sure data is not an error before trying to use it
-          if (!data.error) {
-            // Cast the data to our interface after checking it's not an error
+          if (!('error' in data)) {
+            // Safely cast the data through unknown first
             const settings = data as unknown as AppearanceSettings;
             setTheme({
               logo: settings.logo_url,

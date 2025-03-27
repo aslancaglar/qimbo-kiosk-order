@@ -57,12 +57,14 @@ const AppearanceSettings = () => {
       }
 
       if (data) {
-        // Make sure data is not an error before trying to use it
+        // First check if data is not an error
         if (!('error' in data)) {
-          // Use type assertion to ensure type safety
-          setSettings(data as unknown as AppearanceSettings);
-          if (data.logo_url) {
-            setLogoPreview(data.logo_url);
+          // Cast the data safely through unknown first
+          const typedData = data as unknown as AppearanceSettings;
+          setSettings(typedData);
+          
+          if (typedData.logo_url) {
+            setLogoPreview(typedData.logo_url);
           }
         }
       }
