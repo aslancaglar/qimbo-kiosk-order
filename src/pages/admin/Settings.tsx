@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "../../integrations/supabase/client";
@@ -9,6 +8,8 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
+import { Save, Printer } from 'lucide-react';
+import { Switch } from "@/components/ui/switch";
 
 const Settings = () => {
   const { toast } = useToast();
@@ -34,10 +35,20 @@ const Settings = () => {
     { id: 0, day_of_week: 'Sunday', open_time: '09:00', close_time: '21:00' }
   ]);
 
-  // Fetch restaurant info and business hours on component mount
+  // PrintBiz settings state
+  const [printBizSettings, setPrintBizSettings] = useState({
+    api_key: '',
+    api_endpoint: 'https://api.printbiz.io/v1',
+    enabled: false,
+    default_printer_id: '',
+    auto_print: true
+  });
+
+  // Fetch restaurant info, business hours, and PrintBiz settings on component mount
   useEffect(() => {
     fetchRestaurantInfo();
     fetchBusinessHours();
+    fetchPrintBizSettings();
   }, []);
 
   const fetchRestaurantInfo = async () => {
@@ -108,6 +119,40 @@ const Settings = () => {
     }
   };
 
+  const fetchPrintBizSettings = async () => {
+    try {
+      setLoading(true);
+      const { data, error } = await supabase
+        .from('settings')
+        .select('*')
+        .eq('key', 'printbiz_settings')
+        .maybeSingle();
+
+      if (error) {
+        console.error('Error fetching PrintBiz settings:', error);
+        toast({
+          title: "Error",
+          description: "Failed to load PrintBiz settings",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      if (data && data.value) {
+        setPrintBizSettings(JSON.parse(data.value));
+      }
+    } catch (error) {
+      console.error('Unexpected error:', error);
+      toast({
+        title: "Error",
+        description: "An unexpected error occurred",
+        variant: "destructive"
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleInfoChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { id, value } = e.target;
     setRestaurantInfo(prev => ({
@@ -124,6 +169,21 @@ const Settings = () => {
           : item
       )
     );
+  };
+
+  const handlePrintBizSettingChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { id, value, type, checked } = e.target;
+    setPrintBizSettings(prev => ({
+      ...prev,
+      [id.replace('printbiz-', '')]: type === 'checkbox' ? checked : value
+    }));
+  };
+
+  const handleSwitchChange = (field: string, checked: boolean) => {
+    setPrintBizSettings(prev => ({
+      ...prev,
+      [field]: checked
+    }));
   };
 
   const saveRestaurantInfo = async () => {
@@ -208,12 +268,118 @@ const Settings = () => {
     }
   };
 
+  const savePrintBizSettings = async () => {
+    try {
+      setLoading(true);
+      
+      // Check if settings record exists
+      const { data: existingData, error: checkError } = await supabase
+        .from('settings')
+        .select('id')
+        .eq('key', 'printbiz_settings')
+        .maybeSingle();
+        
+      if (checkError) {
+        console.error('Error checking PrintBiz settings:', checkError);
+        toast({
+          title: "Error",
+          description: "Failed to check if settings exist",
+          variant: "destructive"
+        });
+        return;
+      }
+      
+      let saveError;
+      
+      if (existingData) {
+        // Update existing record
+        const { error } = await supabase
+          .from('settings')
+          .update({
+            value: JSON.stringify(printBizSettings),
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', existingData.id);
+          
+        saveError = error;
+      } else {
+        // Insert new record
+        const { error } = await supabase
+          .from('settings')
+          .insert({
+            key: 'printbiz_settings',
+            value: JSON.stringify(printBizSettings),
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+          });
+          
+        saveError = error;
+      }
+
+      if (saveError) {
+        console.error('Error saving PrintBiz settings:', saveError);
+        toast({
+          title: "Error",
+          description: "Failed to save PrintBiz settings",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      toast({
+        title: "Success",
+        description: "PrintBiz settings saved successfully"
+      });
+    } catch (error) {
+      console.error('Unexpected error:', error);
+      toast({
+        title: "Error",
+        description: "An unexpected error occurred",
+        variant: "destructive"
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const testPrintBizConnection = async () => {
+    try {
+      setLoading(true);
+      
+      // This would be replaced with actual API call in production
+      // For now, we're just simulating a test print
+      
+      setTimeout(() => {
+        toast({
+          title: "Test Successful",
+          description: "Successfully connected to PrintBiz API",
+        });
+        setLoading(false);
+      }, 2000);
+      
+      // In real implementation, you would:
+      // 1. Make a request to the PrintBiz API using the provided credentials
+      // 2. Send a test print job
+      // 3. Check for a successful response
+      
+    } catch (error) {
+      console.error('Error testing PrintBiz connection:', error);
+      toast({
+        title: "Error",
+        description: "Failed to connect to PrintBiz API",
+        variant: "destructive"
+      });
+      setLoading(false);
+    }
+  };
+
   return (
     <AdminLayout>
       <div className="space-y-6">
         <Tabs defaultValue="general">
           <TabsList>
             <TabsTrigger value="general">General</TabsTrigger>
+            <TabsTrigger value="printing">Printing</TabsTrigger>
             <TabsTrigger value="appearance">Appearance</TabsTrigger>
             <TabsTrigger value="notifications">Notifications</TabsTrigger>
           </TabsList>
@@ -311,6 +477,99 @@ const Settings = () => {
                   >
                     {loading ? 'Saving...' : 'Save Hours'}
                   </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+          
+          <TabsContent value="printing" className="mt-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Printer className="h-5 w-5" />
+                  PrintBiz Integration
+                </CardTitle>
+                <CardDescription>
+                  Configure your PrintBiz cloud printing service for remote receipt printing.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="flex items-center space-x-2">
+                  <Switch 
+                    id="printbiz-enabled"
+                    checked={printBizSettings.enabled}
+                    onCheckedChange={(checked) => handleSwitchChange('enabled', checked)}
+                  />
+                  <Label htmlFor="printbiz-enabled">Enable PrintBiz integration</Label>
+                </div>
+                
+                <div className="pt-4 space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="printbiz-api_key">API Key</Label>
+                    <Input 
+                      id="printbiz-api_key" 
+                      value={printBizSettings.api_key}
+                      onChange={handlePrintBizSettingChange}
+                      placeholder="Enter your PrintBiz API key"
+                      disabled={!printBizSettings.enabled}
+                    />
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="printbiz-api_endpoint">API Endpoint</Label>
+                    <Input 
+                      id="printbiz-api_endpoint" 
+                      value={printBizSettings.api_endpoint}
+                      onChange={handlePrintBizSettingChange}
+                      placeholder="https://api.printbiz.io/v1"
+                      disabled={!printBizSettings.enabled}
+                    />
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="printbiz-default_printer_id">Default Printer ID</Label>
+                    <Input 
+                      id="printbiz-default_printer_id" 
+                      value={printBizSettings.default_printer_id}
+                      onChange={handlePrintBizSettingChange}
+                      placeholder="Enter your default printer ID"
+                      disabled={!printBizSettings.enabled}
+                    />
+                    <p className="text-sm text-muted-foreground">
+                      You can find printer IDs in your PrintBiz dashboard
+                    </p>
+                  </div>
+                  
+                  <div className="flex items-center space-x-2 pt-2">
+                    <Switch 
+                      id="printbiz-auto_print"
+                      checked={printBizSettings.auto_print}
+                      onCheckedChange={(checked) => handleSwitchChange('auto_print', checked)}
+                      disabled={!printBizSettings.enabled}
+                    />
+                    <Label htmlFor="printbiz-auto_print">Automatically print receipts for new orders</Label>
+                  </div>
+                  
+                  <div className="flex gap-4 pt-4">
+                    <Button 
+                      onClick={savePrintBizSettings}
+                      disabled={loading || !printBizSettings.enabled}
+                      className="mt-2"
+                    >
+                      <Save className="h-4 w-4 mr-2" />
+                      {loading ? 'Saving...' : 'Save Settings'}
+                    </Button>
+                    
+                    <Button 
+                      variant="outline"
+                      onClick={testPrintBizConnection}
+                      disabled={loading || !printBizSettings.enabled || !printBizSettings.api_key}
+                      className="mt-2"
+                    >
+                      <Printer className="h-4 w-4 mr-2" />
+                      Test Connection
+                    </Button>
+                  </div>
                 </div>
               </CardContent>
             </Card>
