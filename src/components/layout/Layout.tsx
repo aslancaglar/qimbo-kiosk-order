@@ -13,8 +13,8 @@ const Layout: React.FC<LayoutProps> = ({ children, className = '' }) => {
   
   return (
     <motion.div 
-      className={`fixed inset-0 flex flex-col overflow-hidden bg-background ${
-        isMobile ? 'pb-safe pt-safe px-safe' : ''
+      className={`fixed inset-0 flex flex-col overflow-hidden bg-background pb-[100px] ${
+        isMobile ? 'pt-safe px-safe' : ''
       } ${className}`}
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
