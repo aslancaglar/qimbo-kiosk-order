@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "../../integrations/supabase/client";
@@ -11,8 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { Save, Printer } from 'lucide-react';
 import { Switch } from "@/components/ui/switch";
-import { testConnection as testBizPrintConnection } from "../../utils/bizPrint";
-import { type BizPrintConfig } from "../../utils/bizPrint";
+import { testConnection, type BizPrintConfig } from "../../utils/bizPrint";
 import { Json } from "../../integrations/supabase/types";
 
 const Settings = () => {
@@ -363,7 +361,7 @@ const Settings = () => {
     try {
       setLoading(true);
       
-      const success = await testBizPrintConnection(bizPrintSettings);
+      const success = await testConnection(bizPrintSettings);
       
       if (success) {
         toast({
