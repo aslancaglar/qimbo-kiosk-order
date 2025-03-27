@@ -3,6 +3,7 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { X, Minus, Plus, Trash } from 'lucide-react';
 import { CartItemType } from './types';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 interface CartItemProps {
   item: CartItemType;
@@ -19,6 +20,9 @@ const CartItem: React.FC<CartItemProps> = ({
   onDecrement,
   isTablet = false,
 }) => {
+  const isMobile = useIsMobile();
+  const hideImage = isTablet || isMobile;
+  
   return (
     <motion.div
       initial={{ opacity: 0, height: 0 }}
@@ -28,13 +32,15 @@ const CartItem: React.FC<CartItemProps> = ({
       className={`py-4 border-b border-gray-100 last:border-0 ${isTablet ? 'p-2' : ''}`}
     >
       <div className="flex items-start gap-3">
-        <div className={`${isTablet ? 'w-12 h-12' : 'w-16 h-16'} rounded-md overflow-hidden flex-shrink-0`}>
-          <img
-            src={item.product.image}
-            alt={item.product.name}
-            className="w-full h-full object-cover"
-          />
-        </div>
+        {!hideImage && (
+          <div className="w-16 h-16 rounded-md overflow-hidden flex-shrink-0">
+            <img
+              src={item.product.image}
+              alt={item.product.name}
+              className="w-full h-full object-cover"
+            />
+          </div>
+        )}
         
         <div className="flex-1 min-w-0">
           <div className="flex justify-between items-start">
