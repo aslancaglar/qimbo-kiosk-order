@@ -8,6 +8,7 @@ import { ShoppingBag, X } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/components/ui/use-toast';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 interface CartSidebarProps {
   isOpen: boolean;
@@ -31,6 +32,7 @@ const CartSidebar: React.FC<CartSidebarProps> = ({
   tableNumber,
 }) => {
   const navigate = useNavigate();
+  const isMobile = useIsMobile();
   
   const totalItems = items.reduce((sum, item) => sum + item.quantity, 0);
   
@@ -210,7 +212,7 @@ const CartSidebar: React.FC<CartSidebarProps> = ({
             </div>
           ) : (
             <>
-              <div className="flex-1 overflow-y-auto p-6">
+              <div className="flex-1 overflow-y-auto p-6 md:pb-[60px]">
                 <AnimatePresence initial={false}>
                   {items.map((item, index) => (
                     <motion.div
@@ -225,6 +227,7 @@ const CartSidebar: React.FC<CartSidebarProps> = ({
                         onRemove={() => onRemoveItem(index)}
                         onIncrement={() => onIncrementItem(index)}
                         onDecrement={() => onDecrementItem(index)}
+                        isTablet={!isMobile && window.innerWidth < 1025}
                       />
                       
                       {/* Display toppings if any */}

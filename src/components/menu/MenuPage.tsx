@@ -11,6 +11,7 @@ import { ShoppingBag, Home, Trash, Plus, Minus } from 'lucide-react';
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from '@/hooks/use-toast';
 import CancelOrderDialog from './CancelOrderDialog';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 interface Category {
   id: number;
@@ -24,6 +25,7 @@ const MenuPage: React.FC = () => {
   const navigate = useNavigate();
   const { orderType, tableNumber } = location.state || {};
   const { toast } = useToast();
+  const isMobile = useIsMobile();
   
   const [activeCategory, setActiveCategory] = useState('All');
   const [cartItems, setCartItems] = useState<CartItemType[]>([]);
@@ -349,7 +351,7 @@ const MenuPage: React.FC = () => {
             />
           </div>
           
-          <div className="flex-1 overflow-y-auto p-4">
+          <div className="flex-1 overflow-y-auto p-4 md:pb-[60px]">
             <div className="mb-4">
               <h2 className="text-xl font-bold text-red-700">PROMOTION</h2>
             </div>
@@ -385,7 +387,7 @@ const MenuPage: React.FC = () => {
               transition={{ duration: 0.3, ease: "easeInOut" }}
               className="bg-white border-t border-gray-200 shadow-lg"
             >
-              <div className="p-4">
+              <div className="p-4 md:pb-[60px]">
                 <div className="flex justify-between items-center mb-3">
                   <div className="flex items-center gap-2">
                     <ShoppingBag className="h-5 w-5 text-red-600" />
@@ -406,38 +408,57 @@ const MenuPage: React.FC = () => {
                     {cartItems.map((item, index) => (
                       <div key={`${item.product.id}-${index}`} className="flex items-center justify-between py-2 border-b">
                         <div className="flex items-center">
-                          <img 
-                            src={item.product.image} 
-                            alt={item.product.name} 
-                            className="h-12 w-12 object-cover rounded mr-3" 
-                          />
+                          {!isMobile && window.innerWidth >= 1025 && (
+                            <img 
+                              src={item.product.image} 
+                              alt={item.product.name} 
+                              className="h-12 w-12 object-cover rounded mr-3" 
+                            />
+                          )}
                           <div>
                             <p className="font-medium">{item.product.name}</p>
-                            <p className="text-sm text-gray-600">${item.product.price.toFixed(2)}</p>
+                            <p className="text-sm text-gray-600">
+                              ${item.product.price.toFixed(2)}
+                              {item.quantity > 1 && !isMobile && window.innerWidth < 1025 && ` × ${item.quantity}`}
+                            </p>
                           </div>
                         </div>
                         
                         <div className="flex items-center gap-2">
-                          <button
-                            onClick={() => handleDecrementItem(index)}
-                            className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 hover:bg-gray-200"
-                            disabled={item.quantity <= 1}
-                          >
-                            <Minus className="h-4 w-4" />
-                          </button>
-                          <span className="w-6 text-center font-medium">{item.quantity}</span>
-                          <button
-                            onClick={() => handleIncrementItem(index)}
-                            className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 hover:bg-gray-200"
-                          >
-                            <Plus className="h-4 w-4" />
-                          </button>
-                          <button
-                            onClick={() => handleRemoveItem(index)}
-                            className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 hover:bg-gray-200 ml-2"
-                          >
-                            <Trash className="h-4 w-4 text-red-500" />
-                          </button>
+                          {isMobile || window.innerWidth >= 1025 ? (
+                            <>
+                              <button
+                                onClick={() => handleDecrementItem(index)}
+                                className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 hover:bg-gray-200"
+                                disabled={item.quantity <= 1}
+                              >
+                                <Minus className="h-4 w-4" />
+                              </button>
+                              <span className="w-6 text-center font-medium">{item.quantity}</span>
+                              <button
+                                onClick={() => handleIncrementItem(index)}
+                                className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 hover:bg-gray-200"
+                              >
+                                <Plus className="h-4 w-4" />
+                              </button>
+                            </>
+                          ) : (
+                            <button
+                              onClick={() => handleRemoveItem(index)}
+                              className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 hover:bg-gray-200 ml-2"
+                            >
+                              <Trash className="h-4 w-4 text-red-500" />
+                            </button>
+                          )}
+                          
+                          {(isMobile || window.innerWidth >= 1025) && (
+                            <button
+                              onClick={() => handleRemoveItem(index)}
+                              className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 hover:bg-gray-200 ml-2"
+                            >
+                              <Trash className="h-4 w-4 text-red-500" />
+                            </button>
+                          )}
                         </div>
                       </div>
                     ))}
