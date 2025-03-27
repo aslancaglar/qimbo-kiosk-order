@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import AdminLayout from '../../components/admin/AdminLayout';
@@ -103,7 +102,6 @@ const Orders = () => {
     staleTime: 5000,
   });
 
-  // New query to fetch order details with items and toppings
   const { data: orderDetails, isLoading: isLoadingDetails, refetch: refetchDetails } = useQuery({
     queryKey: ['orderDetails', selectedOrder?.id],
     queryFn: async () => {
@@ -111,7 +109,6 @@ const Orders = () => {
       
       console.log(`Fetching details for order #${selectedOrder.id}...`);
       
-      // Fetch order items with menu item data
       const { data: orderItems, error: itemsError } = await supabase
         .from('order_items')
         .select(`
@@ -135,7 +132,6 @@ const Orders = () => {
         throw itemsError;
       }
       
-      // Format the orderItems to match our types
       const formattedItems: OrderItem[] = orderItems.map(item => ({
         id: item.id,
         order_id: item.order_id,
@@ -147,7 +143,6 @@ const Orders = () => {
         toppings: []
       }));
       
-      // For each order item, fetch its toppings
       for (const item of formattedItems) {
         const { data: toppings, error: toppingsError } = await supabase
           .from('order_item_toppings')
@@ -165,7 +160,6 @@ const Orders = () => {
           continue;
         }
         
-        // Map the toppings to our format
         item.toppings = toppings.map(t => ({
           id: t.id,
           order_item_id: t.order_item_id,
@@ -277,6 +271,12 @@ const Orders = () => {
     refetch();
   };
 
+  const getFilterBadgeClass = (isSelected: boolean) => {
+    return `cursor-pointer ${isSelected 
+      ? 'bg-[hsl(215_50%_23%)] text-white hover:bg-[hsl(215_50%_30%)]' 
+      : 'bg-secondary hover:bg-secondary/80'} transition-colors`;
+  };
+
   return (
     <AdminLayout>
       <div className="space-y-6 h-full flex flex-col">
@@ -326,25 +326,25 @@ const Orders = () => {
           
           <div className="flex gap-2">
             <Badge 
-              className={`cursor-pointer ${selectedStatus === null ? 'bg-primary' : 'bg-secondary hover:bg-secondary/80'}`}
+              className={getFilterBadgeClass(selectedStatus === null)}
               onClick={() => setSelectedStatus(null)}
             >
               All
             </Badge>
             <Badge 
-              className={`cursor-pointer ${selectedStatus === 'in progress' ? 'bg-primary' : 'bg-secondary hover:bg-secondary/80'}`}
+              className={getFilterBadgeClass(selectedStatus === 'in progress')}
               onClick={() => setSelectedStatus('in progress')}
             >
               In Progress
             </Badge>
             <Badge 
-              className={`cursor-pointer ${selectedStatus === 'completed' ? 'bg-primary' : 'bg-secondary hover:bg-secondary/80'}`}
+              className={getFilterBadgeClass(selectedStatus === 'completed')}
               onClick={() => setSelectedStatus('completed')}
             >
               Completed
             </Badge>
             <Badge 
-              className={`cursor-pointer ${selectedStatus === 'cancelled' ? 'bg-primary' : 'bg-secondary hover:bg-secondary/80'}`}
+              className={getFilterBadgeClass(selectedStatus === 'cancelled')}
               onClick={() => setSelectedStatus('cancelled')}
             >
               Cancelled
@@ -448,7 +448,6 @@ const Orders = () => {
                 
                 <Separator />
                 
-                {/* Order Items with Toppings */}
                 <div className="space-y-4">
                   <h3 className="text-sm font-semibold">Order Items</h3>
                   
@@ -483,7 +482,6 @@ const Orders = () => {
                               </p>
                             </div>
                             
-                            {/* Toppings */}
                             {item.toppings && item.toppings.length > 0 && (
                               <div className="mt-2 pl-4 border-l-2 border-muted">
                                 <p className="text-xs text-muted-foreground mb-1">Toppings:</p>
