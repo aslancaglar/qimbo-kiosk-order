@@ -26,6 +26,8 @@ const CartSummary: React.FC<CartSummaryProps> = ({
   const isMobile = useIsMobile();
   
   const totalItems = cartItems.reduce((sum, item) => sum + item.quantity, 0);
+  
+  // Calculate subtotal including toppings
   const subtotal = cartItems.reduce((sum, item) => {
     let itemTotal = item.product.price * item.quantity;
     if (item.selectedToppings && item.selectedToppings.length > 0) {
@@ -36,6 +38,9 @@ const CartSummary: React.FC<CartSummaryProps> = ({
     }
     return sum + itemTotal;
   }, 0);
+  
+  const tax = subtotal * 0.1; // 10% tax rate
+  const total = subtotal + tax;
 
   return (
     <motion.div
@@ -71,6 +76,17 @@ const CartSummary: React.FC<CartSummaryProps> = ({
                       ${item.product.price.toFixed(2)}
                       {item.quantity > 1 && !isMobile && window.innerWidth < 1025 && ` × ${item.quantity}`}
                     </p>
+                    
+                    {/* Display toppings if any */}
+                    {item.selectedToppings && item.selectedToppings.length > 0 && (
+                      <div className="text-xs text-gray-500 mt-1">
+                        {item.selectedToppings.map((topping) => (
+                          <span key={topping.id} className="mr-1">
+                            +{topping.name} (${topping.price.toFixed(2)})
+                          </span>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 </div>
                 
@@ -115,9 +131,19 @@ const CartSummary: React.FC<CartSummaryProps> = ({
           </div>
         )}
         
+        <div className="flex justify-between items-center mb-2">
+          <span className="text-gray-600 text-sm">Subtotal:</span>
+          <span>${subtotal.toFixed(2)}</span>
+        </div>
+        
+        <div className="flex justify-between items-center mb-2">
+          <span className="text-gray-600 text-sm">Tax (10%):</span>
+          <span>${tax.toFixed(2)}</span>
+        </div>
+        
         <div className="flex justify-between items-center mb-4">
           <span className="font-semibold">TOTAL:</span>
-          <span className="font-bold text-xl">${subtotal.toFixed(2)}</span>
+          <span className="font-bold text-xl">${total.toFixed(2)}</span>
         </div>
         
         <div className="grid grid-cols-2 gap-3">

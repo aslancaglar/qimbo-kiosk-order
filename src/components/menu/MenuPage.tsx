@@ -3,7 +3,6 @@ import React, { useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { AnimatePresence } from 'framer-motion';
 import Layout from '../layout/Layout';
-import { Product } from './ProductCard';
 import CancelOrderDialog from './CancelOrderDialog';
 import MenuHeader from './MenuHeader';
 import MenuContent from './MenuContent';
