@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { motion } from 'framer-motion';
 import { ShoppingBag, Minus, Plus, Trash } from 'lucide-react';
@@ -47,7 +48,7 @@ const CartSummary: React.FC<CartSummaryProps> = ({
       animate={{ y: 0 }}
       exit={{ y: 300, opacity: 0 }}
       transition={{ duration: 0.3, ease: "easeInOut" }}
-      className="bg-white border-t border-gray-200 shadow-lg pb-[60px]"
+      className="bg-white border-t border-gray-200 shadow-lg pb-[80px]"
     >
       <div className="p-4">
         <div className="flex justify-between items-center mb-3">
