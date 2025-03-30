@@ -1,4 +1,3 @@
-
 import { CartItemType } from "@/components/cart/types";
 import htmlToPdf from 'html-pdf-node';
 
@@ -178,6 +177,7 @@ export const fetchPrintNodePrinters = async (): Promise<any[]> => {
 export const generateTestReceiptHTML = (): string => {
   const testDate = new Date().toLocaleString();
   
+  // Create a well-formed HTML structure with proper styling for thermal printers
   return `
     <!DOCTYPE html>
     <html>
@@ -248,6 +248,8 @@ export const generateTestReceiptHTML = (): string => {
 const convertHTMLToPDF = async (htmlContent: string): Promise<Buffer> => {
   try {
     console.log('Converting HTML to PDF for thermal printer...');
+    
+    // Set options specifically for thermal receipt printers
     const options = { 
       format: {
         width: '80mm',
@@ -330,7 +332,7 @@ export const sendTestPage = async (): Promise<boolean> => {
 };
 
 /**
- * Generate HTML content for receipt
+ * Generate HTML content for receipt with improved styling for thermal printers
  */
 export const generateReceiptHTML = (
   orderNumber: string | number,
@@ -352,11 +354,11 @@ export const generateReceiptHTML = (
         <title>Order #${orderNumber}</title>
         <style>
           body {
-            font-family: 'Arial', sans-serif;
+            font-family: monospace;
             margin: 0;
             padding: 10px;
-            width: 80mm;
-            font-size: 12px;
+            width: 74mm;
+            font-size: 10px;
           }
           .header {
             text-align: center;
@@ -376,15 +378,15 @@ export const generateReceiptHTML = (
           }
           .items .qty {
             text-align: center;
-            width: 30px;
+            width: 25px;
           }
           .items .price {
             text-align: right;
-            width: 60px;
+            width: 50px;
           }
           .topping {
             padding-left: 15px;
-            font-size: 11px;
+            font-size: 9px;
           }
           .totals {
             margin-top: 10px;
@@ -404,7 +406,9 @@ export const generateReceiptHTML = (
           .footer {
             margin-top: 20px;
             text-align: center;
-            font-size: 11px;
+            font-size: 9px;
+            border-top: 1px dashed #000;
+            padding-top: 10px;
           }
         </style>
       </head>
