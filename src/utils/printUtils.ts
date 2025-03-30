@@ -23,59 +23,59 @@ export const formatOrderReceipt = (
             padding: 0;
             margin: 0;
             width: 72mm;
-            font-size: 9px;
+            font-size: 8px;
           }
           h1 {
             text-align: center;
-            font-size: 14px;
-            margin: 5px 0;
+            font-size: 12px;
+            margin: 3px 0;
           }
           h2 {
             text-align: center;
-            font-size: 12px;
-            margin: 5px 0;
+            font-size: 10px;
+            margin: 3px 0;
           }
           .order-details {
-            margin-bottom: 5px;
+            margin-bottom: 3px;
           }
           .order-details p {
-            margin: 2px 0;
+            margin: 1px 0;
           }
           .order-item {
             display: flex;
             justify-content: space-between;
-            margin-bottom: 2px;
+            margin-bottom: 1px;
           }
           .topping-item {
             display: flex;
             justify-content: space-between;
-            margin-left: 10px;
-            font-size: 8px;
+            margin-left: 8px;
+            font-size: 7px;
             color: #666;
           }
           .divider {
             border-top: 1px dashed #ccc;
-            margin: 5px 0;
+            margin: 3px 0;
           }
           .totals {
-            margin-top: 5px;
+            margin-top: 3px;
           }
           .total-row {
             display: flex;
             justify-content: space-between;
-            margin-bottom: 2px;
+            margin-bottom: 1px;
           }
           .final-total {
             font-weight: bold;
-            font-size: 11px;
-            margin-top: 5px;
+            font-size: 10px;
+            margin-top: 3px;
             border-top: 1px solid black;
-            padding-top: 3px;
+            padding-top: 2px;
           }
           .footer {
-            margin-top: 10px;
+            margin-top: 5px;
             text-align: center;
-            font-size: 9px;
+            font-size: 8px;
           }
         </style>
       </head>
