@@ -6,7 +6,11 @@ import { cn } from "@/lib/utils"
 
 // Create a properly wrapped provider component
 const TooltipProvider = ({ children, ...props }: TooltipPrimitive.TooltipProviderProps) => {
-  return <TooltipPrimitive.Provider {...props}>{children}</TooltipPrimitive.Provider>
+  return (
+    <TooltipPrimitive.Provider {...props}>
+      {children}
+    </TooltipPrimitive.Provider>
+  )
 }
 
 const Tooltip = TooltipPrimitive.Root
