@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import AdminLayout from '../../components/admin/AdminLayout';
 import { Input } from "@/components/ui/input";
@@ -34,7 +35,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase, initializeStorage } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
 interface MenuItem {
