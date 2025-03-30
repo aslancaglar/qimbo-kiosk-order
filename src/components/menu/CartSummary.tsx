@@ -176,7 +176,7 @@ const CartSummary: React.FC<CartSummaryProps> = ({
           <Button
             variant="outline"
             onClick={onCancelOrderClick}
-            className="bg-gray-200 hover:bg-gray-300 text-black"
+            className="bg-red-600 hover:bg-red-700 text-white"
           >
             Annuler
           </Button>
