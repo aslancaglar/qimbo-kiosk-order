@@ -1,14 +1,15 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Button from '../common/Button';
 import CartItem from './CartItem';
-import { CartItemType } from './types';
+import { CartItemType, ToppingItem } from './types';
 import { ShoppingBag, X } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/components/ui/use-toast';
 import { useIsMobile } from '@/hooks/use-mobile';
+import ProductCard, { Product } from '../menu/ProductCard';
 
 interface CartSidebarProps {
   isOpen: boolean;
@@ -17,6 +18,7 @@ interface CartSidebarProps {
   onRemoveItem: (index: number) => void;
   onIncrementItem: (index: number) => void;
   onDecrementItem: (index: number) => void;
+  onUpdateToppings: (index: number, toppings: ToppingItem[]) => void;
   orderType: 'takeaway' | 'eat-in';
   tableNumber?: number;
 }
@@ -28,11 +30,13 @@ const CartSidebar: React.FC<CartSidebarProps> = ({
   onRemoveItem,
   onIncrementItem,
   onDecrementItem,
+  onUpdateToppings,
   orderType,
   tableNumber,
 }) => {
   const navigate = useNavigate();
   const isMobile = useIsMobile();
+  const [editingItem, setEditingItem] = useState<{index: number, product: Product, toppings: ToppingItem[]} | null>(null);
   
   const totalItems = items.reduce((sum, item) => sum + item.quantity, 0);
   
@@ -177,6 +181,22 @@ const CartSidebar: React.FC<CartSidebarProps> = ({
     }
   };
   
+  const handleEditToppings = (index: number) => {
+    const item = items[index];
+    if (item.product.hasToppings) {
+      setEditingItem({
+        index,
+        product: item.product,
+        toppings: item.selectedToppings || []
+      });
+    }
+  };
+  
+  const handleEditComplete = (index: number, toppings: ToppingItem[]) => {
+    onUpdateToppings(index, toppings);
+    setEditingItem(null);
+  };
+  
   return (
     <>
       {/* Fixed position cart sidebar - always visible */}
@@ -227,6 +247,7 @@ const CartSidebar: React.FC<CartSidebarProps> = ({
                         onRemove={() => onRemoveItem(index)}
                         onIncrement={() => onIncrementItem(index)}
                         onDecrement={() => onDecrementItem(index)}
+                        onEditToppings={() => handleEditToppings(index)}
                         isTablet={!isMobile && window.innerWidth < 1025}
                       />
                       
@@ -270,6 +291,24 @@ const CartSidebar: React.FC<CartSidebarProps> = ({
           )}
         </div>
       </div>
+      
+      {/* Editing product toppings */}
+      {editingItem && (
+        <div className="fixed inset-0 bg-black/50 z-[60] flex items-center justify-center" onClick={() => setEditingItem(null)}>
+          <div className="w-[90%] max-w-md mx-auto" onClick={(e) => e.stopPropagation()}>
+            <ProductCard 
+              product={editingItem.product}
+              onSelect={() => {}}
+              existingItem={{
+                index: editingItem.index,
+                toppings: editingItem.toppings,
+                quantity: items[editingItem.index]?.quantity || 1
+              }}
+              onEditComplete={handleEditComplete}
+            />
+          </div>
+        </div>
+      )}
     </>
   );
 };

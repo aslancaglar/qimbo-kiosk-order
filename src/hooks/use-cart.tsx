@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { CartItemType, ToppingItem } from '@/components/cart/types';
 import { Product } from '@/components/menu/ProductCard';
@@ -86,6 +87,17 @@ export function useCart({ orderType, tableNumber }: UseCartOptions) {
       newItems[index].quantity -= 1;
       setCartItems(newItems);
     }
+  };
+  
+  const handleUpdateToppings = (index: number, toppings: ToppingItem[]) => {
+    const newItems = [...cartItems];
+    newItems[index].selectedToppings = toppings;
+    setCartItems(newItems);
+    
+    toast({
+      title: "Toppings Updated",
+      description: `Toppings for ${newItems[index].product.name} updated`,
+    });
   };
   
   const handleCancelOrderClick = () => {
@@ -223,6 +235,7 @@ export function useCart({ orderType, tableNumber }: UseCartOptions) {
     handleRemoveItem,
     handleIncrementItem,
     handleDecrementItem,
+    handleUpdateToppings,
     handleCancelOrderClick,
     handleConfirmCancel,
     handleConfirmOrder
