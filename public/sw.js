@@ -1,5 +1,6 @@
+
 // Cache version - change this when assets change
-const CACHE_NAME = 'restaurant-app-v1';
+const CACHE_NAME = 'restaurant-app-v2';
 
 // Assets to cache on install
 const CACHE_ASSETS = [
@@ -44,6 +45,21 @@ self.addEventListener('activate', (event) => {
   
   // Ensure service worker takes control immediately
   return self.clients.claim();
+});
+
+// Message handler for cache clearing
+self.addEventListener('message', (event) => {
+  if (event.data && event.data.action === 'CLEAR_CACHES') {
+    self.skipWaiting();
+    event.waitUntil(
+      caches.keys().then((keyList) => {
+        return Promise.all(keyList.map((key) => {
+          console.log('[ServiceWorker] Clearing cache', key);
+          return caches.delete(key);
+        }));
+      })
+    );
+  }
 });
 
 // Fetch event - serve from cache, fall back to network

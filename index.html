@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
   <head>
@@ -15,6 +16,31 @@
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:site" content="@lovable_dev" />
     <meta name="twitter:image" content="https://lovable.dev/opengraph-image-p98pqg.png" />
+    
+    <script>
+      // Add a cache clearing utility to the window object
+      window.clearCache = async function() {
+        try {
+          if ('caches' in window) {
+            const cacheKeys = await caches.keys();
+            await Promise.all(cacheKeys.map(key => caches.delete(key)));
+            console.log('Cache cleared successfully');
+            
+            // Notify service worker if active
+            if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
+              navigator.serviceWorker.controller.postMessage({ action: 'CLEAR_CACHES' });
+            }
+            
+            // Force reload from network
+            window.location.reload(true);
+            return true;
+          }
+        } catch (error) {
+          console.error('Failed to clear cache:', error);
+        }
+        return false;
+      };
+    </script>
   </head>
 
   <body>

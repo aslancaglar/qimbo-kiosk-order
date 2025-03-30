@@ -3,7 +3,12 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App';
 import './index.css';
-import { registerServiceWorker } from './utils/serviceWorker';
+import { registerServiceWorker, clearAppCache } from './utils/serviceWorker';
+
+// Make cache clearing function available globally for debugging
+if (process.env.NODE_ENV !== 'production') {
+  (window as any).clearAppCache = clearAppCache;
+}
 
 // Performance measurements
 if (process.env.NODE_ENV !== 'production') {

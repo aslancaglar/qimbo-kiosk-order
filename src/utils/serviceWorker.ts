@@ -27,3 +27,32 @@ export const unregisterServiceWorker = async (): Promise<void> => {
     }
   }
 };
+
+/**
+ * Clear all application caches to ensure latest content is loaded
+ */
+export const clearAppCache = async (): Promise<boolean> => {
+  if ('caches' in window) {
+    try {
+      // Get all cache keys
+      const cacheKeys = await caches.keys();
+      
+      // Delete all caches
+      await Promise.all(
+        cacheKeys.map(cacheName => caches.delete(cacheName))
+      );
+      
+      console.log('Successfully cleared all application caches');
+      
+      // Reload the page to ensure fresh content
+      window.location.reload();
+      return true;
+    } catch (error) {
+      console.error('Failed to clear caches:', error);
+      return false;
+    }
+  } else {
+    console.warn('Cache API not supported in this browser');
+    return false;
+  }
+};
