@@ -15,10 +15,11 @@ const MenuPage: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const { orderType, tableNumber } = location.state || {};
-  const [activeCategory, setActiveCategory] = useState('All');
-
+  
   // Custom hooks for data fetching and cart management
   const { products, isLoading, categoryNames, categoryIcons } = useMenuData();
+  const [activeCategory, setActiveCategory] = useState(categoryNames?.length > 0 ? categoryNames[0] : '');
+  
   const { 
     cartItems,
     isCartOpen,
@@ -32,6 +33,13 @@ const MenuPage: React.FC = () => {
     handleConfirmCancel,
     handleConfirmOrder
   } = useCart({ orderType, tableNumber });
+  
+  // Update active category when categories are loaded
+  useEffect(() => {
+    if (categoryNames?.length > 0 && !activeCategory) {
+      setActiveCategory(categoryNames[0]);
+    }
+  }, [categoryNames, activeCategory]);
   
   // Redirect if no orderType is provided
   useEffect(() => {

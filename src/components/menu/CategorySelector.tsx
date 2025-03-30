@@ -29,16 +29,6 @@ const CategorySelector: React.FC<CategorySelectorProps> = ({
       <div className={`${isVertical 
         ? 'flex flex-col gap-1 items-center' 
         : 'flex gap-4 min-w-max'}`}>
-        {/* Include All category only in horizontal orientation */}
-        {!isVertical && (
-          <CategoryButton
-            category="All"
-            icon={null}
-            isActive={activeCategory === 'All'}
-            onChange={onChange}
-            isVertical={isVertical}
-          />
-        )}
         
         {categories.map((category) => (
           <CategoryButton

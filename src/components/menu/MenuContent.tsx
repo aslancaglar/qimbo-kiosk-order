@@ -30,9 +30,7 @@ const MenuContent: React.FC<MenuContentProps> = ({
 }) => {
   // Memoize filtered products to prevent recalculation on every render
   const filteredProducts = useMemo(() => {
-    return activeCategory === 'All'
-      ? products
-      : products.filter(product => product.category === activeCategory);
+    return products.filter(product => product.category === activeCategory);
   }, [products, activeCategory]);
 
   return (
