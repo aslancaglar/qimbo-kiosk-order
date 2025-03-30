@@ -109,9 +109,14 @@ const CategoryButton: React.FC<CategoryButtonProps> = ({
                 alt={category} 
                 className="h-full w-full object-cover"
                 onError={(e) => {
-                  // If image fails to load, show emoji fallback
-                  (e.target as HTMLImageElement).style.display = 'none';
-                  (e.target as HTMLImageElement).nextElementSibling!.style.display = 'block';
+                  // Fix TypeScript error by using the correct HTMLImageElement type
+                  const imgElement = e.target as HTMLImageElement;
+                  imgElement.style.display = 'none';
+                  // Use optional chaining and type assertion for the next element
+                  const nextElement = imgElement.nextElementSibling as HTMLElement;
+                  if (nextElement) {
+                    nextElement.style.display = 'block';
+                  }
                 }}
               />
               <span className="hidden">{getCategoryEmoji(category)}</span>
