@@ -1,3 +1,4 @@
+
 import { CartItemType } from "@/components/cart/types";
 
 // PrintNode API configuration
@@ -307,6 +308,7 @@ export const generateReceiptHTML = (
 ): string => {
   const orderDate = new Date().toLocaleString();
   
+  // Improved receipt HTML with better formatting for thermal printers
   return `
     <!DOCTYPE html>
     <html>
@@ -441,11 +443,16 @@ export const sendToPrintNode = async (
   const config = getPrintNodeConfig();
   
   if (!config.apiKey || !config.enabled || !config.defaultPrinterId) {
-    console.log('PrintNode not configured or disabled');
+    console.log('PrintNode not configured or disabled:', { 
+      hasApiKey: !!config.apiKey, 
+      enabled: config.enabled, 
+      hasPrinter: !!config.defaultPrinterId 
+    });
     return false;
   }
   
   try {
+    console.log('Generating receipt HTML for order #', orderNumber);
     // Generate HTML content
     const htmlContent = generateReceiptHTML(
       orderNumber,
@@ -469,6 +476,8 @@ export const sendToPrintNode = async (
       source: "POS System"
     };
     
+    console.log(`Sending print job to PrintNode printer ID: ${config.defaultPrinterId}`);
+    
     // Send to PrintNode API
     const response = await fetch('https://api.printnode.com/printjobs', {
       method: 'POST',
@@ -481,9 +490,12 @@ export const sendToPrintNode = async (
     
     if (!response.ok) {
       const errorText = await response.text();
+      console.error(`Error sending print job: ${response.status} - ${errorText}`);
       throw new Error(`HTTP error ${response.status}: ${errorText}`);
     }
     
+    const responseData = await response.text();
+    console.log('PrintNode print job successful, response:', responseData);
     return true;
   } catch (error) {
     console.error('Error sending print job to PrintNode:', error);
