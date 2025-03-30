@@ -288,7 +288,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
         <p className="text-gray-600 text-xs mb-2 flex-1 line-clamp-2">{product.description}</p>
         
         <div className="flex justify-between items-center mt-auto">
-          <span className="font-bold text-sm">{product.price.toFixed(2)} €</span>
+          <span className="font-bold text-sm whitespace-nowrap">{product.price.toFixed(2)} €</span>
           
           <AnimatePresence>
             {showAddedAnimation ? (

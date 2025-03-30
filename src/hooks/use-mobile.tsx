@@ -7,23 +7,27 @@ export function useIsMobile() {
   const [isMobile, setIsMobile] = React.useState(false)
 
   React.useEffect(() => {
-    // Initial check on mount
+    // Function to check if the window width is below the mobile breakpoint
     const checkIfMobile = () => {
-      setIsMobile(window.innerWidth < MOBILE_BREAKPOINT)
+      if (typeof window !== 'undefined') {
+        setIsMobile(window.innerWidth < MOBILE_BREAKPOINT)
+      }
     }
     
-    // Check immediately
+    // Run on mount
     checkIfMobile()
     
-    // Set up event listener for window resize
-    const mql = window.matchMedia(`(max-width: ${MOBILE_BREAKPOINT - 1}px)`)
-    const onChange = () => checkIfMobile()
+    // Set up the event listener for window resize
+    if (typeof window !== 'undefined') {
+      window.addEventListener("resize", checkIfMobile)
+    }
     
-    // Modern approach: addEventListener
-    mql.addEventListener("change", onChange)
-    
-    // Cleanup function
-    return () => mql.removeEventListener("change", onChange)
+    // Clean up
+    return () => {
+      if (typeof window !== 'undefined') {
+        window.removeEventListener("resize", checkIfMobile)
+      }
+    }
   }, [])
 
   return isMobile
