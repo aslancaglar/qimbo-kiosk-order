@@ -1,4 +1,6 @@
+
 import { CartItemType } from "@/components/cart/types";
+import html2pdf from 'html2pdf.js';
 
 // PrintNode API configuration
 interface PrintNodeConfig {
@@ -183,12 +185,17 @@ export const generateTestReceiptHTML = (): string => {
         <meta charset="utf-8">
         <title>Test Receipt</title>
         <style>
+          @page {
+            margin: 0mm;
+            size: 80mm auto;
+          }
           body {
-            font-family: 'Arial', sans-serif;
+            font-family: 'Courier', monospace;
             margin: 0;
             padding: 10px;
             width: 80mm;
             font-size: 12px;
+            text-align: left;
           }
           .header {
             text-align: center;
@@ -241,7 +248,46 @@ export const generateTestReceiptHTML = (): string => {
 };
 
 /**
- * Send test page to PrintNode printer
+ * Convert HTML to PDF using html2pdf.js
+ */
+const convertHTMLToPDF = async (htmlContent: string): Promise<string> => {
+  return new Promise((resolve, reject) => {
+    // Create a container element to render the HTML
+    const element = document.createElement('div');
+    element.innerHTML = htmlContent;
+    
+    // Configure html2pdf options for thermal receipt printer
+    const options = {
+      margin: [0, 0, 0, 0],
+      filename: 'receipt.pdf',
+      image: { type: 'jpeg', quality: 0.98 },
+      html2canvas: { scale: 2 },
+      jsPDF: { 
+        unit: 'mm', 
+        format: [80, 297], // 80mm width, auto height (A4 height as placeholder)
+        orientation: 'portrait',
+        hotfixes: ["px_scaling"]
+      }
+    };
+    
+    html2pdf()
+      .from(element)
+      .set(options)
+      .outputPdf('datauristring')
+      .then((pdfBase64: string) => {
+        // Remove the data URI prefix to get just the base64 content
+        const base64Content = pdfBase64.replace('data:application/pdf;base64,', '');
+        resolve(base64Content);
+      })
+      .catch((error: any) => {
+        console.error('PDF conversion error:', error);
+        reject(error);
+      });
+  });
+};
+
+/**
+ * Send test page to PrintNode
  */
 export const sendTestPage = async (): Promise<boolean> => {
   const config = getPrintNodeConfig();
@@ -257,15 +303,15 @@ export const sendTestPage = async (): Promise<boolean> => {
     // Generate HTML content
     const htmlContent = generateTestReceiptHTML();
     
-    // Convert HTML to base64
-    const base64Content = btoa(unescape(encodeURIComponent(htmlContent)));
+    // Convert HTML to PDF
+    const pdfBase64 = await convertHTMLToPDF(htmlContent);
     
     // Prepare the print job
     const printJob = {
       printerId: config.defaultPrinterId,
       title: `Test Receipt`,
-      contentType: "raw_base64",
-      content: base64Content,
+      contentType: "pdf_base64",
+      content: pdfBase64,
       source: "POS System"
     };
     
@@ -281,7 +327,6 @@ export const sendTestPage = async (): Promise<boolean> => {
     
     if (!response.ok) {
       const errorText = await response.text();
-      console.error(`Error sending test page: ${response.status} - ${errorText}`);
       throw new Error(`HTTP error ${response.status}: ${errorText}`);
     }
     
@@ -314,12 +359,17 @@ export const generateReceiptHTML = (
         <meta charset="utf-8">
         <title>Order #${orderNumber}</title>
         <style>
+          @page {
+            margin: 0mm;
+            size: 80mm auto;
+          }
           body {
-            font-family: 'Arial', sans-serif;
+            font-family: 'Courier', monospace;
             margin: 0;
             padding: 10px;
             width: 80mm;
             font-size: 12px;
+            line-height: 1.2;
           }
           .header {
             text-align: center;
@@ -457,15 +507,15 @@ export const sendToPrintNode = async (
       total
     );
     
-    // Convert HTML to base64
-    const base64Content = btoa(unescape(encodeURIComponent(htmlContent)));
+    // Convert HTML to PDF
+    const pdfBase64 = await convertHTMLToPDF(htmlContent);
     
     // Prepare the print job
     const printJob = {
       printerId: config.defaultPrinterId,
       title: `Order #${orderNumber}`,
-      contentType: "raw_base64",
-      content: base64Content,
+      contentType: "pdf_base64",
+      content: pdfBase64,
       source: "POS System"
     };
     
