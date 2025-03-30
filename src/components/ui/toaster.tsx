@@ -8,9 +8,19 @@ import {
   ToastTitle,
   ToastViewport,
 } from "@/components/ui/toast"
+import { useEffect, useState } from "react"
 
 export function Toaster() {
-  const { toasts } = useToast()
+  // Add error handling
+  const [mounted, setMounted] = useState(false)
+  
+  // Only run the hook after mount to ensure we're in a React context
+  useEffect(() => {
+    setMounted(true)
+  }, [])
+  
+  // Only try to access toast data after component is mounted
+  const { toasts } = mounted ? useToast() : { toasts: [] }
 
   return (
     <ToastProvider>
