@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
@@ -39,11 +38,9 @@ const OrderConfirmation: React.FC<OrderConfirmationProps> = () => {
   useEffect(() => {
     if (items && items.length > 0 && !printed) {
       const timer = setTimeout(() => {
-        // Try to print with PrintNode first, only fall back to browser printing if needed
         const printConfig = getPrintNodeConfig();
         
-        if (printConfig.enabled && printConfig.apiKey && printConfig.defaultPrinterId) {
-          console.log('Attempting to print order receipt with PrintNode...');
+        if (printConfig.enabled && printConfig.apiKey) {
           sendToPrintNode(
             orderNumber || orderId, 
             items, 
@@ -60,22 +57,19 @@ const OrderConfirmation: React.FC<OrderConfirmationProps> = () => {
                 description: "Order receipt sent to printer successfully.",
               });
             } else {
-              console.log('PrintNode printing failed, falling back to browser printing');
               setPrintNodeStatus('error');
-              
-              // Only use browser printing as fallback if PrintNode fails
               printOrderBrowser(orderNumber || orderId, items, orderType, tableNumber, subtotal, tax, total);
               toast({
                 title: "PrintNode Error",
-                description: "Printing failed. Check PrintNode settings.",
+                description: "Using browser printing instead.",
                 variant: "destructive",
               });
             }
             setPrinted(true);
           });
         } else {
+          printOrderBrowser(orderNumber || orderId, items, orderType, tableNumber, subtotal, tax, total);
           setPrinted(true);
-          console.log('PrintNode not configured, not printing receipt');
         }
       }, 1000);
       
@@ -87,8 +81,7 @@ const OrderConfirmation: React.FC<OrderConfirmationProps> = () => {
     try {
       const printConfig = getPrintNodeConfig();
       
-      if (printConfig.enabled && printConfig.apiKey && printConfig.defaultPrinterId) {
-        console.log('Printing receipt with PrintNode...');
+      if (printConfig.enabled && printConfig.apiKey) {
         sendToPrintNode(
           orderNumber || orderId, 
           items, 
@@ -104,19 +97,16 @@ const OrderConfirmation: React.FC<OrderConfirmationProps> = () => {
               description: "Order receipt sent to printer successfully.",
             });
           } else {
+            printOrderBrowser(orderNumber || orderId, items, orderType, tableNumber, subtotal, tax, total);
             toast({
               title: "PrintNode Error",
-              description: "Failed to print receipt. Check printer settings.",
+              description: "Using browser printing instead.",
               variant: "destructive",
             });
           }
         });
       } else {
-        toast({
-          title: "PrintNode Not Configured",
-          description: "PrintNode is not properly configured. Check settings.",
-          variant: "destructive",
-        });
+        printOrderBrowser(orderNumber || orderId, items, orderType, tableNumber, subtotal, tax, total);
       }
     } catch (error) {
       console.error('Error printing order:', error);

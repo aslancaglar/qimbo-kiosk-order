@@ -1,4 +1,3 @@
-
 import { CartItemType } from "@/components/cart/types";
 
 // PrintNode API configuration
@@ -177,7 +176,6 @@ export const fetchPrintNodePrinters = async (): Promise<any[]> => {
 export const generateTestReceiptHTML = (): string => {
   const testDate = new Date().toLocaleString();
   
-  // Create a well-formed HTML structure with proper styling for thermal printers
   return `
     <!DOCTYPE html>
     <html>
@@ -243,51 +241,6 @@ export const generateTestReceiptHTML = (): string => {
 };
 
 /**
- * Send raw text directly to PrintNode (simplest approach)
- */
-const sendRawTextToPrintNode = async (
-  printerId: number, 
-  title: string,
-  textContent: string,
-  apiKey: string
-): Promise<boolean> => {
-  try {
-    console.log('Sending raw text content to PrintNode...');
-    
-    // Prepare the print job with raw content
-    const printJob = {
-      printerId: printerId,
-      title: title,
-      contentType: "raw_base64",
-      content: btoa(textContent),
-      source: "POS System"
-    };
-    
-    // Send to PrintNode API
-    const response = await fetch('https://api.printnode.com/printjobs', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Basic ${btoa(apiKey + ':')}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(printJob)
-    });
-    
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error(`Error sending raw text: ${response.status} - ${errorText}`);
-      return false;
-    }
-    
-    console.log('Raw text sent successfully');
-    return true;
-  } catch (error) {
-    console.error('Error sending raw text to PrintNode:', error);
-    return false;
-  }
-};
-
-/**
  * Send test page to PrintNode printer
  */
 export const sendTestPage = async (): Promise<boolean> => {
@@ -304,13 +257,36 @@ export const sendTestPage = async (): Promise<boolean> => {
     // Generate HTML content
     const htmlContent = generateTestReceiptHTML();
     
-    // Send as raw text (simplest approach)
-    return await sendRawTextToPrintNode(
-      config.defaultPrinterId,
-      "Test Receipt",
-      htmlContent,
-      config.apiKey
-    );
+    // Convert HTML to base64
+    const base64Content = btoa(unescape(encodeURIComponent(htmlContent)));
+    
+    // Prepare the print job
+    const printJob = {
+      printerId: config.defaultPrinterId,
+      title: `Test Receipt`,
+      contentType: "raw_base64",
+      content: base64Content,
+      source: "POS System"
+    };
+    
+    // Send to PrintNode API
+    const response = await fetch('https://api.printnode.com/printjobs', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Basic ${btoa(config.apiKey + ':')}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(printJob)
+    });
+    
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error(`Error sending test page: ${response.status} - ${errorText}`);
+      throw new Error(`HTTP error ${response.status}: ${errorText}`);
+    }
+    
+    console.log('Test page sent successfully');
+    return true;
   } catch (error) {
     console.error('Error sending test page to PrintNode:', error);
     return false;
@@ -318,7 +294,7 @@ export const sendTestPage = async (): Promise<boolean> => {
 };
 
 /**
- * Generate HTML content for receipt with improved styling for thermal printers
+ * Generate HTML content for receipt
  */
 export const generateReceiptHTML = (
   orderNumber: string | number,
@@ -331,7 +307,6 @@ export const generateReceiptHTML = (
 ): string => {
   const orderDate = new Date().toLocaleString();
   
-  // Improved receipt HTML with better formatting for thermal printers
   return `
     <!DOCTYPE html>
     <html>
@@ -340,11 +315,11 @@ export const generateReceiptHTML = (
         <title>Order #${orderNumber}</title>
         <style>
           body {
-            font-family: monospace;
+            font-family: 'Arial', sans-serif;
             margin: 0;
             padding: 10px;
-            width: 74mm;
-            font-size: 10px;
+            width: 80mm;
+            font-size: 12px;
           }
           .header {
             text-align: center;
@@ -364,15 +339,15 @@ export const generateReceiptHTML = (
           }
           .items .qty {
             text-align: center;
-            width: 25px;
+            width: 30px;
           }
           .items .price {
             text-align: right;
-            width: 50px;
+            width: 60px;
           }
           .topping {
             padding-left: 15px;
-            font-size: 9px;
+            font-size: 11px;
           }
           .totals {
             margin-top: 10px;
@@ -392,9 +367,7 @@ export const generateReceiptHTML = (
           .footer {
             margin-top: 20px;
             text-align: center;
-            font-size: 9px;
-            border-top: 1px dashed #000;
-            padding-top: 10px;
+            font-size: 11px;
           }
         </style>
       </head>
@@ -468,16 +441,11 @@ export const sendToPrintNode = async (
   const config = getPrintNodeConfig();
   
   if (!config.apiKey || !config.enabled || !config.defaultPrinterId) {
-    console.log('PrintNode not configured or disabled:', { 
-      hasApiKey: !!config.apiKey, 
-      enabled: config.enabled, 
-      hasPrinter: !!config.defaultPrinterId 
-    });
+    console.log('PrintNode not configured or disabled');
     return false;
   }
   
   try {
-    console.log('Generating receipt HTML for order #', orderNumber);
     // Generate HTML content
     const htmlContent = generateReceiptHTML(
       orderNumber,
@@ -489,14 +457,34 @@ export const sendToPrintNode = async (
       total
     );
     
-    console.log('Sending receipt as raw text to printer...');
-    // Send as raw text
-    return await sendRawTextToPrintNode(
-      config.defaultPrinterId,
-      `Order #${orderNumber}`,
-      htmlContent,
-      config.apiKey
-    );
+    // Convert HTML to base64
+    const base64Content = btoa(unescape(encodeURIComponent(htmlContent)));
+    
+    // Prepare the print job
+    const printJob = {
+      printerId: config.defaultPrinterId,
+      title: `Order #${orderNumber}`,
+      contentType: "raw_base64",
+      content: base64Content,
+      source: "POS System"
+    };
+    
+    // Send to PrintNode API
+    const response = await fetch('https://api.printnode.com/printjobs', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Basic ${btoa(config.apiKey + ':')}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(printJob)
+    });
+    
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`HTTP error ${response.status}: ${errorText}`);
+    }
+    
+    return true;
   } catch (error) {
     console.error('Error sending print job to PrintNode:', error);
     return false;
