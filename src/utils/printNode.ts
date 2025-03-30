@@ -13,16 +13,11 @@ interface PrintNodeConfig {
  */
 export const htmlToPdf = async (htmlContent: string): Promise<Blob> => {
   const options = {
-    margin: [0, 0, 0, 0], // Minimal margins: top, right, bottom, left
+    margin: 10,
     filename: 'receipt.pdf',
-    image: { type: 'jpeg', quality: 0.95 },
-    html2canvas: { scale: 2, logging: false },
-    jsPDF: { 
-      unit: 'mm', 
-      format: [80, 297], // 80mm width (standard POS receipt width), dynamic height
-      orientation: 'portrait',
-      compress: true
-    }
+    image: { type: 'jpeg', quality: 0.98 },
+    html2canvas: { scale: 2 },
+    jsPDF: { unit: 'mm', format: 'a7', orientation: 'portrait' }
   };
 
   try {
