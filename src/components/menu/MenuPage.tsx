@@ -40,28 +40,6 @@ const MenuPage: React.FC = () => {
     }
   }, [orderType, navigate]);
   
-  // Wrapper functions to convert from the index-based API to the ID-based API
-  const handleRemoveItemWrapper = (itemId: string) => {
-    const index = cartItems.findIndex(item => item.id === itemId);
-    if (index !== -1) {
-      handleRemoveItem(index);
-    }
-  };
-  
-  const handleIncrementItemWrapper = (itemId: string) => {
-    const index = cartItems.findIndex(item => item.id === itemId);
-    if (index !== -1) {
-      handleIncrementItem(index);
-    }
-  };
-  
-  const handleDecrementItemWrapper = (itemId: string) => {
-    const index = cartItems.findIndex(item => item.id === itemId);
-    if (index !== -1) {
-      handleDecrementItem(index);
-    }
-  };
-  
   return (
     <Layout>
       <div className="flex flex-col h-screen">
@@ -81,9 +59,9 @@ const MenuPage: React.FC = () => {
           {isCartOpen && (
             <CartSummary 
               cartItems={cartItems}
-              onRemoveItem={handleRemoveItemWrapper}
-              onIncrementItem={handleIncrementItemWrapper}
-              onDecrementItem={handleDecrementItemWrapper}
+              onRemoveItem={handleRemoveItem}
+              onIncrementItem={handleIncrementItem}
+              onDecrementItem={handleDecrementItem}
               onCancelOrderClick={handleCancelOrderClick}
               onConfirmOrder={handleConfirmOrder}
               orderType={orderType}

@@ -2,9 +2,10 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { ShoppingBag, X, Plus, Minus, Trash2 } from 'lucide-react';
-import { CartItemType } from '../cart/types';
+import { CartItem as CartItemType } from '../cart/types';
 import CartItem from '../cart/CartItem';
 import Button from '../common/Button';
+import { formatCurrency } from '@/utils/printUtils';
 
 interface CartSummaryProps {
   cartItems: CartItemType[];
@@ -38,14 +39,6 @@ const CartSummary: React.FC<CartSummaryProps> = ({
   
   const tax = subtotal * 0.0875; // Assuming 8.75% tax rate
   const total = subtotal + tax;
-
-  // Helper function to format currency
-  const formatCurrency = (amount: number): string => {
-    return new Intl.NumberFormat('fr-FR', {
-      style: 'currency',
-      currency: 'EUR'
-    }).format(amount);
-  };
 
   return (
     <motion.div
@@ -123,7 +116,7 @@ const CartSummary: React.FC<CartSummaryProps> = ({
               </div>
               
               <Button 
-                variant="primary"
+                variant="default"
                 size="full"
                 onClick={onConfirmOrder}
                 disabled={cartItems.length === 0}
