@@ -194,7 +194,14 @@ export const printOrderBrowser = async (
     // First try to convert to PDF for better print formatting
     try {
       const pdfData = await convertHTMLToPDF(htmlContent);
-      const pdfBlob = new Blob([atob(pdfData).split('').map(char => char.charCodeAt(0))], { type: 'application/pdf' });
+      // Fix: Create a Uint8Array from base64 string instead of using a plain number array
+      const binaryString = atob(pdfData);
+      const bytes = new Uint8Array(binaryString.length);
+      for (let i = 0; i < binaryString.length; i++) {
+        bytes[i] = binaryString.charCodeAt(i);
+      }
+      
+      const pdfBlob = new Blob([bytes], { type: 'application/pdf' });
       const pdfUrl = URL.createObjectURL(pdfBlob);
       
       // Open PDF in new window and print it
