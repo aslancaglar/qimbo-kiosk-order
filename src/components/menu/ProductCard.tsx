@@ -1,8 +1,7 @@
-
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Button from '../common/Button';
-import { ShoppingBag, Plus, Minus, Check } from 'lucide-react';
+import { Plus, Minus, Check } from 'lucide-react';
 import { ToppingItem } from '../cart/types';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Form, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
@@ -306,7 +305,6 @@ const ProductCard: React.FC<ProductCardProps> = ({
                 onClick={handleAddToCart} 
                 className="bg-red-600 hover:bg-red-700 text-white text-xs py-1 px-2"
               >
-                <ShoppingBag className="mr-1 h-3 w-3" />
                 Ajouter au panier
               </Button>
             )}
