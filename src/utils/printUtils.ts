@@ -126,7 +126,7 @@ export const formatOrderReceipt = (
   `;
 };
 
-// Print order using browser's print functionality
+// Manual print function for browser (no longer auto-prints)
 export const printOrderBrowser = (
   orderNumber: string | number,
   items: CartItemType[],
@@ -158,22 +158,22 @@ export const printOrderBrowser = (
     
     iframe.contentDocument.close();
     
-    // Print using browser
+    // Make iframe available for manual printing, but don't auto-print
     setTimeout(() => {
-      iframe.contentWindow?.print();
+      iframe.contentWindow?.focus(); // Focus the iframe
+      // Note: We removed the auto-print functionality
       
-      // Remove the iframe after printing
+      // Remove the iframe after a delay
       setTimeout(() => {
         iframe.remove();
-      }, 2000);
+      }, 10000);
     }, 500);
   } catch (error) {
-    console.error('Error printing order:', error);
+    console.error('Error preparing order for printing:', error);
   }
 };
 
-// Print order - this is now just a wrapper around browser printing 
-// since PrintBiz integration is removed
+// Updated print order function - delegates to PrintNode integration
 export const printOrder = (
   orderNumber: string | number,
   items: CartItemType[],
@@ -183,5 +183,42 @@ export const printOrder = (
   tax: number,
   total: number
 ): void => {
-  printOrderBrowser(orderNumber, items, orderType, tableNumber, subtotal, tax, total);
+  // Import and use PrintNode functionality
+  import('./printNode').then(({ printOrderWithPrintNode }) => {
+    // Try to get PrintNode config from localStorage
+    const configStr = localStorage.getItem('printnode_config');
+    if (configStr) {
+      try {
+        const config = JSON.parse(configStr);
+        if (config.enabled && config.apiKey && config.printerId) {
+          // Use PrintNode for printing
+          printOrderWithPrintNode(
+            orderNumber, 
+            items, 
+            orderType, 
+            tableNumber, 
+            subtotal, 
+            tax, 
+            total,
+            config
+          ).then(success => {
+            if (!success) {
+              console.warn('PrintNode printing failed, fallback to browser print dialog');
+              printOrderBrowser(orderNumber, items, orderType, tableNumber, subtotal, tax, total);
+            }
+          });
+          return;
+        }
+      } catch (e) {
+        console.error('Error parsing PrintNode config', e);
+      }
+    }
+    
+    // Fallback to browser printing dialog (no auto-print)
+    printOrderBrowser(orderNumber, items, orderType, tableNumber, subtotal, tax, total);
+  }).catch(err => {
+    console.error('Error loading PrintNode module:', err);
+    // Fallback to browser printing
+    printOrderBrowser(orderNumber, items, orderType, tableNumber, subtotal, tax, total);
+  });
 };
