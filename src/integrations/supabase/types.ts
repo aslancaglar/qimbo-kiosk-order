@@ -347,6 +347,7 @@ export type Database = {
       topping_categories: {
         Row: {
           description: string | null
+          display_order: number | null
           id: number
           max_selection: number
           min_selection: number
@@ -355,6 +356,7 @@ export type Database = {
         }
         Insert: {
           description?: string | null
+          display_order?: number | null
           id?: number
           max_selection?: number
           min_selection?: number
@@ -363,6 +365,7 @@ export type Database = {
         }
         Update: {
           description?: string | null
+          display_order?: number | null
           id?: number
           max_selection?: number
           min_selection?: number
@@ -376,6 +379,7 @@ export type Database = {
           available: boolean
           category: string
           category_id: number | null
+          display_order: number | null
           id: number
           max_quantity: number
           name: string
@@ -385,6 +389,7 @@ export type Database = {
           available?: boolean
           category: string
           category_id?: number | null
+          display_order?: number | null
           id?: number
           max_quantity?: number
           name: string
@@ -394,6 +399,7 @@ export type Database = {
           available?: boolean
           category?: string
           category_id?: number | null
+          display_order?: number | null
           id?: number
           max_quantity?: number
           name?: string
