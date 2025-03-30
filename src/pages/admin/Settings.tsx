@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "../../integrations/supabase/client";
@@ -10,8 +9,10 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
-import { Save, Settings2 } from 'lucide-react';
+import { Save, Settings2, Globe } from 'lucide-react';
 import { Switch } from "@/components/ui/switch";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { useLanguage } from '@/context/LanguageContext';
 
 interface OrderingSettings {
   requireTableSelection: boolean;
@@ -19,6 +20,7 @@ interface OrderingSettings {
 
 const Settings = () => {
   const { toast } = useToast();
+  const { t, language, changeLanguage } = useLanguage();
   const [loading, setLoading] = useState(false);
 
   const [restaurantInfo, setRestaurantInfo] = useState({
@@ -177,6 +179,10 @@ const Settings = () => {
       ...prev,
       [field]: checked
     }));
+  };
+
+  const handleLanguageChange = (value: string) => {
+    changeLanguage(value);
   };
 
   const saveRestaurantInfo = async () => {
@@ -340,24 +346,25 @@ const Settings = () => {
       <div className="space-y-6">
         <Tabs defaultValue="general">
           <TabsList>
-            <TabsTrigger value="general">General</TabsTrigger>
-            <TabsTrigger value="ordering">Ordering</TabsTrigger>
-            <TabsTrigger value="appearance">Appearance</TabsTrigger>
-            <TabsTrigger value="notifications">Notifications</TabsTrigger>
+            <TabsTrigger value="general">{t.settings.general}</TabsTrigger>
+            <TabsTrigger value="ordering">{t.settings.ordering}</TabsTrigger>
+            <TabsTrigger value="appearance">{t.settings.appearance}</TabsTrigger>
+            <TabsTrigger value="notifications">{t.settings.notifications}</TabsTrigger>
+            <TabsTrigger value="language">{t.common.language}</TabsTrigger>
           </TabsList>
           
           <TabsContent value="general" className="mt-6 space-y-6">
             <Card>
               <CardHeader>
-                <CardTitle>Restaurant Information</CardTitle>
+                <CardTitle>{t.settings.restaurantInfo}</CardTitle>
                 <CardDescription>
-                  Update your restaurant's basic information.
+                  {t.settings.restaurantInfoDesc}
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                   <div className="space-y-2">
-                    <Label htmlFor="restaurant-name">Restaurant Name</Label>
+                    <Label htmlFor="restaurant-name">{t.settings.restaurantName}</Label>
                     <Input 
                       id="restaurant-name" 
                       value={restaurantInfo.name} 
@@ -365,7 +372,7 @@ const Settings = () => {
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="restaurant-phone">Phone Number</Label>
+                    <Label htmlFor="restaurant-phone">{t.settings.phoneNumber}</Label>
                     <Input 
                       id="restaurant-phone" 
                       value={restaurantInfo.phone} 
@@ -375,7 +382,7 @@ const Settings = () => {
                 </div>
                 
                 <div className="space-y-2">
-                  <Label htmlFor="restaurant-address">Address</Label>
+                  <Label htmlFor="restaurant-address">{t.settings.address}</Label>
                   <Input 
                     id="restaurant-address" 
                     value={restaurantInfo.address} 
@@ -384,7 +391,7 @@ const Settings = () => {
                 </div>
                 
                 <div className="space-y-2">
-                  <Label htmlFor="restaurant-description">Description</Label>
+                  <Label htmlFor="restaurant-description">{t.settings.description}</Label>
                   <Textarea 
                     id="restaurant-description" 
                     value={restaurantInfo.description || ''} 
@@ -398,16 +405,16 @@ const Settings = () => {
                   onClick={saveRestaurantInfo} 
                   disabled={loading}
                 >
-                  {loading ? 'Saving...' : 'Save Changes'}
+                  {loading ? t.settings.saving : t.settings.saveChanges}
                 </Button>
               </CardContent>
             </Card>
             
             <Card>
               <CardHeader>
-                <CardTitle>Business Hours</CardTitle>
+                <CardTitle>{t.settings.businessHours}</CardTitle>
                 <CardDescription>
-                  Set your restaurant's opening hours.
+                  {t.settings.businessHoursDesc}
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -422,7 +429,7 @@ const Settings = () => {
                           onChange={(e) => handleHoursChange(day.day_of_week, 'open_time', e.target.value)}
                           className="w-24"
                         />
-                        <span>to</span>
+                        <span>{t.orderConfirmation.to}</span>
                         <Input
                           type="time"
                           value={day.close_time}
@@ -437,7 +444,7 @@ const Settings = () => {
                     onClick={saveBusinessHours}
                     disabled={loading}
                   >
-                    {loading ? 'Saving...' : 'Save Hours'}
+                    {loading ? t.settings.saving : t.settings.saveHours}
                   </Button>
                 </div>
               </CardContent>
@@ -449,10 +456,10 @@ const Settings = () => {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Settings2 className="h-5 w-5" />
-                  Ordering Options
+                  {t.settings.orderingOptions}
                 </CardTitle>
                 <CardDescription>
-                  Configure ordering options and customer experience settings.
+                  {t.settings.orderingOptionsDesc}
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
@@ -463,11 +470,11 @@ const Settings = () => {
                     onCheckedChange={(checked) => handleOrderingSettingChange('requireTableSelection', checked)}
                   />
                   <Label htmlFor="require-table-selection">
-                    Require table selection for dine-in orders
+                    {t.settings.requireTableSelection}
                   </Label>
                 </div>
                 <p className="text-sm text-muted-foreground pl-7">
-                  When disabled, customers can place dine-in orders without selecting a table number.
+                  {t.settings.requireTableSelectionDesc}
                 </p>
                 
                 <Button 
@@ -476,7 +483,7 @@ const Settings = () => {
                   className="mt-4"
                 >
                   <Save className="h-4 w-4 mr-2" />
-                  {loading ? 'Saving...' : 'Save Settings'}
+                  {loading ? t.settings.saving : t.settings.saveSettings}
                 </Button>
               </CardContent>
             </Card>
@@ -485,13 +492,13 @@ const Settings = () => {
           <TabsContent value="appearance" className="mt-6">
             <Card>
               <CardHeader>
-                <CardTitle>Appearance Settings</CardTitle>
+                <CardTitle>{t.settings.appearanceSettings}</CardTitle>
                 <CardDescription>
-                  Customize how your restaurant's ordering system looks.
+                  {t.settings.appearanceSettingsDesc}
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <p className="text-gray-500">Appearance settings coming soon.</p>
+                <p className="text-gray-500">{t.settings.comingSoon}</p>
               </CardContent>
             </Card>
           </TabsContent>
@@ -499,13 +506,42 @@ const Settings = () => {
           <TabsContent value="notifications" className="mt-6">
             <Card>
               <CardHeader>
-                <CardTitle>Notification Settings</CardTitle>
+                <CardTitle>{t.settings.notificationSettings}</CardTitle>
                 <CardDescription>
-                  Configure how you receive order notifications.
+                  {t.settings.notificationSettingsDesc}
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <p className="text-gray-500">Notification settings coming soon.</p>
+                <p className="text-gray-500">{t.settings.notificationsComingSoon}</p>
+              </CardContent>
+            </Card>
+          </TabsContent>
+          
+          <TabsContent value="language" className="mt-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Globe className="h-5 w-5" />
+                  {t.settings.languageSettings}
+                </CardTitle>
+                <CardDescription>
+                  {t.settings.languageSettingsDesc}
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="space-y-3">
+                  <Label htmlFor="language-select">{t.settings.selectLanguage}</Label>
+                  <RadioGroup defaultValue={language} onValueChange={handleLanguageChange}>
+                    <div className="flex items-center space-x-2 py-2">
+                      <RadioGroupItem value="en" id="language-en" />
+                      <Label htmlFor="language-en">{t.settings.english}</Label>
+                    </div>
+                    <div className="flex items-center space-x-2 py-2">
+                      <RadioGroupItem value="fr" id="language-fr" />
+                      <Label htmlFor="language-fr">{t.settings.french}</Label>
+                    </div>
+                  </RadioGroup>
+                </div>
               </CardContent>
             </Card>
           </TabsContent>

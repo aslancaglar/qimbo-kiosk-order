@@ -9,11 +9,12 @@ import MenuContent from './MenuContent';
 import CartSummary from './CartSummary';
 import { useMenuData } from '@/hooks/use-menu-data';
 import { useCart } from '@/hooks/use-cart';
-import { ToppingItem } from '../cart/types';
+import { useLanguage } from '@/context/LanguageContext';
 
 const MenuPage: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
+  const { t } = useLanguage();
   const { orderType, tableNumber } = location.state || {};
   const [activeCategory, setActiveCategory] = useState('All');
 
@@ -43,7 +44,7 @@ const MenuPage: React.FC = () => {
   return (
     <Layout>
       <div className="flex flex-col h-screen">
-        <MenuHeader />
+        <MenuHeader title={t.menu.title} />
         
         <MenuContent 
           products={products}
