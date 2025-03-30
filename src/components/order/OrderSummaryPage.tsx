@@ -40,8 +40,21 @@ const OrderSummaryPage: React.FC = () => {
     navigate(-1);
   };
 
-  const handleConfirmOrderClick = () => {
-    handleConfirmOrder();
+  const handleConfirmOrderClick = async () => {
+    // First confirm the order using the cart handler
+    await handleConfirmOrder();
+    
+    // Then navigate to the confirmation page with all the necessary order data
+    navigate('/confirmation', { 
+      state: { 
+        items,
+        orderType,
+        tableNumber,
+        subtotal,
+        tax,
+        total
+      } 
+    });
   };
 
   return (
