@@ -311,25 +311,19 @@ const MenuItems = () => {
         
       if (bucketsError) {
         console.error('Error checking buckets:', bucketsError);
-        throw bucketsError;
+        throw new Error('Unable to check storage buckets');
       }
       
       const bucketExists = buckets.some(bucket => bucket.name === 'menu-images');
       
       if (!bucketExists) {
-        console.log('Bucket does not exist, attempting to create it...');
-        const { error: createBucketError } = await supabase
-          .storage
-          .createBucket('menu-images', {
-            public: true,
-            fileSizeLimit: 5 * 1024 * 1024,
-          });
-          
-        if (createBucketError) {
-          console.error('Error creating bucket:', createBucketError);
-          throw createBucketError;
-        }
-        console.log('Bucket created successfully');
+        console.error('The menu-images bucket does not exist in Supabase storage');
+        toast({
+          title: 'Storage Error',
+          description: 'Image upload is not available. Please contact your administrator to set up storage.',
+          variant: 'destructive',
+        });
+        return null;
       }
       
       const fileExt = file.name.split('.').pop();
@@ -362,7 +356,7 @@ const MenuItems = () => {
       console.error('Error uploading image:', error);
       toast({
         title: 'Upload failed',
-        description: 'Failed to upload image. Please try again.',
+        description: 'Failed to upload image. The storage bucket may not be properly configured in Supabase.',
         variant: 'destructive',
       });
       return null;
@@ -446,19 +440,27 @@ const MenuItems = () => {
       }
       
       let imageUrl = editItem?.image || null;
+      
       if (imageFile) {
         console.log("Uploading new image");
-        imageUrl = await uploadImage(imageFile);
-        if (!imageUrl) {
+        const storageAvailable = await initializeStorage();
+        
+        if (!storageAvailable) {
           toast({
-            title: 'Error',
-            description: 'Image upload failed. Please try again.',
+            title: 'Storage Not Available',
+            description: 'Menu image storage is not available. The item will be saved without an image.',
             variant: 'destructive',
           });
-          setIsUploading(false);
-          return;
+        } else {
+          imageUrl = await uploadImage(imageFile);
+          if (!imageUrl && imageFile) {
+            toast({
+              title: 'Warning',
+              description: 'Image upload failed. Would you like to continue saving the menu item without an image?',
+              variant: 'destructive',
+            });
+          }
         }
-        console.log("Image uploaded successfully, URL:", imageUrl);
       } else if (imagePreview === null && editItem?.image) {
         console.log("User removed the image");
         imageUrl = null;
