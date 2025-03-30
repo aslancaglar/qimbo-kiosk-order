@@ -62,6 +62,8 @@ const MenuPage: React.FC = () => {
               onDecrementItem={handleDecrementItem}
               onCancelOrderClick={handleCancelOrderClick}
               onConfirmOrder={handleConfirmOrder}
+              orderType={orderType}
+              tableNumber={tableNumber}
             />
           )}
         </AnimatePresence>

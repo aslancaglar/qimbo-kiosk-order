@@ -1,10 +1,11 @@
 
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ShoppingBag, Minus, Plus, Trash } from 'lucide-react';
+import { ShoppingBag, Minus, Plus, Trash, ArrowRight } from 'lucide-react';
 import Button from '../common/Button';
 import { CartItemType } from '../cart/types';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { useNavigate } from 'react-router-dom';
 
 interface CartSummaryProps {
   cartItems: CartItemType[];
@@ -12,7 +13,8 @@ interface CartSummaryProps {
   onIncrementItem: (index: number) => void;
   onDecrementItem: (index: number) => void;
   onCancelOrderClick: () => void;
-  onConfirmOrder: () => void;
+  orderType: 'takeaway' | 'eat-in';
+  tableNumber?: number;
 }
 
 const CartSummary: React.FC<CartSummaryProps> = ({
@@ -21,9 +23,11 @@ const CartSummary: React.FC<CartSummaryProps> = ({
   onIncrementItem,
   onDecrementItem,
   onCancelOrderClick,
-  onConfirmOrder
+  orderType,
+  tableNumber
 }) => {
   const isMobile = useIsMobile();
+  const navigate = useNavigate();
   
   const totalItems = cartItems.reduce((sum, item) => sum + item.quantity, 0);
   
@@ -41,6 +45,19 @@ const CartSummary: React.FC<CartSummaryProps> = ({
   
   const tax = subtotal * 0.1; // 10% tax rate
   const total = subtotal + tax;
+  
+  const handleSeeOrder = () => {
+    navigate('/order-summary', { 
+      state: { 
+        items: cartItems,
+        orderType,
+        tableNumber,
+        subtotal,
+        tax,
+        total
+      } 
+    });
+  };
 
   return (
     <motion.div
@@ -164,10 +181,12 @@ const CartSummary: React.FC<CartSummaryProps> = ({
             Cancel Order
           </Button>
           <Button
-            onClick={onConfirmOrder}
+            onClick={handleSeeOrder}
             className="bg-red-600 hover:bg-red-700 text-white"
+            icon={<ArrowRight className="h-4 w-4" />}
+            iconPosition="right"
           >
-            CONFIRM ORDER
+            See My Order
           </Button>
         </div>
       </div>

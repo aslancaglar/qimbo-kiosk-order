@@ -8,6 +8,7 @@ import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import MenuPage from "./components/menu/MenuPage";
 import OrderConfirmation from "./components/order/OrderConfirmation";
+import OrderSummaryPage from "./components/order/OrderSummaryPage";
 
 // Admin pages
 import Dashboard from "./pages/admin/Dashboard";
@@ -63,6 +64,7 @@ const App = () => {
               {/* Customer-facing routes */}
               <Route path="/" element={<Index />} />
               <Route path="/menu" element={<MenuPage />} />
+              <Route path="/order-summary" element={<OrderSummaryPage />} />
               <Route path="/confirmation" element={<OrderConfirmation />} />
               
               {/* Admin routes */}
