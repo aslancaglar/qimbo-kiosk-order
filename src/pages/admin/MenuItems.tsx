@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+
+import React, { useState, useEffect, useRef } from 'react';
 import AdminLayout from '../../components/admin/AdminLayout';
 import { Input } from "@/components/ui/input";
 import { 
@@ -10,7 +11,7 @@ import {
   TableCell 
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Search, Plus, Edit, Trash } from "lucide-react";
+import { Search, Plus, Edit, Trash, Image, X, Upload } from "lucide-react";
 import { 
   Dialog,
   DialogContent,
@@ -45,6 +46,7 @@ interface MenuItem {
   status: "Active" | "Inactive";
   hasToppings: boolean;
   availableToppingCategories?: number[];
+  image?: string;
 }
 
 interface ToppingCategory {
@@ -74,6 +76,10 @@ const MenuItems = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [toppingCategories, setToppingCategories] = useState<ToppingCategory[]>([]);
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
   
   const form = useForm<MenuItemFormValues>({
@@ -106,7 +112,8 @@ const MenuItems = () => {
         price: `$${item.price}`,
         status: item.status as "Active" | "Inactive",
         hasToppings: item.has_toppings,
-        availableToppingCategories: item.available_topping_categories || []
+        availableToppingCategories: item.available_topping_categories || [],
+        image: item.image || ''
       }));
       
       setMenuItems(transformedItems);
@@ -194,6 +201,8 @@ const MenuItems = () => {
       hasToppings: item.hasToppings,
       availableToppingCategories: item.availableToppingCategories || [],
     });
+    setImagePreview(item.image || null);
+    setImageFile(null);
     setIsDialogOpen(true);
   };
 
@@ -207,18 +216,48 @@ const MenuItems = () => {
       hasToppings: false,
       availableToppingCategories: [],
     });
+    setImagePreview(null);
+    setImageFile(null);
     setIsDialogOpen(true);
   };
 
   const handleDeleteItem = async (id: number) => {
     try {
-      const { error } = await supabase
+      // First, get the item to check if it has an image
+      const { data: item, error: fetchError } = await supabase
+        .from('menu_items')
+        .select('image')
+        .eq('id', id)
+        .single();
+        
+      if (fetchError) {
+        throw fetchError;
+      }
+      
+      // If the item has an image, delete it from storage
+      if (item.image) {
+        const imagePath = item.image.split('/').pop();
+        if (imagePath) {
+          const { error: deleteImageError } = await supabase
+            .storage
+            .from('menu-images')
+            .remove([imagePath]);
+            
+          if (deleteImageError) {
+            console.error('Error deleting image:', deleteImageError);
+            // Continue with deletion even if image removal fails
+          }
+        }
+      }
+      
+      // Delete the menu item
+      const { error: deleteError } = await supabase
         .from('menu_items')
         .delete()
         .eq('id', id);
         
-      if (error) {
-        throw error;
+      if (deleteError) {
+        throw deleteError;
       }
       
       toast({
@@ -236,8 +275,141 @@ const MenuItems = () => {
     }
   };
 
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    
+    // Validate file type
+    const validTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+    if (!validTypes.includes(file.type)) {
+      toast({
+        title: 'Invalid file type',
+        description: 'Please upload a JPEG, PNG, GIF, or WebP image.',
+        variant: 'destructive',
+      });
+      return;
+    }
+    
+    // Validate file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      toast({
+        title: 'File too large',
+        description: 'Please upload an image smaller than 5MB.',
+        variant: 'destructive',
+      });
+      return;
+    }
+    
+    setImageFile(file);
+    
+    // Create a preview
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setImagePreview(reader.result as string);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const uploadImage = async (file: File): Promise<string | null> => {
+    try {
+      setIsUploading(true);
+      
+      // Create a unique filename
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${Date.now()}-${Math.random().toString(36).substring(2, 15)}.${fileExt}`;
+      
+      // Upload the file
+      const { data, error } = await supabase.storage
+        .from('menu-images')
+        .upload(fileName, file, {
+          cacheControl: '3600',
+          upsert: false
+        });
+        
+      if (error) {
+        throw error;
+      }
+      
+      // Get the public URL
+      const { data: { publicUrl } } = supabase.storage
+        .from('menu-images')
+        .getPublicUrl(data.path);
+        
+      return publicUrl;
+    } catch (error) {
+      console.error('Error uploading image:', error);
+      toast({
+        title: 'Upload failed',
+        description: 'Failed to upload image. Please try again.',
+        variant: 'destructive',
+      });
+      return null;
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  const handleRemoveImage = async () => {
+    // If we're editing and there's an existing image
+    if (editItem?.image && !imageFile) {
+      try {
+        // Extract the filename from the URL
+        const imagePath = editItem.image.split('/').pop();
+        if (imagePath) {
+          // Delete from storage
+          const { error } = await supabase
+            .storage
+            .from('menu-images')
+            .remove([imagePath]);
+            
+          if (error) {
+            throw error;
+          }
+          
+          // Update the menu item to remove the image reference
+          const { error: updateError } = await supabase
+            .from('menu_items')
+            .update({ image: null })
+            .eq('id', editItem.id);
+            
+          if (updateError) {
+            throw updateError;
+          }
+          
+          toast({
+            title: 'Success',
+            description: 'Image removed successfully.',
+          });
+          
+          // Update the local state
+          setImagePreview(null);
+          if (fileInputRef.current) {
+            fileInputRef.current.value = '';
+          }
+        }
+      } catch (error) {
+        console.error('Error removing image:', error);
+        toast({
+          title: 'Error',
+          description: 'Failed to remove image. Please try again.',
+          variant: 'destructive',
+        });
+      }
+    } else {
+      // Just clear the local state for new uploads
+      setImageFile(null);
+      setImagePreview(null);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    }
+  };
+
   const onSubmit = async (data: MenuItemFormValues) => {
     try {
+      setIsUploading(true);
+      console.log("Starting form submission");
+      
       const priceValue = parseFloat(data.price.replace('$', ''));
       
       if (isNaN(priceValue)) {
@@ -249,13 +421,29 @@ const MenuItems = () => {
         return;
       }
       
+      // Handle image upload if there's a new file
+      let imageUrl = editItem?.image || null;
+      if (imageFile) {
+        console.log("Uploading new image");
+        imageUrl = await uploadImage(imageFile);
+        if (!imageUrl) {
+          // If image upload failed, you might want to stop here or continue without the image
+          console.error("Image upload failed, continuing without updating the image");
+        }
+      } else if (imagePreview === null && editItem?.image) {
+        // If image preview is null but there was an existing image, it means user removed it
+        console.log("User removed the image");
+        imageUrl = null;
+      }
+      
       const menuItemData = {
         name: data.name,
         category: data.category,
         price: priceValue,
         status: data.status,
         has_toppings: data.hasToppings,
-        available_topping_categories: data.hasToppings ? data.availableToppingCategories : []
+        available_topping_categories: data.hasToppings ? data.availableToppingCategories : [],
+        image: imageUrl
       };
       
       console.log("Saving menu item data:", menuItemData);
@@ -300,6 +488,8 @@ const MenuItems = () => {
         description: 'Failed to save menu item. Please try again.',
         variant: 'destructive',
       });
+    } finally {
+      setIsUploading(false);
     }
   };
   
@@ -336,6 +526,7 @@ const MenuItems = () => {
               <TableHeader className="sticky top-0 bg-white z-10">
                 <TableRow>
                   <TableHead>ID</TableHead>
+                  <TableHead>Image</TableHead>
                   <TableHead>Name</TableHead>
                   <TableHead>Category</TableHead>
                   <TableHead>Price</TableHead>
@@ -347,7 +538,7 @@ const MenuItems = () => {
               <TableBody>
                 {isLoading ? (
                   <TableRow>
-                    <TableCell colSpan={7} className="text-center py-8">
+                    <TableCell colSpan={8} className="text-center py-8">
                       <div className="flex justify-center">
                         <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary"></div>
                       </div>
@@ -357,6 +548,21 @@ const MenuItems = () => {
                   filteredMenuItems.map((item) => (
                     <TableRow key={item.id}>
                       <TableCell className="font-medium">#{item.id}</TableCell>
+                      <TableCell>
+                        {item.image ? (
+                          <div className="h-10 w-10 rounded overflow-hidden">
+                            <img 
+                              src={item.image} 
+                              alt={item.name} 
+                              className="h-full w-full object-cover"
+                            />
+                          </div>
+                        ) : (
+                          <div className="h-10 w-10 rounded bg-gray-100 flex items-center justify-center">
+                            <Image className="h-5 w-5 text-gray-400" />
+                          </div>
+                        )}
+                      </TableCell>
                       <TableCell>{item.name}</TableCell>
                       <TableCell>{item.category}</TableCell>
                       <TableCell>{item.price}</TableCell>
@@ -391,7 +597,7 @@ const MenuItems = () => {
                   ))
                 ) : (
                   <TableRow>
-                    <TableCell colSpan={7} className="text-center py-8">
+                    <TableCell colSpan={8} className="text-center py-8">
                       No menu items found
                     </TableCell>
                   </TableRow>
@@ -415,6 +621,65 @@ const MenuItems = () => {
             <div className="p-1">
               <Form {...form}>
                 <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                  <div className="space-y-4 mb-6">
+                    <h3 className="font-medium">Item Image</h3>
+                    
+                    <div className="flex items-start space-x-4">
+                      <div className="flex-shrink-0">
+                        {imagePreview ? (
+                          <div className="relative h-28 w-28 rounded-md overflow-hidden border">
+                            <img 
+                              src={imagePreview} 
+                              alt="Preview" 
+                              className="h-full w-full object-cover"
+                            />
+                            <button 
+                              type="button"
+                              onClick={handleRemoveImage}
+                              className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 hover:bg-red-600"
+                            >
+                              <X className="h-4 w-4" />
+                            </button>
+                          </div>
+                        ) : (
+                          <div className="h-28 w-28 border-2 border-dashed border-gray-300 rounded-md flex flex-col items-center justify-center bg-gray-50">
+                            <Image className="h-8 w-8 text-gray-400 mb-1" />
+                            <span className="text-xs text-gray-500">No image</span>
+                          </div>
+                        )}
+                      </div>
+                      
+                      <div className="flex-1 space-y-2">
+                        <p className="text-sm text-gray-500">
+                          Upload an image for this menu item. JPEG, PNG, GIF, or WebP files only. Max size 5MB.
+                        </p>
+                        <div className="flex flex-col space-y-2">
+                          <label htmlFor="image-upload" className="sr-only">Choose file</label>
+                          <input
+                            id="image-upload"
+                            name="image"
+                            type="file"
+                            accept="image/jpeg, image/png, image/gif, image/webp"
+                            onChange={handleImageChange}
+                            ref={fileInputRef}
+                            className="block w-full text-sm text-gray-500
+                                     file:mr-4 file:py-2 file:px-4
+                                     file:rounded-md file:border-0
+                                     file:text-sm file:font-medium
+                                     file:bg-primary file:text-white
+                                     hover:file:bg-primary/90
+                                     file:cursor-pointer"
+                          />
+                          {imagePreview && !imageFile && (
+                            <p className="text-xs text-gray-500">
+                              * The existing image will be kept unless you upload a new one or remove it.
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  
                   <FormField
                     control={form.control}
                     name="name"
@@ -588,9 +853,19 @@ const MenuItems = () => {
                   
                   <DialogFooter>
                     <DialogClose asChild>
-                      <Button variant="outline">Cancel</Button>
+                      <Button variant="outline" type="button">Cancel</Button>
                     </DialogClose>
-                    <Button type="submit">{editItem ? 'Update' : 'Add'} Menu Item</Button>
+                    <Button 
+                      type="submit"
+                      disabled={isUploading}
+                    >
+                      {isUploading && (
+                        <span className="mr-2">
+                          <span className="animate-spin inline-block h-4 w-4 border-2 border-current border-t-transparent rounded-full" aria-hidden="true"></span>
+                        </span>
+                      )}
+                      {editItem ? 'Update' : 'Add'} Menu Item
+                    </Button>
                   </DialogFooter>
                 </form>
               </Form>
