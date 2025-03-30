@@ -1,27 +1,26 @@
 
 // Cache version - increment this when deploying new versions
-const CACHE_NAME = 'restaurant-app-v3';
+const CACHE_NAME = 'restaurant-app-v4';
 
-// Assets to cache on install
+// Assets to cache on install - minimal critical assets only
 const CACHE_ASSETS = [
-  '/',
-  '/index.html',
   '/favicon.ico',
   '/notification.mp3',
   '/placeholder.svg'
 ];
 
-// Install event - cache core assets
+// Install event - cache minimal assets
 self.addEventListener('install', (event) => {
-  console.log('[ServiceWorker] Install');
+  console.log('[ServiceWorker] Install - caching disabled');
   
   // Skip waiting to activate immediately
   self.skipWaiting();
   
+  // Only cache minimal assets
   event.waitUntil(
     caches.open(CACHE_NAME)
       .then((cache) => {
-        console.log('[ServiceWorker] Caching app shell');
+        console.log('[ServiceWorker] Caching minimal assets');
         return cache.addAll(CACHE_ASSETS);
       })
       .catch(err => console.error('[ServiceWorker] Cache install error:', err))
@@ -30,9 +29,9 @@ self.addEventListener('install', (event) => {
 
 // Activate event - clean up old caches
 self.addEventListener('activate', (event) => {
-  console.log('[ServiceWorker] Activate');
+  console.log('[ServiceWorker] Activate - removing old caches');
   
-  // Clear old versions of caches immediately
+  // Clear all old versions of caches immediately
   event.waitUntil(
     caches.keys().then((keyList) => {
       return Promise.all(keyList.map((key) => {
@@ -76,71 +75,47 @@ self.addEventListener('message', (event) => {
   }
 });
 
-// Fetch event - serve from cache, fall back to network, with network-first strategy for HTML
+// Fetch event - use network-first strategy for ALL requests to prevent caching
 self.addEventListener('fetch', (event) => {
-  // Skip for API requests, supabase calls, etc.
-  if (event.request.url.includes('/rest/v1/') || 
-      event.request.url.includes('/auth/') ||
-      event.request.method !== 'GET') {
+  // Skip for non-GET requests
+  if (event.request.method !== 'GET') {
     return;
   }
   
-  // For HTML pages, use network-first strategy to ensure fresh content
-  if (event.request.headers.get('accept').includes('text/html')) {
-    event.respondWith(
-      fetch(event.request)
-        .then(response => {
-          // Clone the response to store in cache
-          const responseToCache = response.clone();
-          caches.open(CACHE_NAME).then(cache => {
-            cache.put(event.request, responseToCache);
-          });
-          return response;
-        })
-        .catch(() => {
-          // If network fails, try to serve from cache
-          return caches.match(event.request).then(cachedResponse => {
-            return cachedResponse || caches.match('/');
-          });
-        })
-    );
-    return;
-  }
-  
-  // For other assets, try cache first, then network
+  // Use network-first strategy for all requests
   event.respondWith(
-    caches.match(event.request)
-      .then((response) => {
-        // Return cached response if found
-        if (response) {
-          return response;
-        }
-        
-        // Otherwise, fetch from network
-        return fetch(event.request)
-          .then((networkResponse) => {
-            // Don't cache responses that aren't successful
-            if (!networkResponse || networkResponse.status !== 200 || networkResponse.type !== 'basic') {
-              return networkResponse;
-            }
-            
-            // For successful responses, clone and cache
-            const responseToCache = networkResponse.clone();
-            
-            caches.open(CACHE_NAME)
-              .then((cache) => {
-                cache.put(event.request, responseToCache);
-              });
-              
-            return networkResponse;
-          })
-          .catch(err => {
-            console.error('[ServiceWorker] Fetch failed:', err);
-            // Offline fallback if available
-            if (event.request.headers.get('accept').includes('text/html')) {
-              return caches.match('/');
-            }
+    fetch(event.request, {
+      // Add cache-busting headers
+      headers: {
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0'
+      },
+      // Don't use any cached version
+      cache: 'no-store'
+    })
+    .then(response => {
+      return response;
+    })
+    .catch(() => {
+      // If network fails, try to serve from cache as fallback
+      return caches.match(event.request)
+        .then(cachedResponse => {
+          if (cachedResponse) {
+            console.log('[ServiceWorker] Serving from cache as fallback:', event.request.url);
+            return cachedResponse;
+          }
+          
+          // For HTML, try to serve the index as fallback
+          if (event.request.headers.get('accept').includes('text/html')) {
+            return caches.match('/');
+          }
+          
+          return new Response('Network error occurred', {
+            status: 408,
+            headers: { 'Content-Type': 'text/plain' }
           });
-      })
+        });
+    })
   );
 });

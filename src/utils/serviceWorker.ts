@@ -3,8 +3,8 @@
  * Service worker registration and cache management
  */
 
-// Check for service worker updates every 30 minutes (in milliseconds)
-const UPDATE_CHECK_INTERVAL = 30 * 60 * 1000;
+// Check for service worker updates frequently (in milliseconds)
+const UPDATE_CHECK_INTERVAL = 5 * 60 * 1000; // 5 minutes
 
 export const registerServiceWorker = async (): Promise<void> => {
   // Only register if service workers are supported
@@ -14,14 +14,12 @@ export const registerServiceWorker = async (): Promise<void> => {
       const registration = await navigator.serviceWorker.register('/sw.js');
       console.log('ServiceWorker registration successful with scope:', registration.scope);
       
-      // Set up periodic update checks in production
-      if (process.env.NODE_ENV === 'production') {
-        setInterval(() => {
-          registration.update().catch(error => {
-            console.error('Error checking for ServiceWorker updates:', error);
-          });
-        }, UPDATE_CHECK_INTERVAL);
-      }
+      // Set up frequent update checks
+      setInterval(() => {
+        registration.update().catch(error => {
+          console.error('Error checking for ServiceWorker updates:', error);
+        });
+      }, UPDATE_CHECK_INTERVAL);
       
       // Set up update found handler
       registration.addEventListener('updatefound', () => {
@@ -29,7 +27,7 @@ export const registerServiceWorker = async (): Promise<void> => {
         if (newWorker) {
           newWorker.addEventListener('statechange', () => {
             if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-              // New content is available, notify user or auto-refresh
+              // New content is available, immediately refresh
               console.log('New content is available, refreshing...');
               window.location.reload();
             }
@@ -55,6 +53,9 @@ export const unregisterServiceWorker = async (): Promise<void> => {
       const registration = await navigator.serviceWorker.ready;
       await registration.unregister();
       console.log('ServiceWorker unregistered successfully');
+      
+      // Force reload to ensure clean state
+      window.location.reload();
     } catch (error) {
       console.error('Error unregistering ServiceWorker:', error);
     }
@@ -77,6 +78,9 @@ export const checkForUpdates = async (): Promise<boolean> => {
       // Trigger update check
       await registration.update();
       console.log('Checked for service worker updates');
+      
+      // Force reload to ensure latest version
+      window.location.reload();
       return true;
     } catch (error) {
       console.error('Failed to check for updates:', error);
@@ -118,7 +122,7 @@ export const clearAppCache = async (): Promise<boolean> => {
       // Create a no-op fetch with cache-busting headers to update browser's notion of the resource
       fetch(window.location.href, {
         method: 'GET',
-        cache: 'no-cache',
+        cache: 'no-store',
         headers: {
           'Cache-Control': 'no-cache, no-store, must-revalidate',
           'Pragma': 'no-cache',
@@ -129,7 +133,11 @@ export const clearAppCache = async (): Promise<boolean> => {
     
     // 4. Force reload the page with cache bypass
     setTimeout(() => {
-      window.location.reload();
+      // Add cache busting parameter
+      const cacheBust = Date.now();
+      const url = new URL(window.location.href);
+      url.searchParams.set('cache_bust', cacheBust.toString());
+      window.location.href = url.toString();
     }, 300);
     
     return success;
