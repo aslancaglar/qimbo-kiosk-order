@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Button from '../common/Button';
@@ -313,94 +314,103 @@ const ProductCard: React.FC<ProductCardProps> = ({
       </div>
       
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="sm:max-w-[80%] w-[95%] max-h-[90vh]">
-          <DialogHeader>
-            <DialogTitle>Customize Your {product.name}</DialogTitle>
-          </DialogHeader>
-          
-          {isLoading ? (
-            <div className="flex justify-center p-8">
-              <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary"></div>
-            </div>
-          ) : (
-            <Form {...form}>
-              <form onSubmit={form.handleSubmit(handleToppingSubmit)} className="space-y-6 p-1">
-                {toppingCategories.map(category => (
-                  <div key={category.id} className="space-y-3">
-                    <div className="flex justify-between items-start">
-                      <div>
-                        <h3 className="font-medium">{category.name}</h3>
-                        <p className="text-sm text-gray-500">
-                          {category.required ? 'Required' : 'Optional'} · 
-                          Select {category.minSelection > 0 ? `${category.minSelection}-` : ''}
-                          {category.maxSelection} item{category.maxSelection !== 1 ? 's' : ''}
-                        </p>
-                      </div>
-                      
-                      {!isCategoryValid(category.id) && (
-                        <span className="text-xs text-red-500 bg-red-50 px-2 py-1 rounded">
-                          Required
-                        </span>
-                      )}
-                    </div>
-                    
-                    <div className="grid grid-cols-2 gap-2">
-                      {category.toppings.map(topping => {
-                        const toppingInForm = form.watch('selectedToppings').find(t => t.id === topping.id);
-                        const quantity = toppingInForm ? toppingInForm.quantity : 0;
-                        
-                        return (
-                          <div key={topping.id} className="flex justify-between items-center py-2 px-3 border rounded-md">
+        <DialogContent 
+          className="sm:max-w-[80%] w-[95%] max-h-[90vh] p-0 overflow-hidden flex flex-col"
+          enableScrollArea={false}
+        >
+          <div className="flex flex-col h-full">
+            <DialogHeader className="p-6 border-b">
+              <DialogTitle>Customize Your {product.name}</DialogTitle>
+            </DialogHeader>
+            
+            {isLoading ? (
+              <div className="flex justify-center p-8 flex-1">
+                <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary"></div>
+              </div>
+            ) : (
+              <Form {...form}>
+                <form onSubmit={form.handleSubmit(handleToppingSubmit)} className="flex flex-col h-full">
+                  <ScrollArea className="flex-1 max-h-[calc(80vh-160px)] overflow-auto px-6">
+                    <div className="py-6 space-y-6">
+                      {toppingCategories.map(category => (
+                        <div key={category.id} className="space-y-3">
+                          <div className="flex justify-between items-start">
                             <div>
-                              <p className="font-medium text-sm">{topping.name}</p>
-                              {topping.price > 0 && <p className="text-xs text-gray-500">{topping.price.toFixed(2)} €</p>}
+                              <h3 className="font-medium">{category.name}</h3>
+                              <p className="text-sm text-gray-500">
+                                {category.required ? 'Required' : 'Optional'} · 
+                                Select {category.minSelection > 0 ? `${category.minSelection}-` : ''}
+                                {category.maxSelection} item{category.maxSelection !== 1 ? 's' : ''}
+                              </p>
                             </div>
                             
-                            {quantity === 0 ? (
-                              <button 
-                                type="button" 
-                                onClick={() => handleIncrementTopping(topping.id)}
-                                className="flex items-center justify-center p-1 rounded-full bg-primary text-white hover:bg-primary/90 transition-colors"
-                              >
-                                <Plus className="h-5 w-5" />
-                              </button>
-                            ) : (
-                              <div className="flex items-center gap-2">
-                                <button 
-                                  type="button" 
-                                  onClick={() => handleDecrementTopping(topping.id)}
-                                  className="w-7 h-7 flex items-center justify-center rounded-full bg-gray-100 hover:bg-gray-200 transition-colors"
-                                >
-                                  <Minus className="h-3 w-3" />
-                                </button>
-                                <span className="w-5 text-center font-medium">{quantity}</span>
-                                <button 
-                                  type="button" 
-                                  onClick={() => handleIncrementTopping(topping.id)}
-                                  disabled={quantity >= (topping.maxQuantity || 1)}
-                                  className="w-7 h-7 flex items-center justify-center rounded-full bg-primary text-white hover:bg-primary/90 disabled:opacity-50 disabled:hover:bg-primary transition-colors"
-                                >
-                                  <Plus className="h-3 w-3" />
-                                </button>
-                              </div>
+                            {!isCategoryValid(category.id) && (
+                              <span className="text-xs text-red-500 bg-red-50 px-2 py-1 rounded">
+                                Required
+                              </span>
                             )}
                           </div>
-                        );
-                      })}
+                          
+                          <div className="grid grid-cols-2 gap-2">
+                            {category.toppings.map(topping => {
+                              const toppingInForm = form.watch('selectedToppings').find(t => t.id === topping.id);
+                              const quantity = toppingInForm ? toppingInForm.quantity : 0;
+                              
+                              return (
+                                <div key={topping.id} className="flex justify-between items-center py-2 px-3 border rounded-md">
+                                  <div>
+                                    <p className="font-medium text-sm">{topping.name}</p>
+                                    {topping.price > 0 && <p className="text-xs text-gray-500">{topping.price.toFixed(2)} €</p>}
+                                  </div>
+                                  
+                                  {quantity === 0 ? (
+                                    <button 
+                                      type="button" 
+                                      onClick={() => handleIncrementTopping(topping.id)}
+                                      className="flex items-center justify-center p-1 rounded-full bg-primary text-white hover:bg-primary/90 transition-colors"
+                                    >
+                                      <Plus className="h-5 w-5" />
+                                    </button>
+                                  ) : (
+                                    <div className="flex items-center gap-2">
+                                      <button 
+                                        type="button" 
+                                        onClick={() => handleDecrementTopping(topping.id)}
+                                        className="w-7 h-7 flex items-center justify-center rounded-full bg-gray-100 hover:bg-gray-200 transition-colors"
+                                      >
+                                        <Minus className="h-3 w-3" />
+                                      </button>
+                                      <span className="w-5 text-center font-medium">{quantity}</span>
+                                      <button 
+                                        type="button" 
+                                        onClick={() => handleIncrementTopping(topping.id)}
+                                        disabled={quantity >= (topping.maxQuantity || 1)}
+                                        className="w-7 h-7 flex items-center justify-center rounded-full bg-primary text-white hover:bg-primary/90 disabled:opacity-50 disabled:hover:bg-primary transition-colors"
+                                      >
+                                        <Plus className="h-3 w-3" />
+                                      </button>
+                                    </div>
+                                  )}
+                                </div>
+                              );
+                            })}
+                          </div>
+                          
+                          <Separator />
+                        </div>
+                      ))}
                     </div>
-                    
-                    <Separator />
-                  </div>
-                ))}
-                
-                <DialogFooter>
-                  <Button type="submit" size="full" className="bg-green-800 hover:bg-green-700">
-                    Ajouter au panier
-                  </Button>
-                </DialogFooter>
-              </form>
-            </Form>
-          )}
+                  </ScrollArea>
+                  
+                  <DialogFooter className="p-6 border-t mt-auto">
+                    <Button type="submit" size="full" className="bg-green-800 hover:bg-green-700">
+                      Ajouter au panier
+                    </Button>
+                  </DialogFooter>
+                </form>
+              </Form>
+            )}
+          </div>
         </DialogContent>
       </Dialog>
     </motion.div>
