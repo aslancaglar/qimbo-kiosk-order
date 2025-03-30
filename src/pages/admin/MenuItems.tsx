@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import AdminLayout from '../../components/admin/AdminLayout';
 import { Input } from "@/components/ui/input";
@@ -32,10 +31,11 @@ import {
 } from "@/components/ui/form";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Separator } from "@/components/ui/separator";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
-import { supabase, initializeStorage } from "@/integrations/supabase/client";
+import { supabase, initializeStorage, uploadImage } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
 interface MenuItem {
@@ -302,70 +302,6 @@ const MenuItems = () => {
     reader.readAsDataURL(file);
   };
 
-  const uploadImage = async (file: File): Promise<string | null> => {
-    try {
-      setIsUploading(true);
-      
-      const { data: buckets, error: bucketsError } = await supabase
-        .storage
-        .listBuckets();
-        
-      if (bucketsError) {
-        console.error('Error checking buckets:', bucketsError);
-        throw new Error('Unable to check storage buckets');
-      }
-      
-      const bucketExists = buckets.some(bucket => bucket.name === 'menu-images');
-      
-      if (!bucketExists) {
-        console.error('The menu-images bucket does not exist in Supabase storage');
-        toast({
-          title: 'Storage Error',
-          description: 'Image upload is not available. Please contact your administrator to set up storage.',
-          variant: 'destructive',
-        });
-        return null;
-      }
-      
-      const fileExt = file.name.split('.').pop();
-      const fileName = `${Date.now()}-${Math.random().toString(36).substring(2, 15)}.${fileExt}`;
-      
-      console.log(`Uploading file ${fileName} to menu-images bucket...`);
-      
-      const { data, error } = await supabase.storage
-        .from('menu-images')
-        .upload(fileName, file, {
-          cacheControl: '3600',
-          upsert: false
-        });
-        
-      if (error) {
-        console.error('Upload error:', error);
-        throw error;
-      }
-      
-      console.log('File uploaded successfully:', data);
-      
-      const { data: { publicUrl } } = supabase.storage
-        .from('menu-images')
-        .getPublicUrl(data.path);
-        
-      console.log('Public URL:', publicUrl);
-      
-      return publicUrl;
-    } catch (error) {
-      console.error('Error uploading image:', error);
-      toast({
-        title: 'Upload failed',
-        description: 'Failed to upload image. The storage bucket may not be properly configured in Supabase.',
-        variant: 'destructive',
-      });
-      return null;
-    } finally {
-      setIsUploading(false);
-    }
-  };
-
   const handleRemoveImage = async () => {
     if (editItem?.image && !imageFile) {
       try {
@@ -449,17 +385,18 @@ const MenuItems = () => {
         if (!storageAvailable) {
           toast({
             title: 'Storage Not Available',
-            description: 'Menu image storage is not available. The item will be saved without an image.',
+            description: 'Menu image storage is not available. Please check Supabase configuration.',
             variant: 'destructive',
           });
         } else {
           imageUrl = await uploadImage(imageFile);
           if (!imageUrl && imageFile) {
             toast({
-              title: 'Warning',
-              description: 'Image upload failed. Would you like to continue saving the menu item without an image?',
+              title: 'Image Upload Failed',
+              description: 'Could not upload image. Please try again or contact your administrator.',
               variant: 'destructive',
             });
+            return; // Prevent saving if image upload failed
           }
         }
       } else if (imagePreview === null && editItem?.image) {
