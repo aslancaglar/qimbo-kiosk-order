@@ -186,7 +186,7 @@ const CartSummary: React.FC<CartSummaryProps> = ({
             icon={<ArrowRight className="h-4 w-4" />}
             iconPosition="right"
           >
-            See My Order
+            Voir Ma Commande
           </Button>
         </div>
       </div>
