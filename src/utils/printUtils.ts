@@ -1,7 +1,5 @@
 
 import { CartItemType } from "../components/cart/types";
-import { sendPrintJob } from "./printBiz";
-import { toast } from "sonner";
 
 // Format order for printing
 export const formatOrderReceipt = (
@@ -128,61 +126,7 @@ export const formatOrderReceipt = (
   `;
 };
 
-// Print order using PrintNode integration
-export const printOrder = async (
-  orderNumber: string | number,
-  items: CartItemType[],
-  orderType: string,
-  tableNumber: string | number | undefined,
-  subtotal: number,
-  tax: number,
-  total: number
-): Promise<boolean> => {
-  try {
-    const htmlContent = formatOrderReceipt(
-      orderNumber,
-      items,
-      orderType,
-      tableNumber,
-      subtotal,
-      tax,
-      total
-    );
-    
-    const result = await sendPrintJob({
-      printer_id: localStorage.getItem('defaultPrinterId') || '',
-      content: htmlContent,
-      type: 'receipt',
-      copies: 1,
-      metadata: {
-        orderNumber,
-        orderType,
-        tableNumber,
-        total
-      }
-    });
-    
-    if (!result) {
-      toast.error("Failed to print receipt", {
-        description: "Please check printer configuration and try again"
-      });
-      return false;
-    }
-    
-    toast.success("Receipt printed successfully", {
-      description: `Order #${orderNumber} sent to printer`
-    });
-    return true;
-  } catch (error) {
-    console.error('Error printing order:', error);
-    toast.error("Error printing receipt", {
-      description: "An unexpected error occurred"
-    });
-    return false;
-  }
-};
-
-// Legacy function kept for compatibility
+// Print order using browser's print functionality
 export const printOrderBrowser = (
   orderNumber: string | number,
   items: CartItemType[],
@@ -192,6 +136,52 @@ export const printOrderBrowser = (
   tax: number,
   total: number
 ): void => {
-  console.warn("Browser printing is disabled. Using PrintNode integration instead.");
-  printOrder(orderNumber, items, orderType, tableNumber, subtotal, tax, total);
+  try {
+    const iframe = document.createElement('iframe');
+    iframe.style.display = 'none';
+    document.body.appendChild(iframe);
+    
+    if (!iframe.contentDocument) {
+      console.error("Could not access iframe document");
+      return;
+    }
+    
+    iframe.contentDocument.write(formatOrderReceipt(
+      orderNumber,
+      items,
+      orderType,
+      tableNumber,
+      subtotal,
+      tax,
+      total
+    ));
+    
+    iframe.contentDocument.close();
+    
+    // Print using browser
+    setTimeout(() => {
+      iframe.contentWindow?.print();
+      
+      // Remove the iframe after printing
+      setTimeout(() => {
+        iframe.remove();
+      }, 2000);
+    }, 500);
+  } catch (error) {
+    console.error('Error printing order:', error);
+  }
+};
+
+// Print order - this is now just a wrapper around browser printing 
+// since PrintBiz integration is removed
+export const printOrder = (
+  orderNumber: string | number,
+  items: CartItemType[],
+  orderType: string,
+  tableNumber: string | number | undefined,
+  subtotal: number,
+  tax: number,
+  total: number
+): void => {
+  printOrderBrowser(orderNumber, items, orderType, tableNumber, subtotal, tax, total);
 };
