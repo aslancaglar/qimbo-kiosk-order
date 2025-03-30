@@ -19,82 +19,76 @@ export const formatOrderReceipt = (
         <title>Order #${orderNumber}</title>
         <style>
           body {
-            font-family: 'Courier New', monospace;
-            padding: 0;
-            margin: 0;
-            width: 72mm; /* Accounting for margins */
-            font-size: 9pt;
-            line-height: 1.2;
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            max-width: 400px;
+            margin: 0 auto;
           }
-          h1 {
-            text-align: left;
-            font-size: 12pt;
-            margin: 1mm 0;
-          }
-          h2 {
-            text-align: left;
-            font-size: 10pt;
-            margin: 1mm 0;
+          h1, h2 {
+            text-align: center;
           }
           .order-details {
-            margin-bottom: 2mm;
-          }
-          .order-details p {
-            margin: 0;
+            margin-bottom: 20px;
           }
           .order-item {
             display: flex;
             justify-content: space-between;
-            margin-bottom: 1mm;
+            margin-bottom: 8px;
           }
           .topping-item {
             display: flex;
             justify-content: space-between;
-            margin-left: 3mm;
-            font-size: 8pt;
+            margin-left: 20px;
+            font-size: 0.9em;
+            color: #666;
           }
           .divider {
-            text-align: left;
-            margin: 1mm 0;
-            font-weight: normal;
+            border-top: 1px dashed #ccc;
+            margin: 15px 0;
           }
           .totals {
-            margin-top: 2mm;
+            margin-top: 20px;
           }
           .total-row {
             display: flex;
             justify-content: space-between;
-            margin-bottom: 1mm;
+            margin-bottom: 5px;
           }
           .final-total {
             font-weight: bold;
-            font-size: 10pt;
-            margin-top: 1mm;
-            border-top: 0.5pt solid black;
-            padding-top: 1mm;
+            font-size: 1.2em;
+            margin-top: 10px;
+            border-top: 1px solid black;
+            padding-top: 10px;
           }
           .footer {
-            margin-top: 3mm;
-            text-align: left;
-            font-size: 8pt;
+            margin-top: 30px;
+            text-align: center;
+            font-size: 0.9em;
+            color: #666;
           }
         </style>
       </head>
       <body>
         <h1>Order Receipt</h1>
         <div class="order-details">
-          <p>Order #: ${orderNumber}</p>
-          <p>Date: ${orderDate}</p>
-          <p>Type: ${orderType === 'eat-in' ? 'Eat In' : 'Takeaway'}</p>
-          ${orderType === 'eat-in' && tableNumber ? `<p>Table #: ${tableNumber}</p>` : ''}
+          <p><strong>Order #:</strong> ${orderNumber}</p>
+          <p><strong>Date:</strong> ${orderDate}</p>
+          <p><strong>Order Type:</strong> ${orderType === 'eat-in' ? 'Eat In' : 'Takeaway'}</p>
+          ${orderType === 'eat-in' && tableNumber ? `<p><strong>Table #:</strong> ${tableNumber}</p>` : ''}
         </div>
         
-        <div class="divider">----------------------------</div>
+        <div class="divider"></div>
         
         <h2>Items</h2>
         ${items.map((item) => `
           <div class="order-item">
-            <span>${item.quantity} x ${item.product.name}</span>
+            <div>
+              <span>${item.quantity} x ${item.product.name}</span>
+              ${item.options && item.options.length > 0 ? 
+                `<br><small>${item.options.map((o) => o.value).join(', ')}</small>` : 
+                ''}
+            </div>
             <span>$${(item.product.price * item.quantity).toFixed(2)}</span>
           </div>
           ${item.selectedToppings && item.selectedToppings.length > 0 ? 
@@ -103,10 +97,11 @@ export const formatOrderReceipt = (
                 <span>+ ${topping.name}</span>
                 <span>$${topping.price.toFixed(2)}</span>
               </div>
-            `).join('') : ''}
+            `).join('') : 
+            ''}
         `).join('')}
         
-        <div class="divider">----------------------------</div>
+        <div class="divider"></div>
         
         <div class="totals">
           <div class="total-row">
@@ -131,7 +126,7 @@ export const formatOrderReceipt = (
   `;
 };
 
-// Manual print function for browser (no longer auto-prints)
+// Print order using browser's print functionality
 export const printOrderBrowser = (
   orderNumber: string | number,
   items: CartItemType[],
@@ -163,22 +158,22 @@ export const printOrderBrowser = (
     
     iframe.contentDocument.close();
     
-    // Make iframe available for manual printing, but don't auto-print
+    // Print using browser
     setTimeout(() => {
-      iframe.contentWindow?.focus(); // Focus the iframe
-      // Note: We removed the auto-print functionality
+      iframe.contentWindow?.print();
       
-      // Remove the iframe after a delay
+      // Remove the iframe after printing
       setTimeout(() => {
         iframe.remove();
-      }, 10000);
+      }, 2000);
     }, 500);
   } catch (error) {
-    console.error('Error preparing order for printing:', error);
+    console.error('Error printing order:', error);
   }
 };
 
-// Updated print order function - delegates to PrintNode integration
+// Print order - this is now just a wrapper around browser printing 
+// since PrintBiz integration is removed
 export const printOrder = (
   orderNumber: string | number,
   items: CartItemType[],
@@ -188,42 +183,5 @@ export const printOrder = (
   tax: number,
   total: number
 ): void => {
-  // Import and use PrintNode functionality
-  import('./printNode').then(({ printOrderWithPrintNode }) => {
-    // Try to get PrintNode config from localStorage
-    const configStr = localStorage.getItem('printnode_config');
-    if (configStr) {
-      try {
-        const config = JSON.parse(configStr);
-        if (config.enabled && config.apiKey && config.printerId) {
-          // Use PrintNode for printing
-          printOrderWithPrintNode(
-            orderNumber, 
-            items, 
-            orderType, 
-            tableNumber, 
-            subtotal, 
-            tax, 
-            total,
-            config
-          ).then(success => {
-            if (!success) {
-              console.warn('PrintNode printing failed, fallback to browser print dialog');
-              printOrderBrowser(orderNumber, items, orderType, tableNumber, subtotal, tax, total);
-            }
-          });
-          return;
-        }
-      } catch (e) {
-        console.error('Error parsing PrintNode config', e);
-      }
-    }
-    
-    // Fallback to browser printing dialog (no auto-print)
-    printOrderBrowser(orderNumber, items, orderType, tableNumber, subtotal, tax, total);
-  }).catch(err => {
-    console.error('Error loading PrintNode module:', err);
-    // Fallback to browser printing
-    printOrderBrowser(orderNumber, items, orderType, tableNumber, subtotal, tax, total);
-  });
+  printOrderBrowser(orderNumber, items, orderType, tableNumber, subtotal, tax, total);
 };
