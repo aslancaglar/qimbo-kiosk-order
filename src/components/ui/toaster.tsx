@@ -11,7 +11,6 @@ import {
 import { useEffect, useState } from "react"
 
 export function Toaster() {
-  // Add error handling
   const [mounted, setMounted] = useState(false)
   
   // Only run the hook after mount to ensure we're in a React context
