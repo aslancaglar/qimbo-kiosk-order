@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ShoppingBag, Minus, Plus, Trash, ArrowRight } from 'lucide-react';
@@ -77,6 +76,7 @@ const CartSummary: React.FC<CartSummaryProps> = ({
           </div>
         </div>
         
+        {/* Cart items list */}
         {cartItems.length > 0 && (
           <div className="mb-4 max-h-48 overflow-y-auto">
             <AnimatePresence>
@@ -159,6 +159,7 @@ const CartSummary: React.FC<CartSummaryProps> = ({
           </div>
         )}
         
+        {/* Order summary section */}
         <div className="flex justify-between items-center mb-2">
           <span className="text-gray-600 text-sm">Subtotal:</span>
           <span>${subtotal.toFixed(2)}</span>

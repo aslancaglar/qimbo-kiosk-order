@@ -121,13 +121,23 @@ export const formatOrderReceipt = (
         <div class="footer">
           <p>Thank you for your order!</p>
         </div>
+        <script>
+          window.onload = function() {
+            setTimeout(function() {
+              window.print();
+              setTimeout(function() {
+                document.body.innerHTML = 'Printing complete.';
+              }, 500);
+            }, 500);
+          };
+        </script>
       </body>
     </html>
   `;
 };
 
 // Print order using browser's print functionality
-export const printOrderBrowser = (
+export const printOrder = (
   orderNumber: string | number,
   items: CartItemType[],
   orderType: string,
@@ -170,18 +180,4 @@ export const printOrderBrowser = (
   } catch (error) {
     console.error('Error printing order:', error);
   }
-};
-
-// Print order - this is now just a wrapper around browser printing 
-// since PrintBiz integration is removed
-export const printOrder = (
-  orderNumber: string | number,
-  items: CartItemType[],
-  orderType: string,
-  tableNumber: string | number | undefined,
-  subtotal: number,
-  tax: number,
-  total: number
-): void => {
-  printOrderBrowser(orderNumber, items, orderType, tableNumber, subtotal, tax, total);
 };
