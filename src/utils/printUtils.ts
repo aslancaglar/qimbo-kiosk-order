@@ -19,76 +19,82 @@ export const formatOrderReceipt = (
         <title>Order #${orderNumber}</title>
         <style>
           body {
-            font-family: Arial, sans-serif;
-            padding: 20px;
-            max-width: 400px;
-            margin: 0 auto;
+            font-family: 'Courier New', monospace;
+            padding: 0;
+            margin: 1mm;
+            width: 72mm; /* Accounting for margins */
+            font-size: 9pt;
+            line-height: 1.2;
           }
-          h1, h2 {
+          h1 {
             text-align: center;
+            font-size: 12pt;
+            margin: 2mm 0;
+          }
+          h2 {
+            text-align: center;
+            font-size: 10pt;
+            margin: 2mm 0;
           }
           .order-details {
-            margin-bottom: 20px;
+            margin-bottom: 3mm;
+          }
+          .order-details p {
+            margin: 0.5mm 0;
           }
           .order-item {
             display: flex;
             justify-content: space-between;
-            margin-bottom: 8px;
+            margin-bottom: 1mm;
           }
           .topping-item {
             display: flex;
             justify-content: space-between;
-            margin-left: 20px;
-            font-size: 0.9em;
-            color: #666;
+            margin-left: 5mm;
+            font-size: 8pt;
           }
           .divider {
-            border-top: 1px dashed #ccc;
-            margin: 15px 0;
+            text-align: center;
+            margin: 2mm 0;
+            font-weight: normal;
           }
           .totals {
-            margin-top: 20px;
+            margin-top: 3mm;
           }
           .total-row {
             display: flex;
             justify-content: space-between;
-            margin-bottom: 5px;
+            margin-bottom: 1mm;
           }
           .final-total {
             font-weight: bold;
-            font-size: 1.2em;
-            margin-top: 10px;
-            border-top: 1px solid black;
-            padding-top: 10px;
+            font-size: 10pt;
+            margin-top: 2mm;
+            border-top: 0.5pt solid black;
+            padding-top: 1mm;
           }
           .footer {
-            margin-top: 30px;
+            margin-top: 5mm;
             text-align: center;
-            font-size: 0.9em;
-            color: #666;
+            font-size: 8pt;
           }
         </style>
       </head>
       <body>
         <h1>Order Receipt</h1>
         <div class="order-details">
-          <p><strong>Order #:</strong> ${orderNumber}</p>
-          <p><strong>Date:</strong> ${orderDate}</p>
-          <p><strong>Order Type:</strong> ${orderType === 'eat-in' ? 'Eat In' : 'Takeaway'}</p>
-          ${orderType === 'eat-in' && tableNumber ? `<p><strong>Table #:</strong> ${tableNumber}</p>` : ''}
+          <p>Order #: ${orderNumber}</p>
+          <p>Date: ${orderDate}</p>
+          <p>Type: ${orderType === 'eat-in' ? 'Eat In' : 'Takeaway'}</p>
+          ${orderType === 'eat-in' && tableNumber ? `<p>Table #: ${tableNumber}</p>` : ''}
         </div>
         
-        <div class="divider"></div>
+        <div class="divider">----------------------------</div>
         
         <h2>Items</h2>
         ${items.map((item) => `
           <div class="order-item">
-            <div>
-              <span>${item.quantity} x ${item.product.name}</span>
-              ${item.options && item.options.length > 0 ? 
-                `<br><small>${item.options.map((o) => o.value).join(', ')}</small>` : 
-                ''}
-            </div>
+            <span>${item.quantity} x ${item.product.name}</span>
             <span>$${(item.product.price * item.quantity).toFixed(2)}</span>
           </div>
           ${item.selectedToppings && item.selectedToppings.length > 0 ? 
@@ -97,11 +103,10 @@ export const formatOrderReceipt = (
                 <span>+ ${topping.name}</span>
                 <span>$${topping.price.toFixed(2)}</span>
               </div>
-            `).join('') : 
-            ''}
+            `).join('') : ''}
         `).join('')}
         
-        <div class="divider"></div>
+        <div class="divider">----------------------------</div>
         
         <div class="totals">
           <div class="total-row">
