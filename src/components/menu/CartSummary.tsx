@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ShoppingBag, Minus, Plus, Trash, ArrowRight } from 'lucide-react';
@@ -177,7 +178,7 @@ const CartSummary: React.FC<CartSummaryProps> = ({
             onClick={onCancelOrderClick}
             className="bg-gray-200 hover:bg-gray-300 text-black"
           >
-            Cancel Order
+            Annuler
           </Button>
           <Button
             onClick={handleSeeOrder}
