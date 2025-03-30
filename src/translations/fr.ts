@@ -1,161 +1,104 @@
 
 export const fr = {
-  // Common
   common: {
-    save: "Enregistrer",
     cancel: "Annuler",
     confirm: "Confirmer",
-    delete: "Supprimer",
-    edit: "Modifier",
     close: "Fermer",
+    edit: "Modifier",
+    delete: "Supprimer",
+    save: "Enregistrer",
+    add: "Ajouter",
     back: "Retour",
-    next: "Suivant",
     loading: "Chargement...",
     error: "Erreur",
     success: "Succès",
+    welcome: "Bienvenue",
+    search: "Rechercher",
+    seeAll: "Voir tout",
+    settings: "Paramètres",
+    language: "Langue"
   },
-  
-  // Welcome Page
   welcome: {
-    title: "Bienvenue à",
-    dineIn: "Sur place",
-    takeout: "À emporter",
-    tableNumberTitle: "Numéro de table",
-    tableNumberPlaceholder: "Entrez le numéro de table",
-    continueToMenu: "Continuer vers le menu",
+    title: "Bienvenue",
+    headline: "Comment souhaitez-vous commander ?",
+    eatIn: "Sur place",
+    takeaway: "À emporter",
+    tableNumber: "Numéro de table",
+    selectTable: "Sélectionnez votre table",
+    submit: "Continuer vers le menu",
+    tablePlaceholder: "Sélectionner une table"
   },
-
-  // Menu Page
   menu: {
     title: "Menu",
     categories: {
       all: "Tous",
+      popular: "Populaires",
+      main: "Plats principaux",
+      sides: "Accompagnements",
+      drinks: "Boissons",
+      desserts: "Desserts"
     },
-    addToCart: "Ajouter au panier",
-    viewCart: "Voir le panier",
-    emptyCart: "Votre panier est vide",
-    cancelOrder: "Annuler la commande",
-    proceedToCheckout: "Passer à la caisse",
-    customize: "Personnaliser votre",
-    required: "Obligatoire",
-    optional: "Optionnel",
-    select: "Sélectionner",
-    item: "élément",
-    items: "éléments",
+    addToOrder: "Ajouter à la commande",
+    customize: "Personnaliser",
+    ingredients: "Ingrédients",
+    allergies: "Allergènes",
+    nutritionalInfo: "Infos nutritionnelles",
+    outOfStock: "Indisponible",
+    proceedToCheckout: "Commander"
   },
-  
-  // Cart
   cart: {
-    title: "Votre commande",
+    title: "Panier",
     empty: "Votre panier est vide",
+    subtotal: "Sous-total",
+    tax: "TVA",
     total: "Total",
-    tax: "Taxe",
-    cancelOrder: "Annuler la commande",
-    confirmOrder: "Confirmer la commande",
-    continueOrdering: "Continuer la commande",
-    itemRemoved: "Article retiré du panier",
+    discount: "Réduction",
+    checkout: "Commander",
+    remove: "Supprimer",
     confirmCancelTitle: "Annuler la commande ?",
-    confirmCancelMessage: "Êtes-vous sûr de vouloir annuler votre commande ? Tous les articles de votre panier seront perdus.",
+    confirmCancelMessage: "Êtes-vous sûr de vouloir annuler votre commande ? Tous les articles seront supprimés.",
+    cancelOrder: "Annuler la commande",
+    itemAdded: "Article ajouté au panier",
+    itemRemoved: "Article retiré du panier",
+    orderCancelled: "Commande annulée",
+    continueShopping: "Continuer les achats"
   },
-  
-  // Order
-  order: {
-    confirmation: "Confirmation de commande",
-    thankYou: "Merci pour votre commande !",
-    orderNumber: "Numéro de commande",
-    estimatedTime: "Temps de préparation estimé",
-    minutes: "minutes",
+  orders: {
+    orderSummary: "Résumé de la commande",
+    orderItems: "Articles commandés",
     tableNumber: "Table",
-    orderType: "Type de commande",
-    dineIn: "Sur place",
-    takeout: "À emporter",
-    backToMenu: "Retour au menu",
+    eatIn: "Sur place",
+    takeaway: "À emporter",
+    confirmOrder: "Confirmer la commande",
+    orderConfirmation: "Confirmation de commande",
+    thankYou: "Merci !",
+    orderPlaced: "Votre commande n°{orderNumber} a été passée",
+    printingReceipt: "Impression de votre reçu...",
+    redirectingToHomePage: "Redirection vers la page d'accueil dans quelques secondes...",
+    placeNewOrder: "Passer une nouvelle commande",
+    printReceipt: "Imprimer le reçu",
+    failedToPrintReceipt: "Échec de l'impression du reçu",
+    couldNotProcessOrder: "Impossible de traiter votre commande. Veuillez réessayer."
   },
-  
-  // Admin - General
-  admin: {
-    dashboard: "Tableau de bord",
-    orders: "Commandes",
-    menuItems: "Articles du menu",
-    categories: "Catégories",
-    toppings: "Garnitures",
-    settings: "Paramètres",
-    kitchenDisplay: "Affichage cuisine",
-    exitAdmin: "Quitter l'admin",
-    adminPanel: "Panneau d'administration",
-  },
-  
-  // Admin - Settings
   settings: {
-    general: "Général",
-    ordering: "Commande",
+    title: "Paramètres",
     appearance: "Apparence",
-    notifications: "Notifications",
+    darkMode: "Mode sombre",
     language: "Langue",
-    
-    // Restaurant Info
-    restaurantInfo: "Informations du restaurant",
-    restaurantInfoDesc: "Mettez à jour les informations de base de votre restaurant.",
-    restaurantName: "Nom du restaurant",
-    phoneNumber: "Numéro de téléphone",
-    address: "Adresse",
-    description: "Description",
-    saveChanges: "Enregistrer les modifications",
-    
-    // Business Hours
-    businessHours: "Heures d'ouverture",
-    businessHoursDesc: "Définissez les heures d'ouverture de votre restaurant.",
-    saveHours: "Enregistrer les heures",
-    to: "à",
-    
-    // Ordering Options
-    orderingOptions: "Options de commande",
-    orderingOptionsDesc: "Configurez les options de commande et les paramètres d'expérience client.",
-    requireTableSelection: "Exiger la sélection d'une table pour les commandes sur place",
-    requireTableSelectionDesc: "Lorsque cette option est désactivée, les clients peuvent passer des commandes sur place sans sélectionner de numéro de table.",
-    saveSettings: "Enregistrer les paramètres",
-    
-    // Appearance Settings
-    appearanceSettings: "Paramètres d'apparence",
-    appearanceSettingsDesc: "Personnalisez l'apparence du système de commande de votre restaurant.",
-    comingSoon: "Paramètres d'apparence à venir.",
-    
-    // Notification Settings
-    notificationSettings: "Paramètres de notification",
-    notificationSettingsDesc: "Configurez la façon dont vous recevez les notifications de commande.",
-    notificationsComingSoon: "Paramètres de notification à venir.",
-    
-    // Language Settings
-    languageSettings: "Paramètres de langue",
-    languageSettingsDesc: "Changez la langue d'affichage du système de commande de votre restaurant.",
-    selectLanguage: "Sélectionner la langue",
     english: "Anglais",
     french: "Français",
+    notifications: "Notifications",
+    enableNotifications: "Activer les notifications",
+    account: "Compte",
+    signOut: "Déconnexion",
+    about: "À propos",
+    version: "Version",
+    privacyPolicy: "Politique de confidentialité",
+    termsOfService: "Conditions d'utilisation"
   },
-
-  // Errors
   errors: {
-    failedToLoad: "Échec du chargement",
-    unexpectedError: "Une erreur inattendue est survenue",
-    requiredField: "Ce champ est obligatoire",
-    maximumReached: "Vous ne pouvez sélectionner que",
-    itemsFrom: "éléments de",
-    required: "Obligatoire",
-  },
-  
-  // Toast Messages
-  toast: {
-    errorTitle: "Erreur",
-    successTitle: "Succès",
     failedToLoadRestaurantInfo: "Échec du chargement des informations du restaurant",
-    restaurantInfoUpdated: "Informations du restaurant mises à jour avec succès",
-    failedToUpdateRestaurantInfo: "Échec de la mise à jour des informations du restaurant",
-    businessHoursUpdated: "Heures d'ouverture mises à jour avec succès",
-    failedToUpdateBusinessHours: "Échec de la mise à jour des heures d'ouverture pour",
-    orderingSettingsSaved: "Paramètres de commande enregistrés avec succès",
-    failedToSaveOrderingSettings: "Échec de l'enregistrement des paramètres de commande",
-    languageChanged: "Langue changée avec succès",
-  },
+    noRestaurantInfoFound: "Aucune information de restaurant trouvée",
+    unexpectedError: "Une erreur inattendue s'est produite"
+  }
 };
-
-export default fr;

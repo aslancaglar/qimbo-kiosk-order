@@ -7,13 +7,16 @@ import Button from '../common/Button';
 import { Check, Home, Printer, Plus } from 'lucide-react';
 import { CartItemType } from '../cart/types';
 import { toast } from '@/components/ui/use-toast';
+import { useTranslation } from '@/hooks/use-translation';
+import { printOrder } from '@/utils/printUtils';
 
 interface OrderConfirmationProps {}
 
 const OrderConfirmation: React.FC<OrderConfirmationProps> = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  const { items, orderType, tableNumber, subtotal, tax, total, orderId } = location.state || {};
+  const { t, language } = useTranslation();
+  const { items, orderType, tableNumber, subtotal, tax, total, orderId, orderNumber } = location.state || {};
   
   const [printed, setPrinted] = useState(false);
   const [redirecting, setRedirecting] = useState(false);
@@ -41,7 +44,7 @@ const OrderConfirmation: React.FC<OrderConfirmationProps> = () => {
     if (items && items.length > 0 && !printed) {
       // Delay printing by a small amount to ensure component is fully rendered
       const timer = setTimeout(() => {
-        printOrder();
+        handlePrintOrder();
         setPrinted(true);
       }, 1000);
       
@@ -49,156 +52,30 @@ const OrderConfirmation: React.FC<OrderConfirmationProps> = () => {
     }
   }, [items, printed]);
   
-  // Use the order ID as the order number
-  const orderNumber = orderId;
+  const formatCurrency = (amount: number): string => {
+    return new Intl.NumberFormat(language === 'fr' ? 'fr-FR' : 'en-US', {
+      style: 'currency',
+      currency: language === 'fr' ? 'EUR' : 'USD',
+    }).format(amount);
+  };
 
   // Print order function
-  const printOrder = () => {
+  const handlePrintOrder = () => {
     try {
-      const iframe = document.createElement('iframe');
-      iframe.style.display = 'none';
-      document.body.appendChild(iframe);
-      
-      const orderDate = new Date().toLocaleString();
-      
-      if (!iframe.contentDocument) {
-        console.error("Could not access iframe document");
-        return;
-      }
-      
-      iframe.contentDocument.write(`
-        <html>
-          <head>
-            <title>Order #${orderNumber}</title>
-            <style>
-              body {
-                font-family: Arial, sans-serif;
-                padding: 20px;
-                max-width: 400px;
-                margin: 0 auto;
-              }
-              h1, h2 {
-                text-align: center;
-              }
-              .order-details {
-                margin-bottom: 20px;
-              }
-              .order-item {
-                display: flex;
-                justify-content: space-between;
-                margin-bottom: 8px;
-              }
-              .topping-item {
-                display: flex;
-                justify-content: space-between;
-                margin-left: 20px;
-                font-size: 0.9em;
-                color: #666;
-              }
-              .divider {
-                border-top: 1px dashed #ccc;
-                margin: 15px 0;
-              }
-              .totals {
-                margin-top: 20px;
-              }
-              .total-row {
-                display: flex;
-                justify-content: space-between;
-                margin-bottom: 5px;
-              }
-              .final-total {
-                font-weight: bold;
-                font-size: 1.2em;
-                margin-top: 10px;
-                border-top: 1px solid black;
-                padding-top: 10px;
-              }
-              .footer {
-                margin-top: 30px;
-                text-align: center;
-                font-size: 0.9em;
-                color: #666;
-              }
-            </style>
-          </head>
-          <body>
-            <h1>Order Receipt</h1>
-            <div class="order-details">
-              <p><strong>Order #:</strong> ${orderNumber}</p>
-              <p><strong>Date:</strong> ${orderDate}</p>
-              <p><strong>Order Type:</strong> ${orderType === 'eat-in' ? 'Eat In' : 'Takeaway'}</p>
-              ${orderType === 'eat-in' && tableNumber ? `<p><strong>Table #:</strong> ${tableNumber}</p>` : ''}
-            </div>
-            
-            <div class="divider"></div>
-            
-            <h2>Items</h2>
-            ${items && items.map((item: CartItemType) => `
-              <div class="order-item">
-                <div>
-                  <span>${item.quantity} x ${item.product.name}</span>
-                  ${item.options && item.options.length > 0 ? 
-                    `<br><small>${item.options.map((o: {name: string, value: string}) => o.value).join(', ')}</small>` : 
-                    ''}
-                </div>
-                <span>$${(item.product.price * item.quantity).toFixed(2)}</span>
-              </div>
-              ${item.selectedToppings && item.selectedToppings.length > 0 ? 
-                item.selectedToppings.map((topping: {id: number, name: string, price: number}) => `
-                  <div class="topping-item">
-                    <span>+ ${topping.name}</span>
-                    <span>$${topping.price.toFixed(2)}</span>
-                  </div>
-                `).join('') : 
-                ''}
-            `).join('')}
-            
-            <div class="divider"></div>
-            
-            <div class="totals">
-              <div class="total-row">
-                <span>Subtotal:</span>
-                <span>$${subtotal?.toFixed(2) || '0.00'}</span>
-              </div>
-              <div class="total-row">
-                <span>Tax:</span>
-                <span>$${tax?.toFixed(2) || '0.00'}</span>
-              </div>
-              <div class="total-row final-total">
-                <span>Total:</span>
-                <span>$${total?.toFixed(2) || '0.00'}</span>
-              </div>
-            </div>
-            
-            <div class="footer">
-              <p>Thank you for your order!</p>
-            </div>
-            <script>
-              window.onload = function() {
-                setTimeout(function() {
-                  window.print();
-                  setTimeout(function() {
-                    document.body.innerHTML = 'Printing complete.';
-                  }, 500);
-                }, 500);
-              };
-            </script>
-          </body>
-        </html>
-      `);
-      
-      iframe.contentDocument.close();
-      
-      // Remove the iframe after printing
-      setTimeout(() => {
-        iframe.remove();
-      }, 2000);
+      printOrder(
+        orderNumber || orderId,
+        items,
+        orderType,
+        tableNumber,
+        subtotal,
+        tax,
+        total
+      );
     } catch (error) {
       console.error('Error printing order:', error);
       toast({
-        title: "Error",
-        description: "Failed to print order receipt",
+        title: t.common.error,
+        description: t.orders.failedToPrintReceipt,
         variant: "destructive",
       });
     }
@@ -222,14 +99,14 @@ const OrderConfirmation: React.FC<OrderConfirmationProps> = () => {
             <Home size={24} />
           </Button>
           
-          <h1 className="text-2xl font-semibold">Order Confirmation</h1>
+          <h1 className="text-2xl font-semibold">{t.orders.orderConfirmation}</h1>
           
           <Button
             variant="ghost"
             size="icon"
-            onClick={printOrder}
+            onClick={handlePrintOrder}
             className="rounded-full"
-            title="Print receipt"
+            title={t.orders.printReceipt}
           >
             <Printer size={24} />
           </Button>
@@ -258,7 +135,7 @@ const OrderConfirmation: React.FC<OrderConfirmationProps> = () => {
                 animate={{ y: 0, opacity: 1 }}
                 transition={{ delay: 0.3 }}
               >
-                Thank You!
+                {t.orders.thankYou}
               </motion.h2>
               
               <motion.p 
@@ -267,7 +144,7 @@ const OrderConfirmation: React.FC<OrderConfirmationProps> = () => {
                 animate={{ y: 0, opacity: 1 }}
                 transition={{ delay: 0.4 }}
               >
-                Your order #{orderNumber} has been placed
+                {t.orders.orderPlaced.replace('{orderNumber}', orderNumber || orderId)}
               </motion.p>
               
               {orderType === 'eat-in' && tableNumber && (
@@ -277,7 +154,7 @@ const OrderConfirmation: React.FC<OrderConfirmationProps> = () => {
                   transition={{ delay: 0.5 }}
                   className="bg-blue-50 text-blue-800 font-medium rounded-md py-2 px-4 inline-block mt-2"
                 >
-                  Table #{tableNumber}
+                  {t.orders.tableNumber} #{tableNumber}
                 </motion.div>
               )}
               
@@ -287,7 +164,7 @@ const OrderConfirmation: React.FC<OrderConfirmationProps> = () => {
                 transition={{ delay: 0.6 }}
                 className="text-gray-500 mt-4"
               >
-                Printing your receipt...
+                {t.orders.printingReceipt}
               </motion.p>
               
               <motion.p
@@ -296,7 +173,7 @@ const OrderConfirmation: React.FC<OrderConfirmationProps> = () => {
                 transition={{ delay: 0.7 }}
                 className="text-gray-500 mt-2"
               >
-                Redirecting to home page in a few seconds...
+                {t.orders.redirectingToHomePage}
               </motion.p>
             </div>
             
@@ -307,7 +184,7 @@ const OrderConfirmation: React.FC<OrderConfirmationProps> = () => {
               className="bg-white rounded-xl shadow-card overflow-hidden mb-8"
             >
               <div className="p-6 border-b border-gray-100">
-                <h3 className="font-semibold text-lg mb-4">Order Summary</h3>
+                <h3 className="font-semibold text-lg mb-4">{t.orders.orderSummary}</h3>
                 
                 <div className="space-y-4">
                   {items && items.map((item: CartItemType, index: number) => (
@@ -331,14 +208,14 @@ const OrderConfirmation: React.FC<OrderConfirmationProps> = () => {
                                   <Plus size={12} className="mr-1 text-gray-400" />
                                   {topping.name}
                                 </span>
-                                <span>${topping.price.toFixed(2)}</span>
+                                <span>{formatCurrency(topping.price)}</span>
                               </div>
                             ))}
                           </div>
                         )}
                       </div>
                       <p className="font-medium">
-                        ${(item.product.price * item.quantity).toFixed(2)}
+                        {formatCurrency(item.product.price * item.quantity)}
                       </p>
                     </div>
                   ))}
@@ -348,16 +225,16 @@ const OrderConfirmation: React.FC<OrderConfirmationProps> = () => {
               <div className="p-6 bg-gray-50">
                 <div className="space-y-2">
                   <div className="flex justify-between text-sm">
-                    <span className="text-gray-600">Subtotal</span>
-                    <span>${subtotal?.toFixed(2) || '0.00'}</span>
+                    <span className="text-gray-600">{t.cart.subtotal}</span>
+                    <span>{formatCurrency(subtotal || 0)}</span>
                   </div>
                   <div className="flex justify-between text-sm">
-                    <span className="text-gray-600">Tax</span>
-                    <span>${tax?.toFixed(2) || '0.00'}</span>
+                    <span className="text-gray-600">{t.cart.tax}</span>
+                    <span>{formatCurrency(tax || 0)}</span>
                   </div>
                   <div className="flex justify-between font-semibold text-base pt-2 border-t border-gray-200 mt-2">
-                    <span>Total</span>
-                    <span>${total?.toFixed(2) || '0.00'}</span>
+                    <span>{t.cart.total}</span>
+                    <span>{formatCurrency(total || 0)}</span>
                   </div>
                 </div>
               </div>
@@ -374,7 +251,7 @@ const OrderConfirmation: React.FC<OrderConfirmationProps> = () => {
                 onClick={() => navigate('/')}
                 className="min-w-[200px]"
               >
-                Place New Order
+                {t.orders.placeNewOrder}
               </Button>
             </motion.div>
           </div>

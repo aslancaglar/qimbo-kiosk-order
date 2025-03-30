@@ -1,38 +1,40 @@
 
-import { Language } from '../context/LanguageContext';
-
 /**
- * Format a number as currency based on the selected language
- * @param amount The amount to format
- * @param language The current language
+ * Format a number as currency based on the specified language
+ * @param value The numeric value to format
+ * @param language The language code ('en' or 'fr')
  * @returns Formatted currency string
  */
-export const formatCurrency = (amount: number, language: Language = 'en'): string => {
-  const options: Intl.NumberFormatOptions = {
+export const formatCurrency = (value: number, language = 'en'): string => {
+  return new Intl.NumberFormat(language === 'fr' ? 'fr-FR' : 'en-US', {
     style: 'currency',
     currency: language === 'fr' ? 'EUR' : 'USD',
-    minimumFractionDigits: 2
-  };
-  
-  const locale = language === 'fr' ? 'fr-FR' : 'en-US';
-  return new Intl.NumberFormat(locale, options).format(amount);
+  }).format(value);
 };
 
 /**
- * Format a date based on the selected language
+ * Format a date as a string based on the specified language
  * @param date The date to format
- * @param language The current language
+ * @param language The language code ('en' or 'fr')
  * @returns Formatted date string
  */
-export const formatDate = (date: Date, language: Language = 'en'): string => {
-  const options: Intl.DateTimeFormatOptions = { 
-    year: 'numeric', 
-    month: 'long', 
+export const formatDate = (date: Date, language = 'en'): string => {
+  return new Intl.DateTimeFormat(language === 'fr' ? 'fr-FR' : 'en-US', {
+    year: 'numeric',
+    month: 'long',
     day: 'numeric',
+  }).format(date);
+};
+
+/**
+ * Format a time as a string based on the specified language
+ * @param date The date/time to format
+ * @param language The language code ('en' or 'fr')
+ * @returns Formatted time string
+ */
+export const formatTime = (date: Date, language = 'en'): string => {
+  return new Intl.DateTimeFormat(language === 'fr' ? 'fr-FR' : 'en-US', {
     hour: '2-digit',
-    minute: '2-digit'
-  };
-  
-  const locale = language === 'fr' ? 'fr-FR' : 'en-US';
-  return new Intl.DateTimeFormat(locale, options).format(date);
+    minute: '2-digit',
+  }).format(date);
 };

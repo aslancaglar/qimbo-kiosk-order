@@ -1,161 +1,104 @@
 
 export const en = {
-  // Common
   common: {
-    save: "Save",
     cancel: "Cancel",
     confirm: "Confirm",
-    delete: "Delete",
-    edit: "Edit",
     close: "Close",
+    edit: "Edit",
+    delete: "Delete",
+    save: "Save",
+    add: "Add",
     back: "Back",
-    next: "Next",
     loading: "Loading...",
     error: "Error",
     success: "Success",
+    welcome: "Welcome",
+    search: "Search",
+    seeAll: "See All",
+    settings: "Settings",
+    language: "Language"
   },
-  
-  // Welcome Page
   welcome: {
-    title: "Welcome to",
-    dineIn: "Dine In",
-    takeout: "Takeout",
-    tableNumberTitle: "Table Number",
-    tableNumberPlaceholder: "Enter table number",
-    continueToMenu: "Continue to Menu",
+    title: "Welcome",
+    headline: "How would you like to order?",
+    eatIn: "Eat In",
+    takeaway: "Takeaway",
+    tableNumber: "Table Number",
+    selectTable: "Select Your Table",
+    submit: "Continue to Menu",
+    tablePlaceholder: "Select a table"
   },
-
-  // Menu Page
   menu: {
     title: "Menu",
     categories: {
       all: "All",
+      popular: "Popular",
+      main: "Main",
+      sides: "Sides",
+      drinks: "Drinks",
+      desserts: "Desserts"
     },
-    addToCart: "Add to Cart",
-    viewCart: "View Cart",
-    emptyCart: "Your cart is empty",
-    cancelOrder: "Cancel Order",
-    proceedToCheckout: "Proceed to Checkout",
-    customize: "Customize Your",
-    required: "Required",
-    optional: "Optional",
-    select: "Select",
-    item: "item",
-    items: "items",
+    addToOrder: "Add to Order",
+    customize: "Customize",
+    ingredients: "Ingredients",
+    allergies: "Allergies",
+    nutritionalInfo: "Nutritional Info",
+    outOfStock: "Out of Stock",
+    proceedToCheckout: "Checkout"
   },
-  
-  // Cart
   cart: {
-    title: "Your Order",
+    title: "Cart",
     empty: "Your cart is empty",
-    total: "Total",
+    subtotal: "Subtotal",
     tax: "Tax",
-    cancelOrder: "Cancel Order",
-    confirmOrder: "Confirm Order",
-    continueOrdering: "Continue Ordering",
-    itemRemoved: "Item removed from cart",
+    total: "Total",
+    discount: "Discount",
+    checkout: "Checkout",
+    remove: "Remove",
     confirmCancelTitle: "Cancel Order?",
-    confirmCancelMessage: "Are you sure you want to cancel your order? All items in your cart will be lost.",
+    confirmCancelMessage: "Are you sure you want to cancel your order? All items will be removed.",
+    cancelOrder: "Cancel Order",
+    itemAdded: "Item added to cart",
+    itemRemoved: "Item removed from cart",
+    orderCancelled: "Order cancelled",
+    continueShopping: "Continue Shopping"
   },
-  
-  // Order
-  order: {
-    confirmation: "Order Confirmation",
-    thankYou: "Thank you for your order!",
-    orderNumber: "Order Number",
-    estimatedTime: "Estimated preparation time",
-    minutes: "minutes",
+  orders: {
+    orderSummary: "Order Summary",
+    orderItems: "Order Items",
     tableNumber: "Table",
-    orderType: "Order Type",
-    dineIn: "Dine In",
-    takeout: "Takeout",
-    backToMenu: "Back to Menu",
+    eatIn: "Eat In",
+    takeaway: "Takeaway",
+    confirmOrder: "Confirm Order",
+    orderConfirmation: "Order Confirmation",
+    thankYou: "Thank You!",
+    orderPlaced: "Your order #{orderNumber} has been placed",
+    printingReceipt: "Printing your receipt...",
+    redirectingToHomePage: "Redirecting to home page in a few seconds...",
+    placeNewOrder: "Place New Order",
+    printReceipt: "Print receipt",
+    failedToPrintReceipt: "Failed to print order receipt",
+    couldNotProcessOrder: "Could not process your order. Please try again."
   },
-  
-  // Admin - General
-  admin: {
-    dashboard: "Dashboard",
-    orders: "Orders",
-    menuItems: "Menu Items",
-    categories: "Categories",
-    toppings: "Toppings",
-    settings: "Settings",
-    kitchenDisplay: "Kitchen Display",
-    exitAdmin: "Exit Admin",
-    adminPanel: "Admin Panel",
-  },
-  
-  // Admin - Settings
   settings: {
-    general: "General",
-    ordering: "Ordering",
+    title: "Settings",
     appearance: "Appearance",
-    notifications: "Notifications",
+    darkMode: "Dark Mode",
     language: "Language",
-    
-    // Restaurant Info
-    restaurantInfo: "Restaurant Information",
-    restaurantInfoDesc: "Update your restaurant's basic information.",
-    restaurantName: "Restaurant Name",
-    phoneNumber: "Phone Number",
-    address: "Address",
-    description: "Description",
-    saveChanges: "Save Changes",
-    
-    // Business Hours
-    businessHours: "Business Hours",
-    businessHoursDesc: "Set your restaurant's opening hours.",
-    saveHours: "Save Hours",
-    to: "to",
-    
-    // Ordering Options
-    orderingOptions: "Ordering Options",
-    orderingOptionsDesc: "Configure ordering options and customer experience settings.",
-    requireTableSelection: "Require table selection for dine-in orders",
-    requireTableSelectionDesc: "When disabled, customers can place dine-in orders without selecting a table number.",
-    saveSettings: "Save Settings",
-    
-    // Appearance Settings
-    appearanceSettings: "Appearance Settings",
-    appearanceSettingsDesc: "Customize how your restaurant's ordering system looks.",
-    comingSoon: "Appearance settings coming soon.",
-    
-    // Notification Settings
-    notificationSettings: "Notification Settings",
-    notificationSettingsDesc: "Configure how you receive order notifications.",
-    notificationsComingSoon: "Notification settings coming soon.",
-    
-    // Language Settings
-    languageSettings: "Language Settings",
-    languageSettingsDesc: "Change the display language of your restaurant's ordering system.",
-    selectLanguage: "Select Language",
     english: "English",
     french: "French",
+    notifications: "Notifications",
+    enableNotifications: "Enable Notifications",
+    account: "Account",
+    signOut: "Sign Out",
+    about: "About",
+    version: "Version",
+    privacyPolicy: "Privacy Policy",
+    termsOfService: "Terms of Service"
   },
-
-  // Errors
   errors: {
-    failedToLoad: "Failed to load",
-    unexpectedError: "An unexpected error occurred",
-    requiredField: "This field is required",
-    maximumReached: "You can only select up to",
-    itemsFrom: "items from",
-    required: "Required",
-  },
-  
-  // Toast Messages
-  toast: {
-    errorTitle: "Error",
-    successTitle: "Success",
     failedToLoadRestaurantInfo: "Failed to load restaurant information",
-    restaurantInfoUpdated: "Restaurant information updated successfully",
-    failedToUpdateRestaurantInfo: "Failed to update restaurant information",
-    businessHoursUpdated: "Business hours updated successfully",
-    failedToUpdateBusinessHours: "Failed to update business hours for",
-    orderingSettingsSaved: "Ordering settings saved successfully",
-    failedToSaveOrderingSettings: "Failed to save ordering settings",
-    languageChanged: "Language changed successfully",
-  },
+    noRestaurantInfoFound: "No restaurant information found",
+    unexpectedError: "An unexpected error occurred"
+  }
 };
-
-export default en;

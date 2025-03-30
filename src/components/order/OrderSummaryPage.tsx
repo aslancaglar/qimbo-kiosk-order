@@ -4,16 +4,18 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import Layout from '../layout/Layout';
 import Button from '../common/Button';
-import { Check, ArrowLeft, Printer } from 'lucide-react';
+import { Check, ArrowLeft } from 'lucide-react';
 import { CartItemType } from '../cart/types';
 import { useCart } from '@/hooks/use-cart';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { useTranslation } from '@/hooks/use-translation';
 
 const OrderSummaryPage: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { t, language } = useTranslation();
   const { items, orderType, tableNumber } = location.state || {};
   const { handleConfirmOrder } = useCart({ orderType, tableNumber });
   
@@ -43,6 +45,13 @@ const OrderSummaryPage: React.FC = () => {
     navigate(-1);
   };
 
+  const formatCurrency = (amount: number): string => {
+    return new Intl.NumberFormat(language === 'fr' ? 'fr-FR' : 'en-US', {
+      style: 'currency',
+      currency: language === 'fr' ? 'EUR' : 'USD',
+    }).format(amount);
+  };
+
   const handleConfirmOrderClick = async () => {
     try {
       // First confirm the order using the cart handler
@@ -68,8 +77,8 @@ const OrderSummaryPage: React.FC = () => {
       if (orderError) {
         console.error('Error creating order:', orderError);
         toast({
-          title: "Error",
-          description: "Could not process your order. Please try again.",
+          title: t.common.error,
+          description: t.orders.couldNotProcessOrder,
           variant: "destructive",
         });
         return;
@@ -131,8 +140,8 @@ const OrderSummaryPage: React.FC = () => {
     } catch (error) {
       console.error('Error during order confirmation:', error);
       toast({
-        title: "Error",
-        description: "An unexpected error occurred. Please try again.",
+        title: t.common.error,
+        description: t.errors.unexpectedError,
         variant: "destructive",
       });
     }
@@ -151,7 +160,7 @@ const OrderSummaryPage: React.FC = () => {
             <ArrowLeft size={24} />
           </Button>
           
-          <h1 className="text-2xl font-semibold">Order Summary</h1>
+          <h1 className="text-2xl font-semibold">{t.orders.orderSummary}</h1>
           
           <div className="w-10"></div> {/* Empty space for alignment */}
         </header>
@@ -170,7 +179,7 @@ const OrderSummaryPage: React.FC = () => {
                 transition={{ delay: 0.2 }}
                 className="bg-blue-50 text-blue-800 font-medium rounded-md py-3 px-4 mb-6 flex items-center justify-center"
               >
-                Table #{tableNumber} • Eat In
+                {t.orders.tableNumber} #{tableNumber} • {t.orders.eatIn}
               </motion.div>
             )}
             
@@ -181,7 +190,7 @@ const OrderSummaryPage: React.FC = () => {
               className="bg-white rounded-xl shadow-lg overflow-hidden mb-8"
             >
               <div className="p-6 border-b border-gray-100">
-                <h3 className="font-semibold text-lg mb-4">Order Items</h3>
+                <h3 className="font-semibold text-lg mb-4">{t.orders.orderItems}</h3>
                 
                 <div className="space-y-4">
                   {items && items.map((item: CartItemType, index: number) => (
@@ -194,7 +203,7 @@ const OrderSummaryPage: React.FC = () => {
                           <span className="font-medium">{item.product.name}</span>
                         </div>
                         <span className="font-medium">
-                          ${(item.product.price * item.quantity).toFixed(2)}
+                          {formatCurrency(item.product.price * item.quantity)}
                         </span>
                       </div>
                       
@@ -204,7 +213,7 @@ const OrderSummaryPage: React.FC = () => {
                           {item.selectedToppings.map((topping, idx) => (
                             <div key={idx} className="flex justify-between text-sm text-gray-600">
                               <span>+ {topping.name}</span>
-                              <span>${topping.price.toFixed(2)}</span>
+                              <span>{formatCurrency(topping.price)}</span>
                             </div>
                           ))}
                         </div>
@@ -217,16 +226,16 @@ const OrderSummaryPage: React.FC = () => {
               <div className="p-6 bg-gray-50">
                 <div className="space-y-2">
                   <div className="flex justify-between text-sm">
-                    <span className="text-gray-600">Subtotal</span>
-                    <span>${subtotal.toFixed(2)}</span>
+                    <span className="text-gray-600">{t.cart.subtotal}</span>
+                    <span>{formatCurrency(subtotal)}</span>
                   </div>
                   <div className="flex justify-between text-sm">
-                    <span className="text-gray-600">Tax (10%)</span>
-                    <span>${tax.toFixed(2)}</span>
+                    <span className="text-gray-600">{t.cart.tax} (10%)</span>
+                    <span>{formatCurrency(tax)}</span>
                   </div>
                   <div className="flex justify-between font-semibold text-base pt-2 border-t border-gray-200 mt-2">
-                    <span>Total</span>
-                    <span>${total.toFixed(2)}</span>
+                    <span>{t.cart.total}</span>
+                    <span>{formatCurrency(total)}</span>
                   </div>
                 </div>
               </div>
@@ -244,7 +253,7 @@ const OrderSummaryPage: React.FC = () => {
                 className="bg-primary hover:bg-primary/90 text-white text-lg py-4"
               >
                 <Check className="w-5 h-5 mr-2" />
-                Confirm Order
+                {t.orders.confirmOrder}
               </Button>
             </motion.div>
           </div>
