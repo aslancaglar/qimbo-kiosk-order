@@ -110,8 +110,11 @@ const CategoryButton: React.FC<CategoryButtonProps> = ({
                 className="h-full w-full object-cover"
                 onError={(e) => {
                   // If image fails to load, show emoji fallback
-                  (e.target as HTMLImageElement).style.display = 'none';
-                  (e.target as HTMLImageElement).nextElementSibling!.style.display = 'block';
+                  const target = e.target as HTMLImageElement;
+                  target.style.display = 'none';
+                  if (target.nextElementSibling) {
+                    (target.nextElementSibling as HTMLElement).style.display = 'block';
+                  }
                 }}
               />
               <span className="hidden">{getCategoryEmoji(category)}</span>
