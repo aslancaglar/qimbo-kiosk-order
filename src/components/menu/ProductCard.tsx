@@ -287,7 +287,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
         <h3 className="font-semibold text-sm mb-1">{product.name}</h3>
         <p className="text-gray-600 text-xs mb-2 flex-1 line-clamp-2">{product.description}</p>
         
-        <div className="flex justify-between items-center mt-auto">
+        <div className="flex justify-between items-center gap-3 mt-auto">
           <span className="font-bold text-sm whitespace-nowrap">{product.price.toFixed(2)} €</span>
           
           <AnimatePresence>
