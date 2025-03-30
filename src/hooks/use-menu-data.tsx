@@ -9,7 +9,6 @@ interface Category {
   name: string;
   description: string | null;
   display_order: number;
-  icon_url: string | null;
 }
 
 export function useMenuData() {
@@ -120,10 +119,6 @@ export function useMenuData() {
     products,
     categories,
     isLoading,
-    categoryNames: categories.map(cat => cat.name),
-    categoryIcons: categories.reduce((acc, cat) => {
-      acc[cat.name] = cat.icon_url;
-      return acc;
-    }, {} as Record<string, string | null>)
+    categoryNames: categories.map(cat => cat.name)
   };
 }

@@ -12,7 +12,6 @@ interface MenuContentProps {
   setActiveCategory: (category: string) => void;
   isLoading: boolean;
   onProductSelect: (product: Product, selectedToppings?: ToppingItem[]) => void;
-  categoryIcons?: Record<string, string | null>;
 }
 
 const MenuContent: React.FC<MenuContentProps> = ({
@@ -21,8 +20,7 @@ const MenuContent: React.FC<MenuContentProps> = ({
   activeCategory,
   setActiveCategory,
   isLoading,
-  onProductSelect,
-  categoryIcons = {}
+  onProductSelect
 }) => {
   const filteredProducts = activeCategory === 'All'
     ? products
@@ -36,7 +34,6 @@ const MenuContent: React.FC<MenuContentProps> = ({
           activeCategory={activeCategory} 
           onChange={setActiveCategory}
           orientation="vertical"
-          categoryIcons={categoryIcons}
         />
       </div>
       

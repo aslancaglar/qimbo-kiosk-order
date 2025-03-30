@@ -1,38 +1,49 @@
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
+import { AnimatePresence } from 'framer-motion';
+import Layout from '../layout/Layout';
+import CancelOrderDialog from './CancelOrderDialog';
 import MenuHeader from './MenuHeader';
 import MenuContent from './MenuContent';
-import CartSidebar from '../cart/CartSidebar';
-import { useCart } from '@/hooks/use-cart';
-import { Product } from './ProductCard';
-import { ToppingItem } from '../cart/types';
+import CartSummary from './CartSummary';
 import { useMenuData } from '@/hooks/use-menu-data';
+import { useCart } from '@/hooks/use-cart';
 
-const MenuPage = () => {
+const MenuPage: React.FC = () => {
+  const location = useLocation();
+  const navigate = useNavigate();
+  const { orderType, tableNumber } = location.state || {};
   const [activeCategory, setActiveCategory] = useState('All');
-  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
-  const [selectedToppings, setSelectedToppings] = useState<ToppingItem[]>([]);
-  const [isProductModalOpen, setIsProductModalOpen] = useState(false);
-  
-  // Initialize useCart with required orderType
+
+  // Custom hooks for data fetching and cart management
+  const { products, isLoading, categoryNames } = useMenuData();
   const { 
-    cartItems, 
-    isCartOpen, 
-    handleProductSelect, 
+    cartItems,
+    isCartOpen,
+    showCancelDialog,
+    setShowCancelDialog,
+    handleProductSelect,
     handleRemoveItem,
     handleIncrementItem,
     handleDecrementItem,
     handleCancelOrderClick,
+    handleConfirmCancel,
     handleConfirmOrder
-  } = useCart({ orderType: 'eat-in', tableNumber: 1 });
-
-  // Fetch menu data from hooks
-  const { products, categories, isLoading, categoryNames, categoryIcons } = useMenuData();
+  } = useCart({ orderType, tableNumber });
+  
+  // Redirect if no orderType is provided
+  useEffect(() => {
+    if (!orderType) {
+      navigate('/');
+    }
+  }, [orderType, navigate]);
   
   return (
-    <div className="flex flex-col h-[calc(100vh-170px)] overflow-hidden">
-      <MenuHeader />
-      <div className="flex flex-1 overflow-hidden">
+    <Layout>
+      <div className="flex flex-col h-screen">
+        <MenuHeader />
+        
         <MenuContent 
           products={products}
           categories={categoryNames}
@@ -40,20 +51,30 @@ const MenuPage = () => {
           setActiveCategory={setActiveCategory}
           isLoading={isLoading}
           onProductSelect={handleProductSelect}
-          categoryIcons={categoryIcons}
         />
-        <CartSidebar 
-          isOpen={isCartOpen}
-          onClose={() => {}}
-          items={cartItems}
-          onRemoveItem={handleRemoveItem}
-          onIncrementItem={handleIncrementItem}
-          onDecrementItem={handleDecrementItem}
-          orderType="eat-in"
-          tableNumber={1}
+        
+        <AnimatePresence>
+          {isCartOpen && (
+            <CartSummary 
+              cartItems={cartItems}
+              onRemoveItem={handleRemoveItem}
+              onIncrementItem={handleIncrementItem}
+              onDecrementItem={handleDecrementItem}
+              onCancelOrderClick={handleCancelOrderClick}
+              onConfirmOrder={handleConfirmOrder}
+              orderType={orderType}
+              tableNumber={tableNumber}
+            />
+          )}
+        </AnimatePresence>
+        
+        <CancelOrderDialog 
+          isOpen={showCancelDialog}
+          onClose={() => setShowCancelDialog(false)}
+          onConfirm={handleConfirmCancel}
         />
       </div>
-    </div>
+    </Layout>
   );
 };
 
