@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Button from '../common/Button';
@@ -44,6 +45,7 @@ interface ToppingCategory {
   minSelection: number;
   maxSelection: number;
   required: boolean;
+  display_order?: number;
   toppings: Topping[];
 }
 
@@ -53,6 +55,7 @@ interface Topping {
   price: number;
   categoryId: number;
   maxQuantity: number;
+  display_order?: number;
 }
 
 interface ProductCardProps {
@@ -67,7 +70,8 @@ const toppingsFormSchema = z.object({
     price: z.number(),
     categoryId: z.number(),
     quantity: z.number().min(0),
-    maxQuantity: z.number().optional()
+    maxQuantity: z.number().optional(),
+    display_order: z.number().optional()
   }))
 });
 
@@ -119,6 +123,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onSelect }) => {
         .from('topping_categories')
         .select('*')
         .in('id', product.availableToppingCategories)
+        .order('display_order', { ascending: true })
         .order('name');
       
       if (categoriesError) throw categoriesError;
@@ -129,6 +134,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onSelect }) => {
           .select('*')
           .eq('category_id', category.id)
           .eq('available', true)
+          .order('display_order', { ascending: true })
           .order('name');
         
         if (toppingsError) throw toppingsError;
@@ -139,24 +145,38 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onSelect }) => {
           minSelection: category.min_selection,
           maxSelection: category.max_selection,
           required: category.required,
+          display_order: category.display_order,
           toppings: toppingsData.map(topping => ({
             id: topping.id,
             name: topping.name,
             price: topping.price,
             categoryId: topping.category_id,
-            maxQuantity: topping.max_quantity
+            maxQuantity: topping.max_quantity,
+            display_order: topping.display_order
           }))
         };
       });
       
       const categories = await Promise.all(toppingPromises);
-      setToppingCategories(categories);
       
-      const allToppings = categories.flatMap(category => 
-        category.toppings.map(topping => ({
-          ...topping,
-          quantity: 0
-        }))
+      // Sort categories by display_order
+      const sortedCategories = [...categories].sort((a, b) => {
+        const orderA = a.display_order || 0;
+        const orderB = b.display_order || 0;
+        return orderA - orderB;
+      });
+      
+      setToppingCategories(sortedCategories);
+      
+      const allToppings = sortedCategories.flatMap(category => 
+        // Sort toppings by display_order within each category
+        [...category.toppings]
+          .sort((a, b) => (a.display_order || 0) - (b.display_order || 0))
+          .map(topping => ({
+            ...topping,
+            quantity: 0,
+            display_order: topping.display_order
+          }))
       );
       
       form.reset({
@@ -355,7 +375,9 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onSelect }) => {
                     </div>
                     
                     <div className="space-y-2">
-                      {category.toppings.map((topping) => {
+                      {category.toppings
+                        .sort((a, b) => (a.display_order || 0) - (b.display_order || 0))
+                        .map((topping) => {
                         const toppingInForm = form.watch('selectedToppings').find(t => t.id === topping.id);
                         const quantity = toppingInForm ? toppingInForm.quantity : 0;
                         
