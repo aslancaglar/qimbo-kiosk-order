@@ -1,9 +1,13 @@
+
 import * as React from "react"
 import * as TooltipPrimitive from "@radix-ui/react-tooltip"
 
 import { cn } from "@/lib/utils"
 
-const TooltipProvider = TooltipPrimitive.Provider
+// Create the provider component separately to ensure it has React context
+const TooltipProvider = ({ children, ...props }: React.ComponentProps<typeof TooltipPrimitive.Provider>) => {
+  return <TooltipPrimitive.Provider {...props}>{children}</TooltipPrimitive.Provider>
+}
 
 const Tooltip = TooltipPrimitive.Root
 

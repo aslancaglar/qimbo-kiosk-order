@@ -7,6 +7,11 @@ import { ToppingItem } from '../cart/types';
 import { startMeasure, endMeasure } from "@/utils/performanceMonitor";
 import { useToast } from "@/hooks/use-toast";
 import { Separator } from "@/components/ui/separator";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger
+} from "@/components/ui/tooltip";
 
 // Lazy load the heavy components
 const CustomizationDialog = lazy(() => import('./CustomizationDialog'));
