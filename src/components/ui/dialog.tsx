@@ -40,20 +40,53 @@ const DialogContent = React.forwardRef<
     <DialogPrimitive.Content
       ref={ref}
       className={cn(
-        "fixed left-[50%] top-[50%] z-50 grid w-full max-w-lg translate-x-[-50%] translate-y-[-50%] gap-4 border bg-background p-6 shadow-lg duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[state=closed]:slide-out-to-left-1/2 data-[state=closed]:slide-out-to-top-[48%] data-[state=open]:slide-in-from-left-1/2 data-[state=open]:slide-in-from-top-[48%] sm:rounded-lg max-h-[85vh]",
+        "fixed left-[50%] top-[50%] z-50 grid w-full max-w-lg translate-x-[-50%] translate-y-[-50%] gap-0 border bg-background shadow-lg duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[state=closed]:slide-out-to-left-1/2 data-[state=closed]:slide-out-to-top-[48%] data-[state=open]:slide-in-from-left-1/2 data-[state=open]:slide-in-from-top-[48%] sm:rounded-lg max-h-[85vh] flex flex-col",
         className
       )}
       {...props}
     >
-      {enableScrollArea ? (
-        <ScrollArea className="max-h-[calc(85vh-40px)] w-full pr-4 overflow-auto">
-          <div className="pr-2">
-            {children}
-          </div>
-        </ScrollArea>
-      ) : (
-        children
-      )}
+      <div className="p-6 pb-0 flex-shrink-0">
+        {React.Children.map(children, child => {
+          if (React.isValidElement(child) && child.type === DialogHeader) {
+            return child;
+          }
+          return null;
+        })}
+      </div>
+      
+      <div className="flex-grow overflow-hidden px-6">
+        {enableScrollArea ? (
+          <ScrollArea className="h-full max-h-[calc(85vh-130px)] pr-2 -mr-2">
+            {React.Children.map(children, child => {
+              if (React.isValidElement(child) && 
+                  child.type !== DialogHeader && 
+                  child.type !== DialogFooter) {
+                return child;
+              }
+              return null;
+            })}
+          </ScrollArea>
+        ) : (
+          React.Children.map(children, child => {
+            if (React.isValidElement(child) && 
+                child.type !== DialogHeader && 
+                child.type !== DialogFooter) {
+              return child;
+            }
+            return null;
+          })
+        )}
+      </div>
+      
+      <div className="p-6 pt-2 mt-auto flex-shrink-0 border-t">
+        {React.Children.map(children, child => {
+          if (React.isValidElement(child) && child.type === DialogFooter) {
+            return child;
+          }
+          return null;
+        })}
+      </div>
+      
       <DialogPrimitive.Close className="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none data-[state=open]:bg-accent data-[state=open]:text-muted-foreground">
         <X className="h-4 w-4" />
         <span className="sr-only">Close</span>
@@ -83,7 +116,7 @@ const DialogFooter = ({
 }: React.HTMLAttributes<HTMLDivElement>) => (
   <div
     className={cn(
-      "flex flex-col-reverse sm:flex-row sm:justify-end sm:space-x-2",
+      "flex flex-col-reverse sm:flex-row sm:justify-end sm:space-x-2 w-full",
       className
     )}
     {...props}
