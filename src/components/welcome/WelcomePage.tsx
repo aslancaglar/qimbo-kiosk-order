@@ -97,10 +97,10 @@ const WelcomePage: React.FC<WelcomePageProps> = ({ restaurantInfo }) => {
                 <span className="text-primary-foreground text-4xl font-bold">LOGO</span>
               </div>
               <h1 className="text-4xl font-bold mb-2 tracking-tight">
-                {restaurantInfo?.name || 'Restaurant Name'}
+                {restaurantInfo?.name || 'Nom du Restaurant'}
               </h1>
               <p className="text-gray-500">
-                {restaurantInfo?.description || 'Fresh, delicious food at your fingertips'}
+                {restaurantInfo?.description || 'Nourriture fraîche et délicieuse à portée de main'}
               </p>
             </motion.div>
             
@@ -110,7 +110,7 @@ const WelcomePage: React.FC<WelcomePageProps> = ({ restaurantInfo }) => {
               animate={{ opacity: 1 }}
               transition={{ delay: 0.4 }}
             >
-              How would you like to enjoy your meal today?
+              Comment souhaitez-vous déguster votre repas aujourd'hui ?
             </motion.h2>
             
             <div className="flex flex-col sm:flex-row gap-6 justify-center">
@@ -119,14 +119,14 @@ const WelcomePage: React.FC<WelcomePageProps> = ({ restaurantInfo }) => {
                 onClick={handleTakeaway}
                 className="text-xl py-8 sm:min-w-[220px]"
               >
-                Takeaway
+                À Emporter
               </Button>
               <Button 
                 size="lg" 
                 onClick={handleEatIn}
                 className="text-xl py-8 sm:min-w-[220px]"
               >
-                Eat In
+                Sur Place
               </Button>
             </div>
           </motion.div>

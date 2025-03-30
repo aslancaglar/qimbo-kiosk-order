@@ -31,10 +31,10 @@ const Index: React.FC = () => {
 
         if (error) {
           console.error('Error fetching restaurant info:', error);
-          setError('Failed to load restaurant information');
+          setError('Impossible de charger les informations du restaurant');
           toast({
-            title: "Error",
-            description: "Failed to load restaurant information",
+            title: "Erreur",
+            description: "Impossible de charger les informations du restaurant",
             variant: "destructive"
           });
           return;
@@ -44,11 +44,11 @@ const Index: React.FC = () => {
           setRestaurantInfo(data);
         } else {
           // If no data found, set a default value or show an appropriate message
-          setError('No restaurant information found');
+          setError('Aucune information de restaurant trouvée');
         }
       } catch (error) {
         console.error('Unexpected error:', error);
-        setError('An unexpected error occurred');
+        setError('Une erreur inattendue est survenue');
       } finally {
         setLoading(false);
       }
@@ -74,7 +74,7 @@ const Index: React.FC = () => {
       <div className="h-full w-full flex items-center justify-center p-4">
         <Alert variant="destructive" className="max-w-md">
           <AlertCircle className="h-4 w-4" />
-          <AlertTitle>Error</AlertTitle>
+          <AlertTitle>Erreur</AlertTitle>
           <AlertDescription>{error}</AlertDescription>
         </Alert>
       </div>
