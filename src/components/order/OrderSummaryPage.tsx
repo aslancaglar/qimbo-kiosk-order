@@ -7,10 +7,13 @@ import Button from '../common/Button';
 import { Check, ArrowLeft, Printer } from 'lucide-react';
 import { CartItemType } from '../cart/types';
 import { useCart } from '@/hooks/use-cart';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
 
 const OrderSummaryPage: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
+  const { toast } = useToast();
   const { items, orderType, tableNumber } = location.state || {};
   const { handleConfirmOrder } = useCart({ orderType, tableNumber });
   
@@ -41,20 +44,98 @@ const OrderSummaryPage: React.FC = () => {
   };
 
   const handleConfirmOrderClick = async () => {
-    // First confirm the order using the cart handler
-    await handleConfirmOrder();
-    
-    // Then navigate to the confirmation page with all the necessary order data
-    navigate('/confirmation', { 
-      state: { 
-        items,
-        orderType,
-        tableNumber,
-        subtotal,
-        tax,
-        total
-      } 
-    });
+    try {
+      // First confirm the order using the cart handler
+      await handleConfirmOrder();
+      
+      // Generate a random order number for display
+      const orderNumber = Math.floor(10000 + Math.random() * 90000).toString();
+      
+      // Save order to database
+      const { data: orderResult, error: orderError } = await supabase
+        .from('orders')
+        .insert({
+          customer_type: orderType === 'eat-in' ? 'Table' : 'Takeaway',
+          table_number: orderType === 'eat-in' ? tableNumber : null,
+          items_count: items.reduce((sum: number, item: CartItemType) => sum + item.quantity, 0),
+          total_amount: total,
+          status: 'New',
+          order_number: orderNumber
+        })
+        .select('id, order_number')
+        .single();
+        
+      if (orderError) {
+        console.error('Error creating order:', orderError);
+        toast({
+          title: "Error",
+          description: "Could not process your order. Please try again.",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      console.log('Order created successfully:', orderResult);
+      
+      // Save order items
+      for (const item of items) {
+        const { data: orderItemResult, error: orderItemError } = await supabase
+          .from('order_items')
+          .insert({
+            order_id: orderResult.id,
+            menu_item_id: parseInt(item.product.id),
+            quantity: item.quantity,
+            price: item.product.price,
+            notes: item.notes || null,
+          })
+          .select('id')
+          .single();
+        
+        if (orderItemError) {
+          console.error('Error creating order item:', orderItemError);
+          continue;
+        }
+        
+        // Save toppings if any
+        if (item.selectedToppings && item.selectedToppings.length > 0) {
+          for (const topping of item.selectedToppings) {
+            const { error: toppingError } = await supabase
+              .from('order_item_toppings')
+              .insert({
+                order_item_id: orderItemResult.id,
+                topping_id: topping.id,
+                price: topping.price,
+              });
+            
+            if (toppingError) {
+              console.error('Error creating order item topping:', toppingError);
+              continue;
+            }
+          }
+        }
+      }
+      
+      // Then navigate to the confirmation page with all the necessary order data
+      navigate('/confirmation', { 
+        state: { 
+          items,
+          orderType,
+          tableNumber,
+          subtotal,
+          tax,
+          total,
+          orderId: orderResult.id,
+          orderNumber: orderResult.order_number
+        } 
+      });
+    } catch (error) {
+      console.error('Error during order confirmation:', error);
+      toast({
+        title: "Error",
+        description: "An unexpected error occurred. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
   return (
