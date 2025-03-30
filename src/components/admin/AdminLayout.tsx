@@ -1,99 +1,154 @@
 
-import React, { useState } from 'react';
-import {
-  Home,
-  ShoppingBag,
-  Utensils,
-  Coffee,
-  ListOrdered,
-  Layers,
-  Settings,
-  Printer,
-  Menu
-} from 'lucide-react';
+import React from 'react';
+import { NavLink, useLocation } from 'react-router-dom';
 import { 
-  SidebarProvider, 
-  Sidebar, 
-  SidebarContent,
-  SidebarHeader,
-  SidebarMenu,
-  SidebarMenuItem,
-  SidebarMenuButton
-} from "@/components/ui/sidebar";
-import { Link, useLocation } from 'react-router-dom';
-import { cn } from '@/lib/utils';
+  LayoutDashboard, 
+  ShoppingBag, 
+  Package, 
+  Settings, 
+  LogOut, 
+  Menu, 
+  X, 
+  ChevronRight,
+  Utensils,
+  FolderTree
+} from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 
-const AdminLayout = ({ children }: { children: React.ReactNode }) => {
+interface AdminLayoutProps {
+  children: React.ReactNode;
+}
+
+const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
+  const [open, setOpen] = React.useState(false);
   const location = useLocation();
-  const [openMobile, setOpenMobile] = useState(false);
 
-  const navigationItems = [
-    { name: 'Dashboard', href: '/admin', icon: Home },
+  const baseClasses = "flex items-center py-2 px-3 rounded-md text-sm font-medium transition-colors";
+  const activeClass = "bg-primary text-primary-foreground";
+  const inactiveClass = "hover:bg-muted";
+
+  const navigation = [
+    { name: 'Dashboard', href: '/admin', icon: LayoutDashboard },
     { name: 'Orders', href: '/admin/orders', icon: ShoppingBag },
-    { name: 'Kitchen Display', href: '/admin/kitchen', icon: Utensils },
-    { name: 'Menu Items', href: '/admin/menu-items', icon: Coffee },
-    { name: 'Categories', href: '/admin/categories', icon: ListOrdered },
-    { name: 'Toppings', href: '/admin/toppings', icon: Layers },
-    { name: 'Print Settings', href: '/admin/print-settings', icon: Printer },
+    { name: 'Menu Items', href: '/admin/menu', icon: Package },
+    { name: 'Categories', href: '/admin/categories', icon: FolderTree },
+    { name: 'Toppings', href: '/admin/toppings', icon: Package },
     { name: 'Settings', href: '/admin/settings', icon: Settings },
+    { name: 'Kitchen Display', href: '/admin/kitchen', icon: Utensils },
   ];
 
   return (
-    <SidebarProvider>
-      <div className="flex h-screen bg-gray-50">
-        {/* Sidebar */}
-        <Sidebar className="bg-white border-r w-64 flex-shrink-0 hidden md:block">
-          <SidebarHeader className="p-4">
-            <h1 className="text-2xl font-bold">Admin Panel</h1>
-          </SidebarHeader>
-          <SidebarContent>
-            <SidebarMenu>
-              {navigationItems.map((item) => (
-                <SidebarMenuItem key={item.name}>
-                  <SidebarMenuButton
-                    asChild
-                    isActive={location.pathname === item.href}
-                  >
-                    <Link
-                      to={item.href}
-                      className={cn(
-                        "flex items-center space-x-2 px-4 py-2",
-                      )}
-                    >
-                      <item.icon className="w-5 h-5" />
-                      <span>{item.name}</span>
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
-            </SidebarMenu>
-          </SidebarContent>
-        </Sidebar>
-
-        {/* Mobile Sidebar Button */}
-        <button
-          onClick={() => setOpenMobile(true)}
-          className="md:hidden fixed top-4 left-4 bg-white rounded-full shadow p-2 z-50"
-        >
-          <Menu className="w-6 h-6" />
-        </button>
-
-        {/* Main Content */}
-        <div className="flex-1 flex flex-col overflow-hidden">
-          {/* Header */}
-          <header className="bg-white border-b h-16 flex items-center justify-between px-6">
-            <h2 className="text-lg font-semibold">
-              {navigationItems.find(item => item.href === location.pathname)?.name || 'Dashboard'}
-            </h2>
-          </header>
-
-          {/* Page Content */}
-          <main className="flex-1 overflow-auto">
-            {children}
-          </main>
+    <div className="flex min-h-screen bg-background">
+      {/* Desktop sidebar - hidden by default */}
+      <aside className="hidden lg:flex flex-col w-0 border-r bg-card overflow-hidden transition-all duration-300 ease-in-out" 
+             style={{ width: open ? '16rem' : '0' }}>
+        <div className="p-6">
+          <h1 className="text-xl font-bold">Admin Panel</h1>
         </div>
-      </div>
-    </SidebarProvider>
+        <ScrollArea className="flex-1 py-2 px-4">
+          <nav className="space-y-1">
+            {navigation.map((item) => (
+              <NavLink
+                key={item.name}
+                to={item.href}
+                className={({ isActive }) => 
+                  `${baseClasses} ${isActive ? activeClass : inactiveClass}`
+                }
+              >
+                <item.icon className="w-5 h-5 mr-3" />
+                <span>{item.name}</span>
+              </NavLink>
+            ))}
+          </nav>
+        </ScrollArea>
+        <div className="p-4 border-t">
+          <Button variant="outline" className="w-full justify-start" asChild>
+            <NavLink to="/">
+              <LogOut className="w-5 h-5 mr-3" />
+              Exit Admin
+            </NavLink>
+          </Button>
+        </div>
+      </aside>
+
+      {/* Sidebar trigger button for desktop - always visible */}
+      <Button
+        variant="outline"
+        size="icon"
+        className="hidden lg:flex fixed left-4 top-4 z-40"
+        onClick={() => setOpen(!open)}
+      >
+        {open ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+        <span className="sr-only">Toggle Menu</span>
+      </Button>
+
+      {/* Mobile sidebar */}
+      <Sheet open={open} onOpenChange={setOpen}>
+        <SheetTrigger asChild>
+          <Button variant="outline" size="icon" className="lg:hidden absolute left-4 top-4 z-50">
+            <Menu className="h-5 w-5" />
+            <span className="sr-only">Toggle Menu</span>
+          </Button>
+        </SheetTrigger>
+        <SheetContent side="left" className="w-64 p-0">
+          <div className="p-6 border-b flex items-center justify-between">
+            <h1 className="text-xl font-bold">Admin Panel</h1>
+            <Button variant="ghost" size="icon" onClick={() => setOpen(false)}>
+              <X className="h-5 w-5" />
+              <span className="sr-only">Close</span>
+            </Button>
+          </div>
+          <ScrollArea className="flex-1 py-2 px-4 h-[calc(100vh-136px)]">
+            <nav className="space-y-1">
+              {navigation.map((item) => (
+                <NavLink
+                  key={item.name}
+                  to={item.href}
+                  className={({ isActive }) => 
+                    `${baseClasses} ${isActive ? activeClass : inactiveClass}`
+                  }
+                  onClick={() => setOpen(false)}
+                >
+                  <item.icon className="w-5 h-5 mr-3" />
+                  <span>{item.name}</span>
+                  <ChevronRight className="w-4 h-4 ml-auto" />
+                </NavLink>
+              ))}
+            </nav>
+          </ScrollArea>
+          <div className="p-4 border-t">
+            <Button variant="outline" className="w-full justify-start" asChild onClick={() => setOpen(false)}>
+              <NavLink to="/">
+                <LogOut className="w-5 h-5 mr-3" />
+                Exit Admin
+              </NavLink>
+            </Button>
+          </div>
+        </SheetContent>
+      </Sheet>
+
+      {/* Main content - now has more space and allows scrolling */}
+      <main className="flex-1 flex flex-col min-h-screen overflow-auto">
+        <div className="flex-1 p-6 lg:p-8 lg:ml-0">
+          <div className="mb-6 text-center">
+            {navigation.map((item) => {
+              if (location.pathname === item.href || 
+                 (item.href !== '/admin' && location.pathname.startsWith(item.href))) {
+                return (
+                  <h1 key={item.name} className="text-2xl font-bold tracking-tight mb-4">
+                    {item.name}
+                  </h1>
+                );
+              }
+              return null;
+            })}
+          </div>
+          {children}
+        </div>
+      </main>
+    </div>
   );
 };
 

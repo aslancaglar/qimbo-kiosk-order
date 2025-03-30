@@ -1,57 +1,134 @@
 
-import React, { useState, useEffect } from 'react';
-import { Routes, Route, Navigate } from 'react-router-dom';
-import { ThemeProvider } from 'next-themes';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { Toaster } from "@/components/ui/sonner";
+import { Toaster } from "@/components/ui/toaster";
+import { Toaster as Sonner } from "@/components/ui/sonner";
+import { TooltipProvider } from "@/components/ui/tooltip";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
+import { lazy, Suspense, useEffect } from "react";
+import { AnimatePresence } from "framer-motion";
+import { enableRealtimeForTables } from "./utils/enableRealtimeForTables";
+import { startMeasure, endMeasure } from "./utils/performanceMonitor";
 
-import Index from './pages/Index';
-import NotFound from './pages/NotFound';
-import MenuPage from './components/menu/MenuPage';
-import OrderSummaryPage from './components/order/OrderSummaryPage';
-import OrderConfirmation from './components/order/OrderConfirmation';
-import Dashboard from './pages/admin/Dashboard';
-import Orders from './pages/admin/Orders';
-import KitchenDisplay from './pages/admin/KitchenDisplay';
-import MenuItems from './pages/admin/MenuItems';
-import Categories from './pages/admin/Categories';
-import Toppings from './pages/admin/Toppings';
-import Settings from './pages/admin/Settings';
-import PrintSettings from './pages/admin/PrintSettings';
+// Eagerly load the Index page for fast initial load
+import Index from "./pages/Index";
+
+// Lazy load other pages to reduce initial bundle size
+const NotFound = lazy(() => import("./pages/NotFound"));
+const MenuPage = lazy(() => import("./components/menu/MenuPage"));
+const OrderConfirmation = lazy(() => import("./components/order/OrderConfirmation"));
+const OrderSummaryPage = lazy(() => import("./components/order/OrderSummaryPage"));
+
+// Lazy load admin pages
+const Dashboard = lazy(() => import("./pages/admin/Dashboard"));
+const Orders = lazy(() => import("./pages/admin/Orders"));
+const MenuItems = lazy(() => import("./pages/admin/MenuItems"));
+const Categories = lazy(() => import("./pages/admin/Categories"));
+const Toppings = lazy(() => import("./pages/admin/Toppings"));
+const Settings = lazy(() => import("./pages/admin/Settings"));
+const KitchenDisplay = lazy(() => import("./pages/admin/KitchenDisplay"));
+
+// Loading fallback component
+const LoadingFallback = () => (
+  <div className="h-full w-full flex items-center justify-center">
+    <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-red-600"></div>
+  </div>
+);
+
+// Performance optimized QueryClient
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      refetchOnWindowFocus: false, // Disable refetching on window focus to save resources
+      staleTime: 60000, // One minute stale time
+      gcTime: 300000, // Five minute cache time (replaced cacheTime)
+      retry: 1, // Limit retries on failure
+    },
+  },
+});
+
+// RouteChangeTracker component to measure page load performance
+const RouteChangeTracker = () => {
+  const location = useLocation();
+  
+  useEffect(() => {
+    startMeasure(`Page load: ${location.pathname}`);
+    
+    // End measure after component mounts
+    const timeout = setTimeout(() => {
+      endMeasure(`Page load: ${location.pathname}`);
+    }, 100);
+    
+    return () => clearTimeout(timeout);
+  }, [location.pathname]);
+  
+  return null;
+};
 
 const App = () => {
-  const [queryClient] = useState(() => new QueryClient());
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-
+  // Initialize performance monitoring
   useEffect(() => {
-    // Check if the user is already authenticated
-    const token = localStorage.getItem('authToken');
-    setIsAuthenticated(!!token);
+    startMeasure('App initialization');
+    
+    console.log('Initializing app with performance monitoring...');
+    
+    // Initialize realtime subscriptions when the app starts
+    const initializeRealtime = async () => {
+      try {
+        startMeasure('Realtime initialization');
+        const channels = await enableRealtimeForTables();
+        endMeasure('Realtime initialization');
+        console.log('Realtime subscriptions initialized successfully', channels);
+      } catch (error) {
+        console.error('Failed to initialize realtime:', error);
+      }
+    };
+    
+    initializeRealtime();
+    
+    // End initial measure
+    const timeout = setTimeout(() => {
+      endMeasure('App initialization');
+    }, 500);
+    
+    // Clean up
+    return () => {
+      clearTimeout(timeout);
+    };
   }, []);
 
   return (
-    <div className="min-h-screen">
-      <QueryClientProvider client={queryClient}>
-        <ThemeProvider>
-          <Routes>
-            <Route path="/" element={isAuthenticated ? <Navigate to="/admin" /> : <Index />} />
-            <Route path="/menu/:categoryId?" element={<MenuPage />} />
-            <Route path="/order-summary" element={<OrderSummaryPage />} />
-            <Route path="/confirmation" element={<OrderConfirmation />} />
-            <Route path="/admin" element={<React.Suspense fallback={<div>Loading...</div>}><Dashboard /></React.Suspense>} />
-            <Route path="/admin/orders" element={<React.Suspense fallback={<div>Loading...</div>}><Orders /></React.Suspense>} />
-            <Route path="/admin/kitchen" element={<React.Suspense fallback={<div>Loading...</div>}><KitchenDisplay /></React.Suspense>} />
-            <Route path="/admin/menu-items" element={<React.Suspense fallback={<div>Loading...</div>}><MenuItems /></React.Suspense>} />
-            <Route path="/admin/categories" element={<React.Suspense fallback={<div>Loading...</div>}><Categories /></React.Suspense>} />
-            <Route path="/admin/toppings" element={<React.Suspense fallback={<div>Loading...</div>}><Toppings /></React.Suspense>} />
-            <Route path="/admin/print-settings" element={<React.Suspense fallback={<div>Loading...</div>}><PrintSettings /></React.Suspense>} />
-            <Route path="/admin/settings" element={<React.Suspense fallback={<div>Loading...</div>}><Settings /></React.Suspense>} />
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-          <Toaster />
-        </ThemeProvider>
-      </QueryClientProvider>
-    </div>
+    <QueryClientProvider client={queryClient}>
+      <TooltipProvider>
+        <Toaster />
+        <Sonner />
+        <BrowserRouter>
+          <RouteChangeTracker />
+          <AnimatePresence mode="wait">
+            <Suspense fallback={<LoadingFallback />}>
+              <Routes>
+                {/* Customer-facing routes */}
+                <Route path="/" element={<Index />} />
+                <Route path="/menu" element={<MenuPage />} />
+                <Route path="/order-summary" element={<OrderSummaryPage />} />
+                <Route path="/confirmation" element={<OrderConfirmation />} />
+                
+                {/* Admin routes */}
+                <Route path="/admin" element={<Dashboard />} />
+                <Route path="/admin/orders" element={<Orders />} />
+                <Route path="/admin/menu" element={<MenuItems />} />
+                <Route path="/admin/categories" element={<Categories />} />
+                <Route path="/admin/toppings" element={<Toppings />} />
+                <Route path="/admin/settings" element={<Settings />} />
+                <Route path="/admin/kitchen" element={<KitchenDisplay />} />
+                
+                {/* 404 route */}
+                <Route path="*" element={<NotFound />} />
+              </Routes>
+            </Suspense>
+          </AnimatePresence>
+        </BrowserRouter>
+      </TooltipProvider>
+    </QueryClientProvider>
   );
 };
 
