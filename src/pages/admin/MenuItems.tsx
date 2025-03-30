@@ -1,6 +1,8 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import AdminLayout from '../../components/admin/AdminLayout';
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { 
   Table, 
   TableHeader, 
@@ -45,6 +47,7 @@ interface MenuItem {
   price: string;
   status: "Active" | "Inactive";
   hasToppings: boolean;
+  description?: string;
   availableToppingCategories?: number[];
   image?: string;
 }
@@ -61,6 +64,7 @@ interface ToppingCategory {
 const menuItemFormSchema = z.object({
   name: z.string().min(2, { message: "Name must be at least 2 characters." }),
   category: z.string().min(2, { message: "Category is required." }),
+  description: z.string().optional(),
   price: z.string().min(1, { message: "Price is required." }),
   status: z.enum(["Active", "Inactive"]),
   hasToppings: z.boolean().default(false),
@@ -87,6 +91,7 @@ const MenuItems = () => {
     defaultValues: {
       name: "",
       category: "",
+      description: "",
       price: "",
       status: "Active",
       hasToppings: false,
@@ -109,6 +114,7 @@ const MenuItems = () => {
         id: item.id,
         name: item.name,
         category: item.category,
+        description: item.description || '',
         price: `$${item.price}`,
         status: item.status as "Active" | "Inactive",
         hasToppings: item.has_toppings,
@@ -196,6 +202,7 @@ const MenuItems = () => {
     form.reset({
       name: item.name,
       category: item.category,
+      description: item.description || '',
       price: item.price.replace('$', ''),
       status: item.status,
       hasToppings: item.hasToppings,
@@ -211,6 +218,7 @@ const MenuItems = () => {
     form.reset({
       name: "",
       category: "",
+      description: "",
       price: "",
       status: "Active",
       hasToppings: false,
@@ -398,6 +406,7 @@ const MenuItems = () => {
       const menuItemData = {
         name: data.name,
         category: data.category,
+        description: data.description || null,
         price: priceValue,
         status: data.status,
         has_toppings: data.hasToppings,
@@ -491,6 +500,7 @@ const MenuItems = () => {
                   <TableHead>ID</TableHead>
                   <TableHead>Image</TableHead>
                   <TableHead>Name</TableHead>
+                  <TableHead>Description</TableHead>
                   <TableHead>Category</TableHead>
                   <TableHead>Price</TableHead>
                   <TableHead>Status</TableHead>
@@ -501,7 +511,7 @@ const MenuItems = () => {
               <TableBody>
                 {isLoading ? (
                   <TableRow>
-                    <TableCell colSpan={8} className="text-center py-8">
+                    <TableCell colSpan={9} className="text-center py-8">
                       <div className="flex justify-center">
                         <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary"></div>
                       </div>
@@ -527,6 +537,11 @@ const MenuItems = () => {
                         )}
                       </TableCell>
                       <TableCell>{item.name}</TableCell>
+                      <TableCell>
+                        <div className="max-w-xs truncate">
+                          {item.description || <span className="text-gray-400 italic">No description</span>}
+                        </div>
+                      </TableCell>
                       <TableCell>{item.category}</TableCell>
                       <TableCell>{item.price}</TableCell>
                       <TableCell>
@@ -560,7 +575,7 @@ const MenuItems = () => {
                   ))
                 ) : (
                   <TableRow>
-                    <TableCell colSpan={8} className="text-center py-8">
+                    <TableCell colSpan={9} className="text-center py-8">
                       No menu items found
                     </TableCell>
                   </TableRow>
@@ -652,6 +667,27 @@ const MenuItems = () => {
                         <FormControl>
                           <Input placeholder="Item name" {...field} />
                         </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  
+                  <FormField
+                    control={form.control}
+                    name="description"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Description</FormLabel>
+                        <FormControl>
+                          <Textarea 
+                            placeholder="Enter a description of this menu item..." 
+                            className="resize-none min-h-[100px]" 
+                            {...field} 
+                          />
+                        </FormControl>
+                        <FormDescription>
+                          Provide a brief description of the item, including key ingredients or flavors.
+                        </FormDescription>
                         <FormMessage />
                       </FormItem>
                     )}
