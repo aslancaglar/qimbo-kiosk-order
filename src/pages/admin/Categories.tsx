@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import AdminLayout from '../../components/admin/AdminLayout';
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -12,7 +12,7 @@ import {
   TableCell 
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Search, Plus, Edit, Trash, ArrowUp, ArrowDown } from "lucide-react";
+import { Search, Plus, Edit, Trash, ArrowUp, ArrowDown, Upload, Image } from "lucide-react";
 import { 
   Dialog,
   DialogContent,
@@ -28,9 +28,13 @@ import {
   FormItem,
   FormLabel,
   FormControl,
-  FormMessage
+  FormMessage,
+  FormDescription
 } from "@/components/ui/form";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
@@ -42,12 +46,14 @@ interface Category {
   name: string;
   description: string | null;
   display_order: number;
+  icon_url: string | null;
 }
 
 const categoryFormSchema = z.object({
   name: z.string().min(2, { message: "Name must be at least 2 characters." }),
   description: z.string().optional(),
-  display_order: z.number().int().default(0)
+  display_order: z.number().int().default(0),
+  icon_url: z.string().optional()
 });
 
 type CategoryFormValues = z.infer<typeof categoryFormSchema>;
@@ -58,6 +64,9 @@ const Categories = () => {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadPreview, setUploadPreview] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
   
   const form = useForm<CategoryFormValues>({
@@ -65,7 +74,8 @@ const Categories = () => {
     defaultValues: {
       name: "",
       description: "",
-      display_order: 0
+      display_order: 0,
+      icon_url: ""
     },
   });
 
@@ -119,8 +129,10 @@ const Categories = () => {
     form.reset({
       name: category.name,
       description: category.description || "",
-      display_order: category.display_order
+      display_order: category.display_order,
+      icon_url: category.icon_url || ""
     });
+    setUploadPreview(category.icon_url);
     setIsDialogOpen(true);
   };
 
@@ -129,8 +141,10 @@ const Categories = () => {
     form.reset({
       name: "",
       description: "",
-      display_order: categories.length > 0 ? Math.max(...categories.map(c => c.display_order)) + 1 : 0
+      display_order: categories.length > 0 ? Math.max(...categories.map(c => c.display_order)) + 1 : 0,
+      icon_url: ""
     });
+    setUploadPreview(null);
     setIsDialogOpen(true);
   };
 
@@ -153,6 +167,33 @@ const Categories = () => {
           variant: 'destructive',
         });
         return;
+      }
+      
+      // Get the category to check if it has an icon
+      const { data: categoryData, error: categoryError } = await supabase
+        .from('menu_categories')
+        .select('icon_url')
+        .eq('id', id)
+        .single();
+        
+      if (categoryError) {
+        throw categoryError;
+      }
+      
+      // If there's an icon, delete it from storage
+      if (categoryData.icon_url) {
+        // Extract the file path from the full URL
+        const filePath = categoryData.icon_url.split('/').slice(-2).join('/');
+        
+        const { error: storageError } = await supabase
+          .storage
+          .from('menu_images')
+          .remove([filePath]);
+          
+        if (storageError) {
+          console.error('Error deleting icon from storage:', storageError);
+          // Continue with category deletion even if icon deletion fails
+        }
       }
       
       const { error } = await supabase
@@ -218,6 +259,111 @@ const Categories = () => {
     }
   };
 
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    
+    // Check file size (5MB limit)
+    if (file.size > 5 * 1024 * 1024) {
+      toast({
+        title: 'File too large',
+        description: 'Image size must be less than 5MB.',
+        variant: 'destructive',
+      });
+      return;
+    }
+    
+    // Check file type
+    if (!['image/png', 'image/jpeg', 'image/gif', 'image/webp'].includes(file.type)) {
+      toast({
+        title: 'Invalid file type',
+        description: 'Only PNG, JPEG, GIF, and WebP images are allowed.',
+        variant: 'destructive',
+      });
+      return;
+    }
+    
+    // Create a preview URL
+    const previewUrl = URL.createObjectURL(file);
+    setUploadPreview(previewUrl);
+    
+    handleUploadFile(file);
+  };
+  
+  const handleUploadFile = async (file: File) => {
+    try {
+      setIsUploading(true);
+      
+      // Generate a unique file name to avoid collisions
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${Date.now()}-${Math.random().toString(36).substring(2, 15)}.${fileExt}`;
+      const filePath = `category-icons/${fileName}`;
+      
+      // Upload the file to Supabase Storage
+      const { data, error } = await supabase.storage
+        .from('menu_images')
+        .upload(filePath, file);
+        
+      if (error) {
+        throw error;
+      }
+      
+      // Get the public URL
+      const { data: { publicUrl } } = supabase.storage
+        .from('menu_images')
+        .getPublicUrl(filePath);
+        
+      // Update the form with the public URL
+      form.setValue('icon_url', publicUrl);
+      
+      toast({
+        title: 'Success',
+        description: 'Image uploaded successfully.',
+      });
+    } catch (error) {
+      console.error('Error uploading file:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to upload image. Please try again.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsUploading(false);
+    }
+  };
+  
+  const handleRemoveImage = async () => {
+    const currentIconUrl = form.getValues('icon_url');
+    
+    if (currentIconUrl && editCategory?.icon_url === currentIconUrl) {
+      try {
+        // Extract the file path from the URL
+        const filePath = currentIconUrl.split('/').slice(-2).join('/');
+        
+        // Delete the file from Supabase Storage
+        const { error } = await supabase.storage
+          .from('menu_images')
+          .remove([filePath]);
+          
+        if (error) {
+          throw error;
+        }
+      } catch (error) {
+        console.error('Error removing image from storage:', error);
+        // Continue even if deletion from storage fails
+      }
+    }
+    
+    // Clear the preview and form value
+    setUploadPreview(null);
+    form.setValue('icon_url', '');
+    
+    toast({
+      title: 'Image Removed',
+      description: 'Category icon has been removed.',
+    });
+  };
+
   const onSubmit = async (data: CategoryFormValues) => {
     try {
       if (editCategory) {
@@ -226,7 +372,8 @@ const Categories = () => {
           .update({
             name: data.name,
             description: data.description || null,
-            display_order: data.display_order
+            display_order: data.display_order,
+            icon_url: data.icon_url || null
           })
           .eq('id', editCategory.id);
           
@@ -244,7 +391,8 @@ const Categories = () => {
           .insert([{
             name: data.name,
             description: data.description || null,
-            display_order: data.display_order
+            display_order: data.display_order,
+            icon_url: data.icon_url || null
           }]);
           
         if (error) {
@@ -301,7 +449,7 @@ const Categories = () => {
             <Table>
               <TableHeader className="sticky top-0 bg-white z-10">
                 <TableRow>
-                  <TableHead>ID</TableHead>
+                  <TableHead>Icon</TableHead>
                   <TableHead>Name</TableHead>
                   <TableHead>Description</TableHead>
                   <TableHead>Order</TableHead>
@@ -320,8 +468,19 @@ const Categories = () => {
                 ) : filteredCategories.length > 0 ? (
                   filteredCategories.map((category) => (
                     <TableRow key={category.id}>
-                      <TableCell className="font-medium">#{category.id}</TableCell>
-                      <TableCell>{category.name}</TableCell>
+                      <TableCell>
+                        {category.icon_url ? (
+                          <Avatar className="h-10 w-10">
+                            <AvatarImage src={category.icon_url} alt={category.name} />
+                            <AvatarFallback>{category.name.charAt(0)}</AvatarFallback>
+                          </Avatar>
+                        ) : (
+                          <Avatar className="h-10 w-10 bg-gray-100">
+                            <Image className="h-5 w-5 text-gray-400" />
+                          </Avatar>
+                        )}
+                      </TableCell>
+                      <TableCell className="font-medium">{category.name}</TableCell>
                       <TableCell>{category.description || "-"}</TableCell>
                       <TableCell>{category.display_order}</TableCell>
                       <TableCell className="text-right">
@@ -388,6 +547,77 @@ const Categories = () => {
           
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+              <div className="mb-6">
+                <FormLabel>Category Icon</FormLabel>
+                <div className="mt-2 flex flex-col items-center space-y-4">
+                  {uploadPreview ? (
+                    <Card className="overflow-hidden w-32 h-32 flex items-center justify-center">
+                      <CardContent className="p-0">
+                        <img 
+                          src={uploadPreview} 
+                          alt="Icon preview" 
+                          className="w-full h-full object-cover"
+                        />
+                      </CardContent>
+                    </Card>
+                  ) : (
+                    <Card className="w-32 h-32 flex items-center justify-center bg-gray-50">
+                      <CardContent className="p-0 flex flex-col items-center justify-center text-gray-400 h-full">
+                        <Image className="h-8 w-8 mb-2" />
+                        <span className="text-xs">No icon</span>
+                      </CardContent>
+                    </Card>
+                  )}
+                  
+                  <div className="flex space-x-2">
+                    <input
+                      type="file"
+                      ref={fileInputRef}
+                      onChange={handleFileSelect}
+                      accept="image/png,image/jpeg,image/gif,image/webp"
+                      className="hidden"
+                    />
+                    
+                    <Button 
+                      type="button" 
+                      variant="outline"
+                      size="sm"
+                      disabled={isUploading}
+                      onClick={() => fileInputRef.current?.click()}
+                    >
+                      {isUploading ? (
+                        <>
+                          <div className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-b-transparent"></div>
+                          Uploading...
+                        </>
+                      ) : (
+                        <>
+                          <Upload className="mr-2 h-4 w-4" />
+                          Upload Icon
+                        </>
+                      )}
+                    </Button>
+                    
+                    {uploadPreview && (
+                      <Button 
+                        type="button" 
+                        variant="outline" 
+                        size="sm"
+                        className="text-red-500 hover:text-red-700"
+                        onClick={handleRemoveImage}
+                      >
+                        <Trash className="mr-2 h-4 w-4" />
+                        Remove
+                      </Button>
+                    )}
+                  </div>
+                  
+                  <FormDescription className="text-xs text-center max-w-[300px]">
+                    Upload a square icon for this category (PNG, JPEG, GIF, WebP). Max size: 5MB.
+                  </FormDescription>
+                </div>
+              </div>
+              
               <FormField
                 control={form.control}
                 name="name"
