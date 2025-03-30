@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { CartItemType, ToppingItem } from '@/components/cart/types';
 import { Product } from '@/components/menu/ProductCard';
@@ -16,6 +17,11 @@ export function useCart({ orderType, tableNumber }: UseCartOptions) {
   const [showCancelDialog, setShowCancelDialog] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
+
+  // Generate a unique ID for cart items
+  const generateCartItemId = (): string => {
+    return Math.random().toString(36).substring(2, 9);
+  };
 
   useEffect(() => {
     if (cartItems.length > 0 && !isCartOpen) {
@@ -46,20 +52,32 @@ export function useCart({ orderType, tableNumber }: UseCartOptions) {
       setCartItems(updatedItems);
       
       toast({
-        title: "Item Updated",
-        description: `${product.name} quantity increased`,
+        title: "Article mis à jour",
+        description: `Quantité de ${product.name} augmentée`,
       });
     } else {
+      // Calculate the base price
+      const productPrice = product.price;
+      
+      // Add topping prices if any
+      const toppingPrice = selectedToppings?.reduce((total, topping) => total + topping.price, 0) || 0;
+      
+      // Total item price
+      const totalPrice = productPrice + toppingPrice;
+      
       const newItem: CartItemType = {
+        id: generateCartItemId(),
         product,
         quantity: 1,
-        selectedToppings
+        selectedToppings,
+        price: totalPrice
       };
+      
       setCartItems([...cartItems, newItem]);
       
       toast({
-        title: "Added to Cart",
-        description: `${product.name} added to your order`,
+        title: "Ajouté au panier",
+        description: `${product.name} ajouté à votre commande`,
       });
     }
   };
@@ -98,8 +116,8 @@ export function useCart({ orderType, tableNumber }: UseCartOptions) {
     setShowCancelDialog(false);
     
     toast({
-      title: "Order Cancelled",
-      description: "Your order has been cancelled",
+      title: "Commande annulée",
+      description: "Votre commande a été annulée",
     });
   };
   
@@ -108,13 +126,7 @@ export function useCart({ orderType, tableNumber }: UseCartOptions) {
     
     try {
       const subtotal = cartItems.reduce((sum, item) => {
-        let itemTotal = item.product.price * item.quantity;
-        if (item.selectedToppings && item.selectedToppings.length > 0) {
-          const toppingsPrice = item.selectedToppings.reduce(
-            (toppingSum, topping) => toppingSum + topping.price, 0
-          );
-          itemTotal += toppingsPrice * item.quantity;
-        }
+        let itemTotal = item.price * item.quantity;
         return sum + itemTotal;
       }, 0);
       
@@ -198,8 +210,8 @@ export function useCart({ orderType, tableNumber }: UseCartOptions) {
       });
       
       toast({
-        title: "Order Submitted",
-        description: `Your order #${orderResult.id} has been placed successfully!`,
+        title: "Commande envoyée",
+        description: `Votre commande n°${orderResult.id} a été passée avec succès !`,
       });
       
       setCartItems([]);
@@ -207,8 +219,8 @@ export function useCart({ orderType, tableNumber }: UseCartOptions) {
     } catch (error) {
       console.error('Checkout error:', error);
       toast({
-        title: "Error",
-        description: "Could not complete checkout. Please try again.",
+        title: "Erreur",
+        description: "Impossible de finaliser la commande. Veuillez réessayer.",
         variant: "destructive",
       });
     }

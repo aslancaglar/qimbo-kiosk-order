@@ -11,9 +11,11 @@ export interface ToppingItem {
 }
 
 export interface CartItemType {
+  id: string;  // Added ID property for item identification
   product: Product;
   quantity: number;
   selectedToppings?: ToppingItem[];
   options?: { name: string; value: string }[];
-  notes?: string; // Adding the notes property
+  notes?: string;
+  price: number;  // Added price property for easy access
 }

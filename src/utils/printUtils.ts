@@ -1,6 +1,14 @@
 
 import { CartItemType } from "../components/cart/types";
 
+// Format currency helper
+export const formatCurrency = (amount: number): string => {
+  return new Intl.NumberFormat('fr-FR', {
+    style: 'currency',
+    currency: 'EUR'
+  }).format(amount);
+};
+
 // Format order for printing
 export const formatOrderReceipt = (
   orderNumber: string | number,
