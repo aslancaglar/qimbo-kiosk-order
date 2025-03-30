@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Button from '../common/Button';
@@ -236,7 +235,7 @@ const CartSidebar: React.FC<CartSidebarProps> = ({
                           {item.selectedToppings.map((topping) => (
                             <div key={topping.id} className="flex justify-between text-sm text-gray-600">
                               <span>+ {topping.name}</span>
-                              <span>${topping.price.toFixed(2)}</span>
+                              <span>{topping.price.toFixed(2)} €</span>
                             </div>
                           ))}
                         </div>
@@ -249,16 +248,16 @@ const CartSidebar: React.FC<CartSidebarProps> = ({
               <div className="p-6 border-t border-gray-100">
                 <div className="mb-4 space-y-2">
                   <div className="flex justify-between text-sm">
-                    <span className="text-gray-600">Subtotal</span>
-                    <span>${subtotal.toFixed(2)}</span>
+                    <span className="text-gray-600">Sous-total</span>
+                    <span>{subtotal.toFixed(2)} €</span>
                   </div>
                   <div className="flex justify-between text-sm">
-                    <span className="text-gray-600">Tax</span>
-                    <span>${tax.toFixed(2)}</span>
+                    <span className="text-gray-600">TVA</span>
+                    <span>{tax.toFixed(2)} €</span>
                   </div>
                   <div className="flex justify-between font-semibold text-base pt-2">
                     <span>Total</span>
-                    <span>${total.toFixed(2)}</span>
+                    <span>{total.toFixed(2)} €</span>
                   </div>
                 </div>
                 

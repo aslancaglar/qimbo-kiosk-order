@@ -64,7 +64,7 @@ const CartItem: React.FC<CartItemProps> = ({
           
           <div className="flex justify-between items-center mt-2">
             <span className="font-medium">
-              ${(item.product.price * item.quantity).toFixed(2)}
+              {(item.product.price * item.quantity).toFixed(2)} €
               {isTablet && item.quantity > 1 && ` (x${item.quantity})`}
             </span>
             

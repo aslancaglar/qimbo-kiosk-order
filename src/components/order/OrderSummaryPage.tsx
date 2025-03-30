@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
@@ -17,14 +16,12 @@ const OrderSummaryPage: React.FC = () => {
   const { items, orderType, tableNumber } = location.state || {};
   const { handleConfirmOrder } = useCart({ orderType, tableNumber });
   
-  // Redirect to welcome page if no items are specified
   React.useEffect(() => {
     if (!items || items.length === 0) {
       navigate('/', { replace: true });
     }
   }, [items, navigate]);
   
-  // Calculate subtotal including toppings
   const subtotal = items?.reduce((sum: number, item: CartItemType) => {
     let itemTotal = item.product.price * item.quantity;
     if (item.selectedToppings && item.selectedToppings.length > 0) {
@@ -36,7 +33,7 @@ const OrderSummaryPage: React.FC = () => {
     return sum + itemTotal;
   }, 0) || 0;
   
-  const tax = subtotal * 0.1; // 10% tax rate
+  const tax = subtotal * 0.1;
   const total = subtotal + tax;
 
   const handleGoBack = () => {
@@ -45,13 +42,10 @@ const OrderSummaryPage: React.FC = () => {
 
   const handleConfirmOrderClick = async () => {
     try {
-      // First confirm the order using the cart handler
       await handleConfirmOrder();
       
-      // Generate a random order number for display
       const orderNumber = Math.floor(10000 + Math.random() * 90000).toString();
       
-      // Save order to database
       const { data: orderResult, error: orderError } = await supabase
         .from('orders')
         .insert({
@@ -77,7 +71,6 @@ const OrderSummaryPage: React.FC = () => {
       
       console.log('Order created successfully:', orderResult);
       
-      // Save order items
       for (const item of items) {
         const { data: orderItemResult, error: orderItemError } = await supabase
           .from('order_items')
@@ -96,7 +89,6 @@ const OrderSummaryPage: React.FC = () => {
           continue;
         }
         
-        // Save toppings if any
         if (item.selectedToppings && item.selectedToppings.length > 0) {
           for (const topping of item.selectedToppings) {
             const { error: toppingError } = await supabase
@@ -115,7 +107,6 @@ const OrderSummaryPage: React.FC = () => {
         }
       }
       
-      // Then navigate to the confirmation page with all the necessary order data
       navigate('/confirmation', { 
         state: { 
           items,
@@ -153,7 +144,7 @@ const OrderSummaryPage: React.FC = () => {
           
           <h1 className="text-2xl font-semibold">Résumé de commande</h1>
           
-          <div className="w-10"></div> {/* Empty space for alignment */}
+          <div className="w-10"></div>
         </header>
         
         <motion.div 
@@ -198,7 +189,6 @@ const OrderSummaryPage: React.FC = () => {
                         </span>
                       </div>
                       
-                      {/* Display selected toppings */}
                       {item.selectedToppings && item.selectedToppings.length > 0 && (
                         <div className="mt-1 pl-8">
                           {item.selectedToppings.map((topping, idx) => (

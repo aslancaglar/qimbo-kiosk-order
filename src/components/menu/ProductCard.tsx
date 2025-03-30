@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Button from '../common/Button';
@@ -303,7 +302,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onSelect }) => {
         <p className="text-gray-600 text-xs mb-2 flex-1 line-clamp-2">{product.description}</p>
         
         <div className="flex justify-between items-center mt-auto">
-          <span className="font-bold text-sm">${product.price.toFixed(2)}</span>
+          <span className="font-bold text-sm">{product.price.toFixed(2)} €</span>
           
           <AnimatePresence>
             {showAddedAnimation ? (
@@ -367,7 +366,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onSelect }) => {
                             <div>
                               <p className="font-medium">{topping.name}</p>
                               {topping.price > 0 && (
-                                <p className="text-sm text-gray-500">${topping.price.toFixed(2)}</p>
+                                <p className="text-sm text-gray-500">{topping.price.toFixed(2)} €</p>
                               )}
                             </div>
                             

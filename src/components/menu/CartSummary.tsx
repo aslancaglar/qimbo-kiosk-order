@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ShoppingBag, Minus, Plus, Trash, ArrowRight } from 'lucide-react';
@@ -13,7 +12,7 @@ interface CartSummaryProps {
   onIncrementItem: (index: number) => void;
   onDecrementItem: (index: number) => void;
   onCancelOrderClick: () => void;
-  onConfirmOrder: () => Promise<void>; // Added the missing prop
+  onConfirmOrder: () => Promise<void>;
   orderType: 'takeaway' | 'eat-in';
   tableNumber?: number;
 }
@@ -24,7 +23,7 @@ const CartSummary: React.FC<CartSummaryProps> = ({
   onIncrementItem,
   onDecrementItem,
   onCancelOrderClick,
-  onConfirmOrder, // Added the missing prop in destructuring
+  onConfirmOrder,
   orderType,
   tableNumber
 }) => {
@@ -33,7 +32,6 @@ const CartSummary: React.FC<CartSummaryProps> = ({
   
   const totalItems = cartItems.reduce((sum, item) => sum + item.quantity, 0);
   
-  // Calculate subtotal including toppings
   const subtotal = cartItems.reduce((sum, item) => {
     let itemTotal = item.product.price * item.quantity;
     if (item.selectedToppings && item.selectedToppings.length > 0) {
@@ -45,7 +43,7 @@ const CartSummary: React.FC<CartSummaryProps> = ({
     return sum + itemTotal;
   }, 0);
   
-  const tax = subtotal * 0.1; // 10% tax rate
+  const tax = subtotal * 0.1;
   const total = subtotal + tax;
   
   const handleSeeOrder = () => {
@@ -100,16 +98,15 @@ const CartSummary: React.FC<CartSummaryProps> = ({
                     <div>
                       <p className="font-medium">{item.product.name}</p>
                       <p className="text-sm text-gray-600">
-                        ${item.product.price.toFixed(2)}
+                        {item.product.price.toFixed(2)} €
                         {item.quantity > 1 && !isMobile && window.innerWidth < 1025 && ` × ${item.quantity}`}
                       </p>
                       
-                      {/* Display toppings if any */}
                       {item.selectedToppings && item.selectedToppings.length > 0 && (
                         <div className="text-xs text-gray-500 mt-1">
                           {item.selectedToppings.map((topping) => (
                             <span key={topping.id} className="mr-1">
-                              +{topping.name} (${topping.price.toFixed(2)})
+                              +{topping.name} ({topping.price.toFixed(2)} €)
                             </span>
                           ))}
                         </div>
@@ -160,18 +157,18 @@ const CartSummary: React.FC<CartSummaryProps> = ({
         )}
         
         <div className="flex justify-between items-center mb-2">
-          <span className="text-gray-600 text-sm">Subtotal:</span>
-          <span>${subtotal.toFixed(2)}</span>
+          <span className="text-gray-600 text-sm">Sous-total:</span>
+          <span>{subtotal.toFixed(2)} €</span>
         </div>
         
         <div className="flex justify-between items-center mb-2">
-          <span className="text-gray-600 text-sm">Tax (10%):</span>
-          <span>${tax.toFixed(2)}</span>
+          <span className="text-gray-600 text-sm">TVA (10%):</span>
+          <span>{tax.toFixed(2)} €</span>
         </div>
         
         <div className="flex justify-between items-center mb-4">
           <span className="font-semibold">TOTAL:</span>
-          <span className="font-bold text-xl">${total.toFixed(2)}</span>
+          <span className="font-bold text-xl">{total.toFixed(2)} €</span>
         </div>
         
         <div className="grid grid-cols-2 gap-3">

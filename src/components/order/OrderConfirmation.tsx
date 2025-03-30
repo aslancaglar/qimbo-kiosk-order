@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
@@ -18,28 +17,23 @@ const OrderConfirmation: React.FC<OrderConfirmationProps> = () => {
   const [printed, setPrinted] = useState(false);
   const [redirecting, setRedirecting] = useState(false);
   
-  // Redirect to welcome page if no items are specified
   useEffect(() => {
     if (!items || items.length === 0) {
       navigate('/', { replace: true });
     }
   }, [items, navigate]);
   
-  // Add a new effect for the 6-second redirect
   useEffect(() => {
     const redirectTimer = setTimeout(() => {
       setRedirecting(true);
       navigate('/', { replace: true });
-    }, 6000); // 6 seconds
+    }, 6000);
     
     return () => clearTimeout(redirectTimer);
   }, [navigate]);
-
-  // Auto print on component mount
+  
   useEffect(() => {
-    // Only print if we have items and haven't printed yet
     if (items && items.length > 0 && !printed) {
-      // Delay printing by a small amount to ensure component is fully rendered
       const timer = setTimeout(() => {
         printOrder();
         setPrinted(true);
@@ -49,10 +43,8 @@ const OrderConfirmation: React.FC<OrderConfirmationProps> = () => {
     }
   }, [items, printed]);
   
-  // Use the order ID as the order number
   const orderNumber = orderId;
 
-  // Print order function
   const printOrder = () => {
     try {
       const iframe = document.createElement('iframe');
@@ -142,13 +134,13 @@ const OrderConfirmation: React.FC<OrderConfirmationProps> = () => {
                     `<br><small>${item.options.map((o: {name: string, value: string}) => o.value).join(', ')}</small>` : 
                     ''}
                 </div>
-                <span>$${(item.product.price * item.quantity).toFixed(2)}</span>
+                <span>${(item.product.price * item.quantity).toFixed(2)} €</span>
               </div>
               ${item.selectedToppings && item.selectedToppings.length > 0 ? 
                 item.selectedToppings.map((topping: {id: number, name: string, price: number}) => `
                   <div class="topping-item">
                     <span>+ ${topping.name}</span>
-                    <span>$${topping.price.toFixed(2)}</span>
+                    <span>${topping.price.toFixed(2)} €</span>
                   </div>
                 `).join('') : 
                 ''}
@@ -159,15 +151,15 @@ const OrderConfirmation: React.FC<OrderConfirmationProps> = () => {
             <div class="totals">
               <div class="total-row">
                 <span>Subtotal:</span>
-                <span>$${subtotal?.toFixed(2) || '0.00'}</span>
+                <span>${subtotal?.toFixed(2) || '0.00'} €</span>
               </div>
               <div class="total-row">
                 <span>Tax:</span>
-                <span>$${tax?.toFixed(2) || '0.00'}</span>
+                <span>${tax?.toFixed(2) || '0.00'} €</span>
               </div>
               <div class="total-row final-total">
                 <span>Total:</span>
-                <span>$${total?.toFixed(2) || '0.00'}</span>
+                <span>${total?.toFixed(2) || '0.00'} €</span>
               </div>
             </div>
             
@@ -190,7 +182,6 @@ const OrderConfirmation: React.FC<OrderConfirmationProps> = () => {
       
       iframe.contentDocument.close();
       
-      // Remove the iframe after printing
       setTimeout(() => {
         iframe.remove();
       }, 2000);
@@ -204,7 +195,6 @@ const OrderConfirmation: React.FC<OrderConfirmationProps> = () => {
     }
   };
   
-  // If we're redirecting, show nothing to avoid flash of content
   if (redirecting) {
     return null;
   }
@@ -322,7 +312,6 @@ const OrderConfirmation: React.FC<OrderConfirmationProps> = () => {
                           </p>
                         )}
                         
-                        {/* Display selected toppings */}
                         {item.selectedToppings && item.selectedToppings.length > 0 && (
                           <div className="mt-1">
                             {item.selectedToppings.map((topping, idx) => (
@@ -331,14 +320,14 @@ const OrderConfirmation: React.FC<OrderConfirmationProps> = () => {
                                   <Plus size={12} className="mr-1 text-gray-400" />
                                   {topping.name}
                                 </span>
-                                <span>${topping.price.toFixed(2)}</span>
+                                <span>{topping.price.toFixed(2)} €</span>
                               </div>
                             ))}
                           </div>
                         )}
                       </div>
                       <p className="font-medium">
-                        ${(item.product.price * item.quantity).toFixed(2)}
+                        {(item.product.price * item.quantity).toFixed(2)} €
                       </p>
                     </div>
                   ))}
@@ -349,15 +338,15 @@ const OrderConfirmation: React.FC<OrderConfirmationProps> = () => {
                 <div className="space-y-2">
                   <div className="flex justify-between text-sm">
                     <span className="text-gray-600">Subtotal</span>
-                    <span>${subtotal?.toFixed(2) || '0.00'}</span>
+                    <span>{subtotal?.toFixed(2) || '0.00'} €</span>
                   </div>
                   <div className="flex justify-between text-sm">
                     <span className="text-gray-600">Tax</span>
-                    <span>${tax?.toFixed(2) || '0.00'}</span>
+                    <span>{tax?.toFixed(2) || '0.00'} €</span>
                   </div>
                   <div className="flex justify-between font-semibold text-base pt-2 border-t border-gray-200 mt-2">
                     <span>Total</span>
-                    <span>${total?.toFixed(2) || '0.00'}</span>
+                    <span>{total?.toFixed(2) || '0.00'} €</span>
                   </div>
                 </div>
               </div>
