@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
@@ -53,7 +54,7 @@ const OrderSummaryPage: React.FC = () => {
   const handleConfirmOrderClick = async () => {
     try {
       await handleConfirmOrder();
-      const orderNumber = Math.floor(10000 + Math.random() * 90000).toString();
+      // Removing the random order number generation
       const {
         data: orderResult,
         error: orderError
@@ -63,8 +64,8 @@ const OrderSummaryPage: React.FC = () => {
         items_count: items.reduce((sum: number, item: CartItemType) => sum + item.quantity, 0),
         total_amount: total,
         status: 'New',
-        order_number: orderNumber
-      }).select('id, order_number').single();
+        // We'll let the database generate the order_number
+      }).select('id').single();
       if (orderError) {
         console.error('Error creating order:', orderError);
         toast({
@@ -116,7 +117,8 @@ const OrderSummaryPage: React.FC = () => {
           tax,
           total,
           orderId: orderResult.id,
-          orderNumber: orderResult.order_number
+          // Use the database ID as the order number
+          orderNumber: orderResult.id.toString()
         }
       });
     } catch (error) {

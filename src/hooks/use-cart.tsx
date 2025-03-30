@@ -132,8 +132,6 @@ export function useCart({ orderType, tableNumber }: UseCartOptions) {
       
       console.log('Starting checkout process with order data:', orderData);
       
-      const orderNumber = Math.floor(10000 + Math.random() * 90000).toString();
-      
       const { data: orderResult, error: orderError } = await supabase
         .from('orders')
         .insert({
@@ -142,7 +140,6 @@ export function useCart({ orderType, tableNumber }: UseCartOptions) {
           items_count: cartItems.reduce((sum, item) => sum + item.quantity, 0),
           total_amount: total,
           status: 'New',
-          order_number: orderNumber
         })
         .select('id')
         .single();
@@ -193,13 +190,14 @@ export function useCart({ orderType, tableNumber }: UseCartOptions) {
       navigate('/confirmation', { 
         state: { 
           ...orderData,
-          orderId: orderResult.id
+          orderId: orderResult.id,
+          orderNumber: orderResult.id.toString()
         } 
       });
       
       toast({
-        title: "Order Submitted",
-        description: `Your order #${orderResult.id} has been placed successfully!`,
+        title: "Commande envoyée",
+        description: `Votre commande #${orderResult.id} a été passée avec succès!`,
       });
       
       setCartItems([]);
@@ -207,8 +205,8 @@ export function useCart({ orderType, tableNumber }: UseCartOptions) {
     } catch (error) {
       console.error('Checkout error:', error);
       toast({
-        title: "Error",
-        description: "Could not complete checkout. Please try again.",
+        title: "Erreur",
+        description: "Impossible de finaliser la commande. Veuillez réessayer.",
         variant: "destructive",
       });
     }
