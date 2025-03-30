@@ -1,7 +1,8 @@
+
 import React, { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import Button from '../common/Button';
-import { ShoppingBag, Plus, Minus } from 'lucide-react';
+import { ShoppingBag, Plus, Minus, Check } from 'lucide-react';
 import { ToppingItem } from '../cart/types';
 import {
   Dialog,
@@ -77,6 +78,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onSelect }) => {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [toppingCategories, setToppingCategories] = useState<ToppingCategory[]>([]);
+  const [showAddedAnimation, setShowAddedAnimation] = useState(false);
   const { toast } = useToast();
   
   const form = useForm<ToppingsFormValues>({
@@ -92,7 +94,15 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onSelect }) => {
       setIsDialogOpen(true);
     } else {
       onSelect(product);
+      showAddedConfirmation();
     }
+  };
+  
+  const showAddedConfirmation = () => {
+    setShowAddedAnimation(true);
+    setTimeout(() => {
+      setShowAddedAnimation(false);
+    }, 1500);
   };
   
   const fetchToppingCategories = async () => {
@@ -257,6 +267,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onSelect }) => {
     
     onSelect(product, selectedToppings);
     setIsDialogOpen(false);
+    showAddedConfirmation();
   };
   
   const isCategoryValid = (categoryId: number): boolean => {
@@ -275,7 +286,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onSelect }) => {
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0 }}
-      className="bg-white rounded-lg shadow-md overflow-hidden h-full flex flex-col"
+      className="bg-white rounded-lg shadow-md overflow-hidden h-full flex flex-col relative"
     >
       <div className="h-32 overflow-hidden">
         <img 
@@ -291,10 +302,24 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onSelect }) => {
         
         <div className="flex justify-between items-center mt-auto">
           <span className="font-bold text-sm">${product.price.toFixed(2)}</span>
-          <Button size="sm" onClick={handleAddToCart} className="bg-red-600 hover:bg-red-700 text-white text-xs py-1 px-2">
-            <ShoppingBag className="mr-1 h-3 w-3" />
-            Add
-          </Button>
+          
+          <AnimatePresence>
+            {showAddedAnimation ? (
+              <motion.div
+                initial={{ scale: 0 }}
+                animate={{ scale: 1 }}
+                exit={{ scale: 0 }}
+                className="bg-green-500 text-white rounded-full w-8 h-8 flex items-center justify-center"
+              >
+                <Check className="h-5 w-5" />
+              </motion.div>
+            ) : (
+              <Button size="sm" onClick={handleAddToCart} className="bg-red-600 hover:bg-red-700 text-white text-xs py-1 px-2">
+                <ShoppingBag className="mr-1 h-3 w-3" />
+                Add
+              </Button>
+            )}
+          </AnimatePresence>
         </div>
       </div>
       

@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { ShoppingBag, Minus, Plus, Trash } from 'lucide-react';
 import Button from '../common/Button';
 import { CartItemType } from '../cart/types';
@@ -60,74 +60,83 @@ const CartSummary: React.FC<CartSummaryProps> = ({
         
         {cartItems.length > 0 && (
           <div className="mb-4 max-h-48 overflow-y-auto">
-            {cartItems.map((item, index) => (
-              <div key={`${item.product.id}-${index}`} className="flex items-center justify-between py-2 border-b">
-                <div className="flex items-center">
-                  {!isMobile && window.innerWidth >= 1025 && (
-                    <img 
-                      src={item.product.image} 
-                      alt={item.product.name} 
-                      className="h-12 w-12 object-cover rounded mr-3" 
-                    />
-                  )}
-                  <div>
-                    <p className="font-medium">{item.product.name}</p>
-                    <p className="text-sm text-gray-600">
-                      ${item.product.price.toFixed(2)}
-                      {item.quantity > 1 && !isMobile && window.innerWidth < 1025 && ` × ${item.quantity}`}
-                    </p>
+            <AnimatePresence>
+              {cartItems.map((item, index) => (
+                <motion.div 
+                  key={`${item.product.id}-${index}`} 
+                  className="flex items-center justify-between py-2 border-b"
+                  initial={{ opacity: 0, scale: 0.8 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ duration: 0.3 }}
+                  layout
+                >
+                  <div className="flex items-center">
+                    {!isMobile && window.innerWidth >= 1025 && (
+                      <img 
+                        src={item.product.image} 
+                        alt={item.product.name} 
+                        className="h-12 w-12 object-cover rounded mr-3" 
+                      />
+                    )}
+                    <div>
+                      <p className="font-medium">{item.product.name}</p>
+                      <p className="text-sm text-gray-600">
+                        ${item.product.price.toFixed(2)}
+                        {item.quantity > 1 && !isMobile && window.innerWidth < 1025 && ` × ${item.quantity}`}
+                      </p>
+                      
+                      {/* Display toppings if any */}
+                      {item.selectedToppings && item.selectedToppings.length > 0 && (
+                        <div className="text-xs text-gray-500 mt-1">
+                          {item.selectedToppings.map((topping) => (
+                            <span key={topping.id} className="mr-1">
+                              +{topping.name} (${topping.price.toFixed(2)})
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-center gap-2">
+                    {isMobile || window.innerWidth >= 1025 ? (
+                      <>
+                        <button
+                          onClick={() => onDecrementItem(index)}
+                          className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 hover:bg-gray-200"
+                          disabled={item.quantity <= 1}
+                        >
+                          <Minus className="h-4 w-4" />
+                        </button>
+                        <span className="w-6 text-center font-medium">{item.quantity}</span>
+                        <button
+                          onClick={() => onIncrementItem(index)}
+                          className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 hover:bg-gray-200"
+                        >
+                          <Plus className="h-4 w-4" />
+                        </button>
+                      </>
+                    ) : (
+                      <button
+                        onClick={() => onRemoveItem(index)}
+                        className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 hover:bg-gray-200 ml-2"
+                      >
+                        <Trash className="h-4 w-4 text-red-500" />
+                      </button>
+                    )}
                     
-                    {/* Display toppings if any */}
-                    {item.selectedToppings && item.selectedToppings.length > 0 && (
-                      <div className="text-xs text-gray-500 mt-1">
-                        {item.selectedToppings.map((topping) => (
-                          <span key={topping.id} className="mr-1">
-                            +{topping.name} (${topping.price.toFixed(2)})
-                          </span>
-                        ))}
-                      </div>
+                    {(isMobile || window.innerWidth >= 1025) && (
+                      <button
+                        onClick={() => onRemoveItem(index)}
+                        className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 hover:bg-gray-200 ml-2"
+                      >
+                        <Trash className="h-4 w-4 text-red-500" />
+                      </button>
                     )}
                   </div>
-                </div>
-                
-                <div className="flex items-center gap-2">
-                  {isMobile || window.innerWidth >= 1025 ? (
-                    <>
-                      <button
-                        onClick={() => onDecrementItem(index)}
-                        className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 hover:bg-gray-200"
-                        disabled={item.quantity <= 1}
-                      >
-                        <Minus className="h-4 w-4" />
-                      </button>
-                      <span className="w-6 text-center font-medium">{item.quantity}</span>
-                      <button
-                        onClick={() => onIncrementItem(index)}
-                        className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 hover:bg-gray-200"
-                      >
-                        <Plus className="h-4 w-4" />
-                      </button>
-                    </>
-                  ) : (
-                    <button
-                      onClick={() => onRemoveItem(index)}
-                      className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 hover:bg-gray-200 ml-2"
-                    >
-                      <Trash className="h-4 w-4 text-red-500" />
-                    </button>
-                  )}
-                  
-                  {(isMobile || window.innerWidth >= 1025) && (
-                    <button
-                      onClick={() => onRemoveItem(index)}
-                      className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 hover:bg-gray-200 ml-2"
-                    >
-                      <Trash className="h-4 w-4 text-red-500" />
-                    </button>
-                  )}
-                </div>
-              </div>
-            ))}
+                </motion.div>
+              ))}
+            </AnimatePresence>
           </div>
         )}
         

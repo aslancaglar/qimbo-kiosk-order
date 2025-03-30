@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { CartItemType, ToppingItem } from '@/components/cart/types';
 import { Product } from '@/components/menu/ProductCard';
@@ -45,6 +44,11 @@ export function useCart({ orderType, tableNumber }: UseCartOptions) {
       const updatedItems = [...cartItems];
       updatedItems[existingItemIndex].quantity += 1;
       setCartItems(updatedItems);
+      
+      toast({
+        title: "Item Updated",
+        description: `${product.name} quantity increased`,
+      });
     } else {
       const newItem: CartItemType = {
         product,
@@ -52,6 +56,11 @@ export function useCart({ orderType, tableNumber }: UseCartOptions) {
         selectedToppings
       };
       setCartItems([...cartItems, newItem]);
+      
+      toast({
+        title: "Added to Cart",
+        description: `${product.name} added to your order`,
+      });
     }
   };
   
