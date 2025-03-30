@@ -1,3 +1,4 @@
+
 import { CartItemType } from "@/components/cart/types";
 import htmlToPdf from 'html-pdf-node';
 
@@ -242,25 +243,29 @@ export const generateTestReceiptHTML = (): string => {
 };
 
 /**
- * Convert HTML content to PDF buffer
+ * Convert HTML content to PDF buffer with thermal printer optimizations
  */
 const convertHTMLToPDF = async (htmlContent: string): Promise<Buffer> => {
   try {
-    console.log('Converting HTML to PDF...');
+    console.log('Converting HTML to PDF for thermal printer...');
     const options = { 
-      format: 'A4',
+      format: {
+        width: '80mm',
+        height: 'auto'
+      },
       printBackground: true,
+      preferCSSPageSize: true,
       margin: { 
-        top: '10mm',
-        right: '10mm',
-        bottom: '10mm',
-        left: '10mm' 
+        top: '5mm',
+        right: '3mm',
+        bottom: '5mm',
+        left: '3mm' 
       }
     };
     
     const file = { content: htmlContent };
     const pdfBuffer = await htmlToPdf.generatePdf(file, options);
-    console.log('PDF generated successfully');
+    console.log('PDF generated successfully with thermal printer optimizations');
     return pdfBuffer;
   } catch (error) {
     console.error('Error converting HTML to PDF:', error);
