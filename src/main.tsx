@@ -1,7 +1,6 @@
 
 import React from 'react';
 import ReactDOM from 'react-dom/client';
-import { BrowserRouter } from 'react-router-dom';
 import App from './App';
 import './index.css';
 import { registerServiceWorker } from './utils/serviceWorker';
@@ -15,12 +14,10 @@ if (process.env.NODE_ENV !== 'production') {
 // Create root with concurrent mode
 const root = ReactDOM.createRoot(document.getElementById('root') as HTMLElement);
 
-// Render with error boundary and BrowserRouter
+// Render with error boundary
 root.render(
   <React.StrictMode>
-    <BrowserRouter>
-      <App />
-    </BrowserRouter>
+    <App />
   </React.StrictMode>
 );
 
