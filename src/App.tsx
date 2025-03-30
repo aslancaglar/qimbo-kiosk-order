@@ -1,5 +1,6 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { Routes, Route, useNavigate } from 'react-router-dom';
+
+import React, { useState, useEffect } from 'react';
+import { Routes, Route, Navigate } from 'react-router-dom';
 import { ThemeProvider } from 'next-themes';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Toaster } from "@/components/ui/sonner";
@@ -20,22 +21,20 @@ import PrintSettings from './pages/admin/PrintSettings';
 
 const App = () => {
   const [queryClient] = useState(() => new QueryClient());
-  const navigate = useNavigate();
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
 
   useEffect(() => {
-    // Redirect to /admin if the user is already authenticated
+    // Check if the user is already authenticated
     const token = localStorage.getItem('authToken');
-    if (token && window.location.pathname === '/') {
-      navigate('/admin');
-    }
-  }, [navigate]);
+    setIsAuthenticated(!!token);
+  }, []);
 
   return (
     <div className="min-h-screen">
       <QueryClientProvider client={queryClient}>
         <ThemeProvider>
           <Routes>
-            <Route path="/" element={<Index />} />
+            <Route path="/" element={isAuthenticated ? <Navigate to="/admin" /> : <Index />} />
             <Route path="/menu/:categoryId?" element={<MenuPage />} />
             <Route path="/order-summary" element={<OrderSummaryPage />} />
             <Route path="/confirmation" element={<OrderConfirmation />} />

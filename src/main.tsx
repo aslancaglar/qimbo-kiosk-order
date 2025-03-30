@@ -1,6 +1,7 @@
 
 import React from 'react';
 import ReactDOM from 'react-dom/client';
+import { BrowserRouter } from 'react-router-dom';
 import App from './App';
 import './index.css';
 import { registerServiceWorker, clearAppCache, checkForUpdates } from './utils/serviceWorker';
@@ -23,7 +24,9 @@ const root = ReactDOM.createRoot(document.getElementById('root') as HTMLElement)
 // Render with error boundary
 root.render(
   <React.StrictMode>
-    <App />
+    <BrowserRouter>
+      <App />
+    </BrowserRouter>
   </React.StrictMode>
 );
 
