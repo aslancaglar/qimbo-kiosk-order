@@ -38,7 +38,7 @@ export const initializeStorage = async () => {
     const bucketExists = buckets.some(bucket => bucket.name === 'menu-images');
     
     if (!bucketExists) {
-      console.log('The menu-images bucket does not exist in Supabase. Please create it in the dashboard.');
+      console.error('The menu-images bucket does not exist in Supabase. Please create it in the dashboard or run SQL migrations.');
       return false;
     }
     
@@ -58,23 +58,6 @@ export const initializeStorage = async () => {
  */
 export const uploadImage = async (file: File, bucketName: string = 'menu-images'): Promise<string | null> => {
   try {
-    // Verify bucket exists
-    const { data: buckets, error: bucketsError } = await supabase
-      .storage
-      .listBuckets();
-      
-    if (bucketsError) {
-      console.error('Error checking buckets:', bucketsError);
-      throw new Error('Unable to verify storage buckets');
-    }
-    
-    const bucketExists = buckets.some(bucket => bucket.name === bucketName);
-    
-    if (!bucketExists) {
-      console.error(`The ${bucketName} bucket does not exist in Supabase storage`);
-      throw new Error(`Storage bucket '${bucketName}' does not exist`);
-    }
-    
     // Create a unique file name
     const fileExt = file.name.split('.').pop();
     const fileName = `${Date.now()}-${Math.random().toString(36).substring(2, 15)}.${fileExt}`;
@@ -111,4 +94,5 @@ export const uploadImage = async (file: File, bucketName: string = 'menu-images'
 };
 
 // Call this when your app starts
-initializeStorage();
+// We don't want to initialize storage here because it might fail if the bucket doesn't exist yet
+// Instead, we'll check for the bucket's existence right before uploading

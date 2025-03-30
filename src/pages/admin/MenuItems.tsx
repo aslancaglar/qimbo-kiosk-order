@@ -35,7 +35,7 @@ import { Separator } from "@/components/ui/separator";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
-import { supabase, initializeStorage, uploadImage } from "@/integrations/supabase/client";
+import { supabase, uploadImage } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
 interface MenuItem {
@@ -380,24 +380,15 @@ const MenuItems = () => {
       
       if (imageFile) {
         console.log("Uploading new image");
-        const storageAvailable = await initializeStorage();
+        imageUrl = await uploadImage(imageFile);
         
-        if (!storageAvailable) {
+        if (!imageUrl) {
           toast({
-            title: 'Storage Not Available',
-            description: 'Menu image storage is not available. Please check Supabase configuration.',
+            title: 'Image Upload Failed',
+            description: 'Could not upload image. Please verify that the menu-images bucket exists in Supabase.',
             variant: 'destructive',
           });
-        } else {
-          imageUrl = await uploadImage(imageFile);
-          if (!imageUrl && imageFile) {
-            toast({
-              title: 'Image Upload Failed',
-              description: 'Could not upload image. Please try again or contact your administrator.',
-              variant: 'destructive',
-            });
-            return; // Prevent saving if image upload failed
-          }
+          console.log("Continuing without image due to upload failure");
         }
       } else if (imagePreview === null && editItem?.image) {
         console.log("User removed the image");
