@@ -1,46 +1,87 @@
 
-import React from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Button } from "@/components/ui/button";
-import { motion } from "framer-motion";
+import React, { useEffect, useState } from 'react';
+import WelcomePage from '../components/welcome/WelcomePage';
+import { supabase } from '../integrations/supabase/client';
+import { Skeleton } from '@/components/ui/skeleton';
+import { useToast } from '@/hooks/use-toast';
+import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
+import { AlertCircle } from 'lucide-react';
 
 const Index: React.FC = () => {
-  const navigate = useNavigate();
+  const [restaurantInfo, setRestaurantInfo] = useState<{
+    name: string;
+    description: string;
+  } | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const { toast } = useToast();
 
-  return (
-    <motion.div 
-      initial={{ opacity: 0 }} 
-      animate={{ opacity: 1 }} 
-      exit={{ opacity: 0 }}
-      className="min-h-screen flex flex-col items-center justify-center bg-background p-4"
-    >
-      <div className="text-center max-w-3xl mx-auto">
-        <h1 className="text-4xl md:text-6xl font-bold mb-6 text-primary">Welcome to Pizza Palace</h1>
-        <p className="text-xl mb-8 text-muted-foreground">
-          Delicious handcrafted pizzas made with the freshest ingredients.
-        </p>
+  useEffect(() => {
+    const fetchRestaurantInfo = async () => {
+      try {
+        setLoading(true);
+        setError(null);
         
-        <div className="space-y-4 md:space-y-0 md:space-x-4 flex flex-col md:flex-row justify-center">
-          <Button 
-            size="lg" 
-            onClick={() => navigate('/menu')}
-            className="bg-primary hover:bg-primary/90"
-          >
-            View Menu
-          </Button>
-          
-          <Button 
-            size="lg" 
-            variant="outline"
-            onClick={() => navigate('/admin')}
-            className="border-primary text-primary hover:bg-primary/10"
-          >
-            Admin Dashboard
-          </Button>
+        const { data, error } = await supabase
+          .from('restaurant_info')
+          .select('name, description')
+          .order('id', { ascending: true })
+          .limit(1)
+          .maybeSingle();
+
+        if (error) {
+          console.error('Error fetching restaurant info:', error);
+          setError('Failed to load restaurant information');
+          toast({
+            title: "Error",
+            description: "Failed to load restaurant information",
+            variant: "destructive"
+          });
+          return;
+        }
+
+        if (data) {
+          setRestaurantInfo(data);
+        } else {
+          // If no data found, set a default value or show an appropriate message
+          setError('No restaurant information found');
+        }
+      } catch (error) {
+        console.error('Unexpected error:', error);
+        setError('An unexpected error occurred');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchRestaurantInfo();
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="h-full w-full flex items-center justify-center">
+        <div className="space-y-4 w-80">
+          <Skeleton className="h-12 w-full rounded" />
+          <Skeleton className="h-4 w-3/4 rounded" />
+          <Skeleton className="h-32 w-full rounded" />
         </div>
       </div>
-    </motion.div>
-  );
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="h-full w-full flex items-center justify-center p-4">
+        <Alert variant="destructive" className="max-w-md">
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle>Error</AlertTitle>
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      </div>
+    );
+  }
+
+  return <WelcomePage restaurantInfo={restaurantInfo} />;
 };
 
 export default Index;

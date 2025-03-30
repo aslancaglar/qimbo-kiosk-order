@@ -1,5 +1,5 @@
 
-import React, { useEffect, useState } from "react"
+import { useToast } from "@/hooks/use-toast"
 import {
   Toast,
   ToastClose,
@@ -8,21 +8,9 @@ import {
   ToastTitle,
   ToastViewport,
 } from "@/components/ui/toast"
-import { useToast } from "@/hooks/use-toast"
 
 export function Toaster() {
-  const [mounted, setMounted] = useState(false)
   const { toasts } = useToast()
-  
-  // Only run the hook after mount to ensure we're in a React context
-  useEffect(() => {
-    setMounted(true)
-  }, [])
-  
-  // Don't render anything until component is mounted
-  if (!mounted) {
-    return null
-  }
 
   return (
     <ToastProvider>

@@ -1,5 +1,6 @@
 
 import * as React from "react"
+
 import type {
   ToastActionElement,
   ToastProps,
@@ -168,15 +169,15 @@ function toast({ ...props }: Toast) {
   }
 }
 
-// Toast presets
+// French toast presets
 const successToast = (message: string) => toast({
-  title: "Success",
+  title: "Succès",
   description: message,
   variant: "default",
 });
 
 const errorToast = (message: string) => toast({
-  title: "Error",
+  title: "Erreur",
   description: message,
   variant: "destructive",
 });

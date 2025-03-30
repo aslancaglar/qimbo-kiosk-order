@@ -8,25 +8,23 @@ import { CartItemType } from '../cart/types';
 import { useCart } from '@/hooks/use-cart';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-
 const OrderSummaryPage: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  const { toast } = useToast();
-  
+  const {
+    toast
+  } = useToast();
   const {
     items,
     orderType,
     tableNumber
   } = location.state || {};
-  
   const {
     handleConfirmOrder
   } = useCart({
     orderType,
     tableNumber
   });
-  
   React.useEffect(() => {
     if (!items || items.length === 0) {
       navigate('/', {
@@ -34,7 +32,6 @@ const OrderSummaryPage: React.FC = () => {
       });
     }
   }, [items, navigate]);
-  
   const subtotal = items?.reduce((sum: number, item: CartItemType) => {
     let itemTotal = item.product.price * item.quantity;
     if (item.selectedToppings && item.selectedToppings.length > 0) {
@@ -43,14 +40,11 @@ const OrderSummaryPage: React.FC = () => {
     }
     return sum + itemTotal;
   }, 0) || 0;
-  
   const tax = subtotal * 0.1;
   const total = subtotal + tax;
-  
   const handleGoBack = () => {
     navigate(-1);
   };
-  
   const handleConfirmOrderClick = async () => {
     try {
       await handleConfirmOrder();
@@ -128,7 +122,6 @@ const OrderSummaryPage: React.FC = () => {
       });
     }
   };
-  
   return <Layout>
       <div className="h-full flex flex-col">
         <header className="flex justify-between items-center p-6 border-b border-gray-100">
@@ -234,5 +227,4 @@ const OrderSummaryPage: React.FC = () => {
       </div>
     </Layout>;
 };
-
 export default OrderSummaryPage;

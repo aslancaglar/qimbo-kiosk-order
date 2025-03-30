@@ -1,3 +1,5 @@
 
 // Re-export from the actual hook implementation
-export { useToast, toast, successToast, errorToast, infoToast } from "@/hooks/use-toast";
+import { useToast, toast } from "@/hooks/use-toast";
+
+export { useToast, toast };

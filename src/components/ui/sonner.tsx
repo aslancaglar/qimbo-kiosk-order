@@ -1,24 +1,10 @@
-
 import { useTheme } from "next-themes"
 import { Toaster as Sonner } from "sonner"
-import { useEffect, useState } from "react"
 
 type ToasterProps = React.ComponentProps<typeof Sonner>
 
 const Toaster = ({ ...props }: ToasterProps) => {
-  // Add error handling for theme context
-  const [mounted, setMounted] = useState(false)
   const { theme = "system" } = useTheme()
-  
-  // Only try to access theme after component is mounted
-  useEffect(() => {
-    setMounted(true)
-  }, [])
-  
-  // Don't render anything until component is mounted
-  if (!mounted) {
-    return null
-  }
 
   return (
     <Sonner

@@ -1,16 +1,16 @@
-import React, { lazy, Suspense, useEffect } from 'react';
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
-import { AnimatePresence } from "framer-motion";
-import { ThemeProvider } from "next-themes";
-import { TooltipProvider } from "@/components/ui/tooltip";
+
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
+import { TooltipProvider } from "@/components/ui/tooltip";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
+import { lazy, Suspense, useEffect } from "react";
+import { AnimatePresence } from "framer-motion";
 import { enableRealtimeForTables } from "./utils/enableRealtimeForTables";
 import { startMeasure, endMeasure } from "./utils/performanceMonitor";
 
-// Lazily import the Index page
-const Index = lazy(() => import("./pages/Index"));
+// Eagerly load the Index page for fast initial load
+import Index from "./pages/Index";
 
 // Lazy load other pages to reduce initial bundle size
 const NotFound = lazy(() => import("./pages/NotFound"));
@@ -38,10 +38,10 @@ const LoadingFallback = () => (
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      refetchOnWindowFocus: false,
-      staleTime: 60000,
-      gcTime: 300000,
-      retry: 1,
+      refetchOnWindowFocus: false, // Disable refetching on window focus to save resources
+      staleTime: 60000, // One minute stale time
+      gcTime: 300000, // Five minute cache time (replaced cacheTime)
+      retry: 1, // Limit retries on failure
     },
   },
 });
@@ -64,8 +64,7 @@ const RouteChangeTracker = () => {
   return null;
 };
 
-// AppContent component ensures hooks are called in the right context
-const AppContent = () => {
+const App = () => {
   // Initialize performance monitoring
   useEffect(() => {
     startMeasure('App initialization');
@@ -98,47 +97,37 @@ const AppContent = () => {
   }, []);
 
   return (
-    <BrowserRouter>
-      <RouteChangeTracker />
-      <AnimatePresence mode="wait">
-        <Suspense fallback={<LoadingFallback />}>
-          <Routes>
-            {/* Customer-facing routes */}
-            <Route path="/" element={<Index />} />
-            <Route path="/menu" element={<MenuPage />} />
-            <Route path="/order-summary" element={<OrderSummaryPage />} />
-            <Route path="/confirmation" element={<OrderConfirmation />} />
-            
-            {/* Admin routes */}
-            <Route path="/admin" element={<Dashboard />} />
-            <Route path="/admin/orders" element={<Orders />} />
-            <Route path="/admin/menu" element={<MenuItems />} />
-            <Route path="/admin/categories" element={<Categories />} />
-            <Route path="/admin/toppings" element={<Toppings />} />
-            <Route path="/admin/settings" element={<Settings />} />
-            <Route path="/admin/kitchen" element={<KitchenDisplay />} />
-            
-            {/* 404 route */}
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </Suspense>
-      </AnimatePresence>
-      
-      {/* UI Components */}
-      <Toaster />
-      <Sonner />
-    </BrowserRouter>
-  );
-};
-
-const App = () => {
-  return (
     <QueryClientProvider client={queryClient}>
-      <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
-        <TooltipProvider>
-          <AppContent />
-        </TooltipProvider>
-      </ThemeProvider>
+      <TooltipProvider>
+        <Toaster />
+        <Sonner />
+        <BrowserRouter>
+          <RouteChangeTracker />
+          <AnimatePresence mode="wait">
+            <Suspense fallback={<LoadingFallback />}>
+              <Routes>
+                {/* Customer-facing routes */}
+                <Route path="/" element={<Index />} />
+                <Route path="/menu" element={<MenuPage />} />
+                <Route path="/order-summary" element={<OrderSummaryPage />} />
+                <Route path="/confirmation" element={<OrderConfirmation />} />
+                
+                {/* Admin routes */}
+                <Route path="/admin" element={<Dashboard />} />
+                <Route path="/admin/orders" element={<Orders />} />
+                <Route path="/admin/menu" element={<MenuItems />} />
+                <Route path="/admin/categories" element={<Categories />} />
+                <Route path="/admin/toppings" element={<Toppings />} />
+                <Route path="/admin/settings" element={<Settings />} />
+                <Route path="/admin/kitchen" element={<KitchenDisplay />} />
+                
+                {/* 404 route */}
+                <Route path="*" element={<NotFound />} />
+              </Routes>
+            </Suspense>
+          </AnimatePresence>
+        </BrowserRouter>
+      </TooltipProvider>
     </QueryClientProvider>
   );
 };
