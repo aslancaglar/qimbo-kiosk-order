@@ -32,10 +32,10 @@ const CategorySelector: React.FC<CategorySelectorProps> = ({
         {/* Include All category only in horizontal orientation */}
         {!isVertical && (
           <CategoryButton
-            category="Tous"
+            category="All"
             icon={null}
             isActive={activeCategory === 'All'}
-            onChange={() => onChange('All')}
+            onChange={onChange}
             isVertical={isVertical}
           />
         )}
@@ -73,14 +73,14 @@ const CategoryButton: React.FC<CategoryButtonProps> = ({
   // Helper function to get emoji based on category name
   const getCategoryEmoji = (category: string) => {
     const lowercased = category.toLowerCase();
-    if (lowercased === 'tous' || lowercased === 'all') return '🍽️';
+    if (lowercased === 'all') return '🍽️';
     if (lowercased.includes('burger')) return '🍔';
     if (lowercased.includes('pizza')) return '🍕';
-    if (lowercased.includes('pasta') || lowercased.includes('pâtes')) return '🍝';
-    if (lowercased.includes('salad') || lowercased.includes('salade')) return '🥗';
+    if (lowercased.includes('pasta')) return '🍝';
+    if (lowercased.includes('salad')) return '🥗';
     if (lowercased.includes('dessert')) return '🍰';
-    if (lowercased.includes('drink') || lowercased.includes('boisson')) return '🥤';
-    if (lowercased.includes('side') || lowercased.includes('accompagnement')) return '🍟';
+    if (lowercased.includes('drink')) return '🥤';
+    if (lowercased.includes('side')) return '🍟';
     return '📋';
   };
   
