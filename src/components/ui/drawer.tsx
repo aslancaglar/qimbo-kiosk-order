@@ -1,7 +1,9 @@
+
 import * as React from "react"
 import { Drawer as DrawerPrimitive } from "vaul"
 
 import { cn } from "@/lib/utils"
+import { ScrollArea } from "@/components/ui/scroll-area"
 
 const Drawer = ({
   shouldScaleBackground = true,
@@ -34,20 +36,32 @@ DrawerOverlay.displayName = DrawerPrimitive.Overlay.displayName
 
 const DrawerContent = React.forwardRef<
   React.ElementRef<typeof DrawerPrimitive.Content>,
-  React.ComponentPropsWithoutRef<typeof DrawerPrimitive.Content>
->(({ className, children, ...props }, ref) => (
+  React.ComponentPropsWithoutRef<typeof DrawerPrimitive.Content> & {
+    enableScrollArea?: boolean 
+  }
+>(({ className, children, enableScrollArea = true, ...props }, ref) => (
   <DrawerPortal>
     <DrawerOverlay />
     <DrawerPrimitive.Content
       ref={ref}
       className={cn(
-        "fixed inset-x-0 bottom-0 z-50 mt-24 flex h-auto flex-col rounded-t-[10px] border bg-background",
+        "fixed inset-x-0 bottom-0 z-50 mt-24 flex h-auto flex-col rounded-t-[10px] border bg-background overflow-hidden",
         className
       )}
       {...props}
     >
       <div className="mx-auto mt-4 h-2 w-[100px] rounded-full bg-muted" />
-      {children}
+      {enableScrollArea ? (
+        <ScrollArea className="max-h-[calc(80vh-60px)] w-full px-4 overflow-auto">
+          <div className="pb-8 pt-2">
+            {children}
+          </div>
+        </ScrollArea>
+      ) : (
+        <div className="px-4 pb-4 pt-2">
+          {children}
+        </div>
+      )}
     </DrawerPrimitive.Content>
   </DrawerPortal>
 ))

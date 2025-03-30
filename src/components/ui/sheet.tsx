@@ -63,12 +63,12 @@ const SheetContent = React.forwardRef<
     <SheetOverlay />
     <SheetPrimitive.Content
       ref={ref}
-      className={cn(sheetVariants({ side }), className)}
+      className={cn(sheetVariants({ side }), "overflow-hidden", className)}
       {...props}
     >
       {enableScrollArea ? (
-        <ScrollArea className="h-[calc(100vh-40px)] w-full pr-2 overflow-auto">
-          <div className="pr-2 pb-10">
+        <ScrollArea className="h-[calc(100vh-80px)] w-full pr-3 overflow-auto">
+          <div className="pr-2 pb-12">
             {children}
           </div>
         </ScrollArea>

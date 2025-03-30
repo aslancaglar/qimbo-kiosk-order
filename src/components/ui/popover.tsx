@@ -14,7 +14,7 @@ const PopoverContent = React.forwardRef<
   React.ComponentPropsWithoutRef<typeof PopoverPrimitive.Content> & {
     enableScrollArea?: boolean 
   }
->(({ className, align = "center", sideOffset = 4, enableScrollArea = false, children, ...props }, ref) => (
+>(({ className, align = "center", sideOffset = 4, enableScrollArea = true, children, ...props }, ref) => (
   <PopoverPrimitive.Portal>
     <PopoverPrimitive.Content
       ref={ref}
