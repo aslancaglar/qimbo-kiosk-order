@@ -30,7 +30,7 @@ const MenuContent: React.FC<MenuContentProps> = ({
 
   return (
     <div className="flex flex-1 overflow-hidden bg-amber-50">
-      <div className="w-25 md:w-30 bg-gradient-to-b from-yellow-400 to-yellow-500 overflow-y-auto">
+      <div className="w-20 md:w-24 bg-gradient-to-b from-yellow-400 to-yellow-500 overflow-y-auto">
         <CategorySelector 
           categories={categories} 
           categoryIcons={categoryIcons}
