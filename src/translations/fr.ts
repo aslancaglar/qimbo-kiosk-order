@@ -36,6 +36,12 @@ export const fr = {
     emptyCart: "Votre panier est vide",
     cancelOrder: "Annuler la commande",
     proceedToCheckout: "Passer à la caisse",
+    customize: "Personnaliser votre",
+    required: "Obligatoire",
+    optional: "Optionnel",
+    select: "Sélectionner",
+    item: "élément",
+    items: "éléments",
   },
   
   // Cart
@@ -43,6 +49,7 @@ export const fr = {
     title: "Votre commande",
     empty: "Votre panier est vide",
     total: "Total",
+    tax: "Taxe",
     cancelOrder: "Annuler la commande",
     confirmOrder: "Confirmer la commande",
     continueOrdering: "Continuer la commande",
@@ -131,6 +138,9 @@ export const fr = {
     failedToLoad: "Échec du chargement",
     unexpectedError: "Une erreur inattendue est survenue",
     requiredField: "Ce champ est obligatoire",
+    maximumReached: "Vous ne pouvez sélectionner que",
+    itemsFrom: "éléments de",
+    required: "Obligatoire",
   },
   
   // Toast Messages

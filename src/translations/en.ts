@@ -36,6 +36,12 @@ export const en = {
     emptyCart: "Your cart is empty",
     cancelOrder: "Cancel Order",
     proceedToCheckout: "Proceed to Checkout",
+    customize: "Customize Your",
+    required: "Required",
+    optional: "Optional",
+    select: "Select",
+    item: "item",
+    items: "items",
   },
   
   // Cart
@@ -43,6 +49,7 @@ export const en = {
     title: "Your Order",
     empty: "Your cart is empty",
     total: "Total",
+    tax: "Tax",
     cancelOrder: "Cancel Order",
     confirmOrder: "Confirm Order",
     continueOrdering: "Continue Ordering",
@@ -131,6 +138,9 @@ export const en = {
     failedToLoad: "Failed to load",
     unexpectedError: "An unexpected error occurred",
     requiredField: "This field is required",
+    maximumReached: "You can only select up to",
+    itemsFrom: "items from",
+    required: "Required",
   },
   
   // Toast Messages

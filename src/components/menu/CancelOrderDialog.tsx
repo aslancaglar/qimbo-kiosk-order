@@ -10,6 +10,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { useTranslation } from '@/hooks/use-translation';
 
 interface CancelOrderDialogProps {
   isOpen: boolean;
@@ -22,19 +23,21 @@ const CancelOrderDialog: React.FC<CancelOrderDialogProps> = ({
   onClose,
   onConfirm,
 }) => {
+  const { t } = useTranslation();
+  
   return (
     <AlertDialog open={isOpen} onOpenChange={onClose}>
       <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogTitle>Cancel Order</AlertDialogTitle>
+          <AlertDialogTitle>{t.cart.confirmCancelTitle}</AlertDialogTitle>
           <AlertDialogDescription>
-            Are you sure you want to cancel your order? This will remove all items from your cart.
+            {t.cart.confirmCancelMessage}
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogCancel>No, keep my order</AlertDialogCancel>
+          <AlertDialogCancel>{t.common.cancel}</AlertDialogCancel>
           <AlertDialogAction onClick={onConfirm} className="bg-red-600 hover:bg-red-700">
-            Yes, cancel order
+            {t.cart.cancelOrder}
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>
