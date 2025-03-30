@@ -16,7 +16,7 @@ const Toaster = ({ ...props }: ToasterProps) => {
   
   const { theme = "system" } = mounted ? useTheme() : { theme: "system" }
 
-  return (
+  return mounted ? (
     <Sonner
       theme={theme as ToasterProps["theme"]}
       className="toaster group"
@@ -33,7 +33,7 @@ const Toaster = ({ ...props }: ToasterProps) => {
       }}
       {...props}
     />
-  )
+  ) : null
 }
 
 export { Toaster }

@@ -1,4 +1,5 @@
 
+import React, { useEffect, useState } from "react"
 import {
   Toast,
   ToastClose,
@@ -8,7 +9,6 @@ import {
   ToastViewport,
 } from "@/components/ui/toast"
 import { useToast } from "@/hooks/use-toast"
-import { useEffect, useState } from "react"
 
 export function Toaster() {
   const [mounted, setMounted] = useState(false)
@@ -21,7 +21,7 @@ export function Toaster() {
   // Only try to access toast data after component is mounted
   const { toasts } = mounted ? useToast() : { toasts: [] }
 
-  return (
+  return mounted ? (
     <ToastProvider>
       {toasts.map(function ({ id, title, description, action, ...props }) {
         return (
@@ -39,5 +39,5 @@ export function Toaster() {
       })}
       <ToastViewport />
     </ToastProvider>
-  )
+  ) : null
 }
