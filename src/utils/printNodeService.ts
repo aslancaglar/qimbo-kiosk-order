@@ -1,5 +1,5 @@
+
 import { CartItemType } from "@/components/cart/types";
-import htmlToPdf from 'html-pdf-node';
 
 // PrintNode API configuration
 interface PrintNodeConfig {
@@ -243,35 +243,47 @@ export const generateTestReceiptHTML = (): string => {
 };
 
 /**
- * Convert HTML content to PDF buffer with thermal printer optimizations
+ * Send raw text directly to PrintNode (simplest approach)
  */
-const convertHTMLToPDF = async (htmlContent: string): Promise<Buffer> => {
+const sendRawTextToPrintNode = async (
+  printerId: number, 
+  title: string,
+  textContent: string,
+  apiKey: string
+): Promise<boolean> => {
   try {
-    console.log('Converting HTML to PDF for thermal printer...');
+    console.log('Sending raw text content to PrintNode...');
     
-    // Set options specifically for thermal receipt printers
-    const options = { 
-      format: {
-        width: '80mm',
-        height: 'auto'
-      },
-      printBackground: true,
-      preferCSSPageSize: true,
-      margin: { 
-        top: '5mm',
-        right: '3mm',
-        bottom: '5mm',
-        left: '3mm' 
-      }
+    // Prepare the print job with raw content
+    const printJob = {
+      printerId: printerId,
+      title: title,
+      contentType: "raw_base64",
+      content: btoa(textContent),
+      source: "POS System"
     };
     
-    const file = { content: htmlContent };
-    const pdfBuffer = await htmlToPdf.generatePdf(file, options);
-    console.log('PDF generated successfully with thermal printer optimizations');
-    return pdfBuffer;
+    // Send to PrintNode API
+    const response = await fetch('https://api.printnode.com/printjobs', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Basic ${btoa(apiKey + ':')}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(printJob)
+    });
+    
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error(`Error sending raw text: ${response.status} - ${errorText}`);
+      return false;
+    }
+    
+    console.log('Raw text sent successfully');
+    return true;
   } catch (error) {
-    console.error('Error converting HTML to PDF:', error);
-    throw error;
+    console.error('Error sending raw text to PrintNode:', error);
+    return false;
   }
 };
 
@@ -292,39 +304,13 @@ export const sendTestPage = async (): Promise<boolean> => {
     // Generate HTML content
     const htmlContent = generateTestReceiptHTML();
     
-    // Convert HTML to PDF
-    const pdfBuffer = await convertHTMLToPDF(htmlContent);
-    
-    // Convert PDF to base64
-    const base64Content = pdfBuffer.toString('base64');
-    
-    // Prepare the print job
-    const printJob = {
-      printerId: config.defaultPrinterId,
-      title: `Test Receipt`,
-      contentType: "pdf_base64",
-      content: base64Content,
-      source: "POS System"
-    };
-    
-    // Send to PrintNode API
-    const response = await fetch('https://api.printnode.com/printjobs', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Basic ${btoa(config.apiKey + ':')}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(printJob)
-    });
-    
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error(`Error sending test page: ${response.status} - ${errorText}`);
-      throw new Error(`HTTP error ${response.status}: ${errorText}`);
-    }
-    
-    console.log('Test page sent successfully');
-    return true;
+    // Send as raw text (simplest approach)
+    return await sendRawTextToPrintNode(
+      config.defaultPrinterId,
+      "Test Receipt",
+      htmlContent,
+      config.apiKey
+    );
   } catch (error) {
     console.error('Error sending test page to PrintNode:', error);
     return false;
@@ -503,43 +489,14 @@ export const sendToPrintNode = async (
       total
     );
     
-    console.log('Converting receipt HTML to PDF...');
-    // Convert HTML to PDF
-    const pdfBuffer = await convertHTMLToPDF(htmlContent);
-    
-    // Convert PDF to base64
-    const base64Content = pdfBuffer.toString('base64');
-    
-    // Prepare the print job
-    const printJob = {
-      printerId: config.defaultPrinterId,
-      title: `Order #${orderNumber}`,
-      contentType: "pdf_base64",
-      content: base64Content,
-      source: "POS System"
-    };
-    
-    console.log(`Sending print job to PrintNode printer ID: ${config.defaultPrinterId}`);
-    
-    // Send to PrintNode API
-    const response = await fetch('https://api.printnode.com/printjobs', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Basic ${btoa(config.apiKey + ':')}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(printJob)
-    });
-    
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error(`Error sending print job: ${response.status} - ${errorText}`);
-      throw new Error(`HTTP error ${response.status}: ${errorText}`);
-    }
-    
-    const responseData = await response.text();
-    console.log('PrintNode print job successful, response:', responseData);
-    return true;
+    console.log('Sending receipt as raw text to printer...');
+    // Send as raw text
+    return await sendRawTextToPrintNode(
+      config.defaultPrinterId,
+      `Order #${orderNumber}`,
+      htmlContent,
+      config.apiKey
+    );
   } catch (error) {
     console.error('Error sending print job to PrintNode:', error);
     return false;
