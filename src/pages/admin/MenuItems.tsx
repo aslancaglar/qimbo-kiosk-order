@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import AdminLayout from '../../components/admin/AdminLayout';
 import { Input } from "@/components/ui/input";
@@ -30,6 +31,13 @@ import {
   FormMessage,
   FormDescription
 } from "@/components/ui/form";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
@@ -38,6 +46,7 @@ import { useForm } from "react-hook-form";
 import * as z from "zod";
 import { supabase, uploadImage } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { useMenuData } from "@/hooks/use-menu-data";
 
 interface MenuItem {
   id: number;
@@ -84,6 +93,7 @@ const MenuItems = () => {
   const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
+  const { categories } = useMenuData();
   
   const form = useForm<MenuItemFormValues>({
     resolver: zodResolver(menuItemFormSchema),
@@ -698,8 +708,26 @@ const MenuItems = () => {
                     <FormItem>
                       <FormLabel>Category</FormLabel>
                       <FormControl>
-                        <Input placeholder="e.g., Burgers, Salads" {...field} />
+                        <Select
+                          onValueChange={field.onChange}
+                          defaultValue={field.value}
+                          value={field.value}
+                        >
+                          <SelectTrigger className="w-full">
+                            <SelectValue placeholder="Select a category" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {categories.map((category) => (
+                              <SelectItem key={category.id} value={category.name}>
+                                {category.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
                       </FormControl>
+                      <FormDescription>
+                        Choose from existing categories or select "Other" to enter a custom category.
+                      </FormDescription>
                       <FormMessage />
                     </FormItem>
                   )}
