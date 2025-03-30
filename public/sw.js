@@ -1,6 +1,6 @@
 
 // Cache version - increment this when deploying new versions
-const CACHE_NAME = 'restaurant-app-v4';
+const CACHE_NAME = 'restaurant-app-v5';
 
 // Assets to cache on install - minimal critical assets only
 const CACHE_ASSETS = [
@@ -75,47 +75,82 @@ self.addEventListener('message', (event) => {
   }
 });
 
-// Fetch event - use network-first strategy for ALL requests to prevent caching
+// Fetch event - strict network-first strategy with no caching for API and HTML
 self.addEventListener('fetch', (event) => {
   // Skip for non-GET requests
   if (event.request.method !== 'GET') {
     return;
   }
   
-  // Use network-first strategy for all requests
-  event.respondWith(
-    fetch(event.request, {
-      // Add cache-busting headers
-      headers: {
-        'Cache-Control': 'no-cache, no-store, must-revalidate',
-        'Pragma': 'no-cache',
-        'Expires': '0'
-      },
-      // Don't use any cached version
-      cache: 'no-store'
-    })
-    .then(response => {
-      return response;
-    })
-    .catch(() => {
-      // If network fails, try to serve from cache as fallback
-      return caches.match(event.request)
-        .then(cachedResponse => {
-          if (cachedResponse) {
-            console.log('[ServiceWorker] Serving from cache as fallback:', event.request.url);
-            return cachedResponse;
-          }
-          
-          // For HTML, try to serve the index as fallback
-          if (event.request.headers.get('accept').includes('text/html')) {
-            return caches.match('/');
-          }
-          
-          return new Response('Network error occurred', {
-            status: 408,
-            headers: { 'Content-Type': 'text/plain' }
-          });
+  const url = new URL(event.request.url);
+  const isAPI = url.pathname.includes('/rest/v1/') || 
+                url.pathname.includes('/auth/v1/') || 
+                url.pathname.includes('/storage/v1/');
+  const isHTML = event.request.headers.get('accept')?.includes('text/html');
+  
+  // Always use network-first for API and HTML requests
+  if (isAPI || isHTML) {
+    event.respondWith(
+      fetch(event.request, {
+        // Add cache-busting headers
+        headers: {
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Pragma': 'no-cache',
+          'Expires': '0'
+        },
+        // Don't use any cached version
+        cache: 'no-store'
+      })
+      .then(response => {
+        return response;
+      })
+      .catch(() => {
+        // For HTML, try to serve the index as fallback
+        if (isHTML) {
+          return caches.match('/');
+        }
+        
+        // Only try to serve API requests from cache as absolute last resort
+        if (isAPI) {
+          return caches.match(event.request)
+            .then(cachedResponse => {
+              if (cachedResponse) {
+                console.log('[ServiceWorker] Serving API from cache as fallback:', event.request.url);
+                return cachedResponse;
+              }
+              
+              return new Response(JSON.stringify({error: 'Network error'}), {
+                status: 408,
+                headers: { 'Content-Type': 'application/json' }
+              });
+            });
+        }
+        
+        return new Response('Network error occurred', {
+          status: 408,
+          headers: { 'Content-Type': 'text/plain' }
         });
-    })
-  );
+      })
+    );
+  } else {
+    // For other assets, still prefer network but allow cache fallback
+    event.respondWith(
+      fetch(event.request, { cache: 'no-store' })
+        .then(response => {
+          return response;
+        })
+        .catch(() => {
+          return caches.match(event.request)
+            .then(cachedResponse => {
+              if (cachedResponse) {
+                return cachedResponse;
+              }
+              return new Response('Network error occurred', {
+                status: 408,
+                headers: { 'Content-Type': 'text/plain' }
+              });
+            });
+        })
+    );
+  }
 });

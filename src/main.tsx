@@ -31,12 +31,12 @@ root.render(
 registerServiceWorker().catch(console.error);
 
 // Setup frequent update checks
-const checkInterval = 2 * 60 * 1000; // 2 minutes
+const checkInterval = 1 * 60 * 1000; // 1 minute (reduced from 2 minutes)
 // Check for updates after initial load
 window.addEventListener('load', () => {
   setTimeout(() => {
     checkForUpdates().catch(console.error);
-  }, 10000); // Check after 10 seconds
+  }, 5000); // Check after 5 seconds (reduced from 10 seconds)
   
   // Setup regular checking interval
   setInterval(() => {

@@ -15,7 +15,10 @@ export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABL
     autoRefreshToken: true,
   },
   global: {
-    fetch: (url, options) => fetch(url, options),
+    headers: {
+      'apikey': SUPABASE_PUBLISHABLE_KEY,
+      'Authorization': `Bearer ${SUPABASE_PUBLISHABLE_KEY}`
+    },
   },
 });
 
@@ -96,3 +99,4 @@ export const uploadImage = async (file: File, bucketName: string = 'menu-images'
 // Call this when your app starts
 // We don't want to initialize storage here because it might fail if the bucket doesn't exist yet
 // Instead, we'll check for the bucket's existence right before uploading
+
