@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import AdminLayout from '../../components/admin/AdminLayout';
@@ -11,7 +12,7 @@ import {
   TableCell 
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Search, Filter, Eye, RefreshCw, Download } from "lucide-react";
+import { Search, Filter, Eye, RefreshCw, Plus, Minus } from "lucide-react";
 import { 
   Sheet,
   SheetContent,
@@ -27,8 +28,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { Order, OrderItem } from '@/types/orders';
 import { toast } from "@/components/ui/use-toast";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { downloadOrderReceiptPdf } from '@/utils/printUtils';
-import { CartItemType } from "@/components/cart/types";
 
 const Orders = () => {
   const [searchTerm, setSearchTerm] = useState('');
@@ -289,55 +288,6 @@ const Orders = () => {
       : 'bg-[hsl(215_50%_40%)] text-white opacity-70'} hover:bg-[hsl(215_50%_30%)] hover:opacity-100 transition-colors`;
   };
 
-  const handleDownloadReceipt = async () => {
-    if (!selectedOrder || !orderDetails) return;
-    
-    try {
-      const cartItems: CartItemType[] = orderDetails.map(item => ({
-        id: item.id.toString(),
-        quantity: item.quantity,
-        product: {
-          id: item.menu_item?.id || 0,
-          name: item.menu_item?.name || 'Unknown Item',
-          price: item.price / item.quantity,
-          image: '',
-          description: '',
-          categoryId: 0,
-          slug: '',
-          status: ''
-        },
-        selectedToppings: item.toppings?.map(t => ({
-          id: t.topping_id,
-          name: t.topping?.name || 'Unknown Topping',
-          price: t.price,
-          category: t.topping?.category || ''
-        })) || []
-      }));
-      
-      await downloadOrderReceiptPdf(
-        selectedOrder.id,
-        cartItems,
-        selectedOrder.customer_type.toLowerCase() === 'table' ? 'eat-in' : 'takeaway',
-        selectedOrder.table_number,
-        selectedOrder.total_amount * 0.9,
-        selectedOrder.total_amount * 0.1,
-        selectedOrder.total_amount
-      );
-      
-      toast({
-        title: "Receipt Downloaded",
-        description: `Receipt for order #${selectedOrder.id} has been downloaded`,
-      });
-    } catch (error) {
-      console.error('Error downloading receipt:', error);
-      toast({
-        title: "Download Failed",
-        description: "Could not generate receipt PDF",
-        variant: "destructive",
-      });
-    }
-  };
-
   return (
     <AdminLayout>
       <div className="space-y-6 h-full flex flex-col">
@@ -498,20 +448,10 @@ const Orders = () => {
             </SheetHeader>
             
             <div className="py-6">
-              <div className="mb-4 flex justify-between items-center">
+              <div className="mb-4">
                 <span className={`px-2.5 py-1 rounded-full text-sm font-medium ${selectedOrder ? getStatusClass(selectedOrder.status) : ''}`}>
                   {selectedOrder?.status}
                 </span>
-                
-                <Button 
-                  onClick={handleDownloadReceipt} 
-                  variant="outline" 
-                  size="sm" 
-                  disabled={isLoadingDetails || !orderDetails}
-                >
-                  <Download className="mr-2 h-4 w-4" />
-                  Download Receipt
-                </Button>
               </div>
               
               <Separator className="my-4" />

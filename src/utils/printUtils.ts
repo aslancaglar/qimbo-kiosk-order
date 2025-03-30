@@ -1,3 +1,4 @@
+
 import { CartItemType } from "../components/cart/types";
 
 // Format order for printing
@@ -12,94 +13,117 @@ export const formatOrderReceipt = (
 ): string => {
   const orderDate = new Date().toLocaleString();
   
-  return `<html>
-  <head>
-    <title>Order #${orderNumber}</title>
-    <style>
-      body {
-        font-family: 'Courier New', monospace;
-        padding: 0;
-        margin: 0;
-        max-width: 300px; /* 80mm printer width */
-        text-align: left;
-        font-size: 14px;
-      }
-      h1, h2 {
-        text-align: center;
-      }
-      .order-details, .totals {
-        margin-bottom: 10px;
-      }
-      .order-item, .topping-item, .total-row {
-        display: flex;
-        justify-content: space-between;
-      }
-      .divider {
-        text-align: center;
-        font-weight: bold;
-        margin: 10px 0;
-      }
-      .final-total {
-        font-size: 16px;
-        font-weight: bold;
-        border-top: 1px solid black;
-        padding-top: 5px;
-      }
-      .footer {
-        text-align: center;
-        font-size: 12px;
-        margin-top: 10px;
-      }
-    </style>
-  </head>
-  <body>
-    <h1>Order Receipt</h1>
-    <div class="order-details">
-      <p>Order #: ${orderNumber}</p>
-      <p>Date: ${orderDate}</p>
-      <p>Order Type: ${orderType === 'eat-in' ? 'Eat In' : 'Takeaway'}</p>
-      ${orderType === 'eat-in' && tableNumber ? `<p>Table #: ${tableNumber}</p>` : ''}
-    </div>
-
-    <div class="divider">----------------------</div>
-
-    <h2>Items</h2>
-    ${items.map((item) => `
-      <div class="order-item">
-        <span>${item.quantity} x ${item.product.name}</span>
-        <span>$${(item.product.price * item.quantity).toFixed(2)}</span>
-      </div>
-      ${item.selectedToppings && item.selectedToppings.length > 0 ? 
-        item.selectedToppings.map((topping) => `
-          <div class="topping-item">
-            <span>+ ${topping.name}</span>
-            <span>$${topping.price.toFixed(2)}</span>
+  return `
+    <html>
+      <head>
+        <title>Order #${orderNumber}</title>
+        <style>
+          body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            max-width: 400px;
+            margin: 0 auto;
+          }
+          h1, h2 {
+            text-align: center;
+          }
+          .order-details {
+            margin-bottom: 20px;
+          }
+          .order-item {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+          }
+          .topping-item {
+            display: flex;
+            justify-content: space-between;
+            margin-left: 20px;
+            font-size: 0.9em;
+            color: #666;
+          }
+          .divider {
+            border-top: 1px dashed #ccc;
+            margin: 15px 0;
+          }
+          .totals {
+            margin-top: 20px;
+          }
+          .total-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 5px;
+          }
+          .final-total {
+            font-weight: bold;
+            font-size: 1.2em;
+            margin-top: 10px;
+            border-top: 1px solid black;
+            padding-top: 10px;
+          }
+          .footer {
+            margin-top: 30px;
+            text-align: center;
+            font-size: 0.9em;
+            color: #666;
+          }
+        </style>
+      </head>
+      <body>
+        <h1>Order Receipt</h1>
+        <div class="order-details">
+          <p><strong>Order #:</strong> ${orderNumber}</p>
+          <p><strong>Date:</strong> ${orderDate}</p>
+          <p><strong>Order Type:</strong> ${orderType === 'eat-in' ? 'Eat In' : 'Takeaway'}</p>
+          ${orderType === 'eat-in' && tableNumber ? `<p><strong>Table #:</strong> ${tableNumber}</p>` : ''}
+        </div>
+        
+        <div class="divider"></div>
+        
+        <h2>Items</h2>
+        ${items.map((item) => `
+          <div class="order-item">
+            <div>
+              <span>${item.quantity} x ${item.product.name}</span>
+              ${item.options && item.options.length > 0 ? 
+                `<br><small>${item.options.map((o) => o.value).join(', ')}</small>` : 
+                ''}
+            </div>
+            <span>$${(item.product.price * item.quantity).toFixed(2)}</span>
           </div>
-        `).join('') : ''}
-    `).join('')}
-
-    <div class="divider">----------------------</div>
-
-    <div class="totals">
-      <div class="total-row">
-        <span>Subtotal:</span>
-        <span>$${subtotal?.toFixed(2) || '0.00'}</span>
-      </div>
-      <div class="total-row">
-        <span>Tax:</span>
-        <span>$${tax?.toFixed(2) || '0.00'}</span>
-      </div>
-      <div class="total-row final-total">
-        <span>Total:</span>
-        <span>$${total?.toFixed(2) || '0.00'}</span>
-      </div>
-    </div>
-
-    <div class="footer">
-      <p>Thank you for your order!</p>
-    </div>
-  </body>
-</html>`;
+          ${item.selectedToppings && item.selectedToppings.length > 0 ? 
+            item.selectedToppings.map((topping) => `
+              <div class="topping-item">
+                <span>+ ${topping.name}</span>
+                <span>$${topping.price.toFixed(2)}</span>
+              </div>
+            `).join('') : 
+            ''}
+        `).join('')}
+        
+        <div class="divider"></div>
+        
+        <div class="totals">
+          <div class="total-row">
+            <span>Subtotal:</span>
+            <span>$${subtotal?.toFixed(2) || '0.00'}</span>
+          </div>
+          <div class="total-row">
+            <span>Tax:</span>
+            <span>$${tax?.toFixed(2) || '0.00'}</span>
+          </div>
+          <div class="total-row final-total">
+            <span>Total:</span>
+            <span>$${total?.toFixed(2) || '0.00'}</span>
+          </div>
+        </div>
+        
+        <div class="footer">
+          <p>Thank you for your order!</p>
+        </div>
+      </body>
+    </html>
+  `;
 };
 
 // Manual print function for browser (no longer auto-prints)
@@ -197,55 +221,4 @@ export const printOrder = (
     // Fallback to browser printing
     printOrderBrowser(orderNumber, items, orderType, tableNumber, subtotal, tax, total);
   });
-};
-
-// New function for downloading order receipt as PDF
-export const downloadOrderReceiptPdf = async (
-  orderNumber: string | number,
-  items: CartItemType[],
-  orderType: string,
-  tableNumber: string | number | undefined,
-  subtotal: number,
-  tax: number,
-  total: number
-): Promise<void> => {
-  try {
-    // Import html2pdf dynamically
-    const html2pdf = (await import('html2pdf.js')).default;
-    
-    // Generate receipt HTML
-    const receiptHtml = formatOrderReceipt(
-      orderNumber,
-      items,
-      orderType,
-      tableNumber,
-      subtotal,
-      tax,
-      total
-    );
-    
-    // Create a div to render the HTML
-    const element = document.createElement('div');
-    element.innerHTML = receiptHtml;
-    document.body.appendChild(element);
-    
-    const options = {
-      margin: 5, // Reduce margins for a thermal printer
-      filename: `receipt-order-${orderNumber}.pdf`,
-      image: { type: 'jpeg', quality: 0.98 },
-      html2canvas: { scale: 2 },
-      jsPDF: { unit: 'mm', format: [80, 297], orientation: 'portrait' } // 80mm width, dynamic height
-    };
-    
-    // Generate and download PDF
-    await html2pdf()
-      .from(element)
-      .set(options)
-      .save();
-    
-    // Remove the temporary element
-    document.body.removeChild(element);
-  } catch (error) {
-    console.error('Error generating PDF receipt:', error);
-  }
 };
