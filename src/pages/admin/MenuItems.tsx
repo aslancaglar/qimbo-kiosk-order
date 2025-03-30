@@ -165,6 +165,7 @@ const MenuItems = () => {
   useEffect(() => {
     fetchMenuItems();
     fetchToppingCategories();
+    ensureBucketExists();
     
     const channel = supabase
       .channel('menu-items-changes')
@@ -181,6 +182,30 @@ const MenuItems = () => {
       supabase.removeChannel(channel);
     };
   }, [toast]);
+
+  const ensureBucketExists = async () => {
+    try {
+      const { data: bucketData, error: bucketError } = await supabase.storage
+        .getBucket('menu_images');
+      
+      if (bucketError && bucketError.message.includes('does not exist')) {
+        console.log('Creating bucket menu_images...');
+        const { error: createError } = await supabase.storage.createBucket('menu_images', {
+          public: true,
+          fileSizeLimit: 5 * 1024 * 1024,
+        });
+        
+        if (createError) {
+          console.error('Error creating bucket:', createError);
+          throw createError;
+        }
+        
+        console.log('Bucket created successfully');
+      }
+    } catch (error) {
+      console.error('Error ensuring bucket exists:', error);
+    }
+  };
 
   const getStatusClass = (status: string) => {
     switch (status) {
@@ -248,6 +273,7 @@ const MenuItems = () => {
       
       setImageFile(file);
       setImagePreview(URL.createObjectURL(file));
+      console.log('Image file set:', file.name);
     }
   };
 
@@ -256,26 +282,23 @@ const MenuItems = () => {
     
     setIsUploading(true);
     try {
+      await ensureBucketExists();
+      
       const fileExt = file.name.split('.').pop();
       const fileName = `${Date.now()}_${Math.random().toString(36).substring(2, 15)}.${fileExt}`;
       const filePath = `menu_items/${fileName}`;
       
-      const { data: bucketData, error: bucketError } = await supabase.storage
-        .getBucket('menu_images');
-        
-      if (bucketError && bucketError.message.includes('does not exist')) {
-        await supabase.storage.createBucket('menu_images', {
-          public: true,
-          fileSizeLimit: 5 * 1024 * 1024,
-        });
-      }
+      console.log('Uploading file to path:', filePath);
       
       const { error: uploadError } = await supabase.storage
         .from('menu_images')
-        .upload(filePath, file);
+        .upload(filePath, file, {
+          cacheControl: '3600',
+          upsert: false
+        });
         
       if (uploadError) {
-        console.error('Upload error:', uploadError);
+        console.error('Upload error details:', uploadError);
         throw uploadError;
       }
       
@@ -283,10 +306,10 @@ const MenuItems = () => {
         .from('menu_images')
         .getPublicUrl(filePath);
         
-      console.log('Uploaded image URL:', data.publicUrl);  
+      console.log('Uploaded successfully. Public URL:', data.publicUrl);  
       return data.publicUrl;
     } catch (error) {
-      console.error('Error uploading image:', error);
+      console.error('Error uploading image - Full details:', error);
       toast({
         title: 'Error',
         description: 'Failed to upload image. Please try again.',
@@ -377,6 +400,7 @@ const MenuItems = () => {
           description: 'Invalid price format. Please enter a valid number.',
           variant: 'destructive',
         });
+        setIsUploading(false);
         return;
       }
       
