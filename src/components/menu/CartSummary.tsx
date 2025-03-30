@@ -6,8 +6,6 @@ import Button from '../common/Button';
 import { CartItemType } from '../cart/types';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useNavigate } from 'react-router-dom';
-import { useTranslation } from '@/hooks/use-translation';
-import { formatCurrency } from '@/utils/formatters';
 
 interface CartSummaryProps {
   cartItems: CartItemType[];
@@ -15,7 +13,7 @@ interface CartSummaryProps {
   onIncrementItem: (index: number) => void;
   onDecrementItem: (index: number) => void;
   onCancelOrderClick: () => void;
-  onConfirmOrder: () => Promise<void>;
+  onConfirmOrder: () => Promise<void>; // Added the missing prop
   orderType: 'takeaway' | 'eat-in';
   tableNumber?: number;
 }
@@ -26,13 +24,12 @@ const CartSummary: React.FC<CartSummaryProps> = ({
   onIncrementItem,
   onDecrementItem,
   onCancelOrderClick,
-  onConfirmOrder,
+  onConfirmOrder, // Added the missing prop in destructuring
   orderType,
   tableNumber
 }) => {
   const isMobile = useIsMobile();
   const navigate = useNavigate();
-  const { t, language } = useTranslation();
   
   const totalItems = cartItems.reduce((sum, item) => sum + item.quantity, 0);
   
@@ -76,7 +73,7 @@ const CartSummary: React.FC<CartSummaryProps> = ({
         <div className="flex justify-between items-center mb-3">
           <div className="flex items-center gap-2">
             <ShoppingBag className="h-5 w-5 text-red-600" />
-            <h2 className="text-lg font-semibold">{t.cart.title} ({totalItems})</h2>
+            <h2 className="text-lg font-semibold">YOUR ORDER ({totalItems})</h2>
           </div>
         </div>
         
@@ -103,7 +100,7 @@ const CartSummary: React.FC<CartSummaryProps> = ({
                     <div>
                       <p className="font-medium">{item.product.name}</p>
                       <p className="text-sm text-gray-600">
-                        {formatCurrency(item.product.price, language)}
+                        ${item.product.price.toFixed(2)}
                         {item.quantity > 1 && !isMobile && window.innerWidth < 1025 && ` × ${item.quantity}`}
                       </p>
                       
@@ -112,7 +109,7 @@ const CartSummary: React.FC<CartSummaryProps> = ({
                         <div className="text-xs text-gray-500 mt-1">
                           {item.selectedToppings.map((topping) => (
                             <span key={topping.id} className="mr-1">
-                              +{topping.name} ({formatCurrency(topping.price, language)})
+                              +{topping.name} (${topping.price.toFixed(2)})
                             </span>
                           ))}
                         </div>
@@ -163,18 +160,18 @@ const CartSummary: React.FC<CartSummaryProps> = ({
         )}
         
         <div className="flex justify-between items-center mb-2">
-          <span className="text-gray-600 text-sm">{t.cart.total}:</span>
-          <span>{formatCurrency(subtotal, language)}</span>
+          <span className="text-gray-600 text-sm">Subtotal:</span>
+          <span>${subtotal.toFixed(2)}</span>
         </div>
         
         <div className="flex justify-between items-center mb-2">
-          <span className="text-gray-600 text-sm">{t.cart.tax} (10%):</span>
-          <span>{formatCurrency(tax, language)}</span>
+          <span className="text-gray-600 text-sm">Tax (10%):</span>
+          <span>${tax.toFixed(2)}</span>
         </div>
         
         <div className="flex justify-between items-center mb-4">
-          <span className="font-semibold">{t.cart.total}:</span>
-          <span className="font-bold text-xl">{formatCurrency(total, language)}</span>
+          <span className="font-semibold">TOTAL:</span>
+          <span className="font-bold text-xl">${total.toFixed(2)}</span>
         </div>
         
         <div className="grid grid-cols-2 gap-3">
@@ -183,7 +180,7 @@ const CartSummary: React.FC<CartSummaryProps> = ({
             onClick={onCancelOrderClick}
             className="bg-gray-200 hover:bg-gray-300 text-black"
           >
-            {t.cart.cancelOrder}
+            Cancel Order
           </Button>
           <Button
             onClick={handleSeeOrder}
@@ -191,7 +188,7 @@ const CartSummary: React.FC<CartSummaryProps> = ({
             icon={<ArrowRight className="h-4 w-4" />}
             iconPosition="right"
           >
-            {t.menu.proceedToCheckout}
+            See My Order
           </Button>
         </div>
       </div>

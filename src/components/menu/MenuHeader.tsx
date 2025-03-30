@@ -3,15 +3,13 @@ import React from 'react';
 import { Home } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import Button from '../common/Button';
-import { useTranslation } from '@/hooks/use-translation';
 
 interface MenuHeaderProps {
   title?: string;
 }
 
-const MenuHeader: React.FC<MenuHeaderProps> = ({ title }) => {
+const MenuHeader: React.FC<MenuHeaderProps> = ({ title = "Menu" }) => {
   const navigate = useNavigate();
-  const { t } = useTranslation();
 
   return (
     <header className="flex justify-between items-center p-4 bg-red-600 text-white">
@@ -24,7 +22,7 @@ const MenuHeader: React.FC<MenuHeaderProps> = ({ title }) => {
         <Home size={24} />
       </Button>
       
-      <h1 className="text-2xl font-bold">{title || t.menu.title}</h1>
+      <h1 className="text-2xl font-bold">{title}</h1>
       
       <div className="w-10"></div>
     </header>

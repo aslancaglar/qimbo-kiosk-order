@@ -4,8 +4,6 @@ import { motion, AnimatePresence } from 'framer-motion';
 import Button from '../common/Button';
 import { ShoppingBag, Plus, Minus, Check } from 'lucide-react';
 import { ToppingItem } from '../cart/types';
-import { useTranslation } from '@/hooks/use-translation';
-import { formatCurrency } from '@/utils/formatters';
 import {
   Dialog,
   DialogContent,
@@ -82,7 +80,6 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onSelect }) => {
   const [toppingCategories, setToppingCategories] = useState<ToppingCategory[]>([]);
   const [showAddedAnimation, setShowAddedAnimation] = useState(false);
   const { toast } = useToast();
-  const { t, language } = useTranslation();
   
   const form = useForm<ToppingsFormValues>({
     resolver: zodResolver(toppingsFormSchema),
@@ -172,8 +169,8 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onSelect }) => {
     } catch (error) {
       console.error('Error fetching toppings:', error);
       toast({
-        title: t.toast.errorTitle,
-        description: t.errors.failedToLoad,
+        title: 'Error',
+        description: 'Failed to load toppings. Please try again.',
         variant: 'destructive',
       });
     } finally {
@@ -203,8 +200,8 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onSelect }) => {
     
     if (topping.quantity === 0 && currentSelections >= category.maxSelection) {
       toast({
-        title: t.toast.errorTitle,
-        description: `${t.errors.maximumReached} ${category.maxSelection} ${t.errors.itemsFrom} ${category.name}`,
+        title: 'Maximum reached',
+        description: `You can only select up to ${category.maxSelection} items from ${category.name}`,
         variant: 'destructive',
       });
       return;
@@ -255,14 +252,14 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onSelect }) => {
         .length;
       
       if (category.required && categoryToppingsCount < category.minSelection) {
-        validationErrors.push(`${t.errors.required} ${category.minSelection} ${t.errors.itemsFrom} ${category.name}`);
+        validationErrors.push(`You must select at least ${category.minSelection} items from ${category.name}`);
       }
     });
     
     if (validationErrors.length > 0) {
       validationErrors.forEach(error => {
         toast({
-          title: t.errors.required,
+          title: 'Selection Required',
           description: error,
           variant: 'destructive',
         });
@@ -306,7 +303,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onSelect }) => {
         <p className="text-gray-600 text-xs mb-2 flex-1 line-clamp-2">{product.description}</p>
         
         <div className="flex justify-between items-center mt-auto">
-          <span className="font-bold text-sm">{formatCurrency(product.price, language)}</span>
+          <span className="font-bold text-sm">${product.price.toFixed(2)}</span>
           
           <AnimatePresence>
             {showAddedAnimation ? (
@@ -321,7 +318,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onSelect }) => {
             ) : (
               <Button size="sm" onClick={handleAddToCart} className="bg-red-600 hover:bg-red-700 text-white text-xs py-1 px-2">
                 <ShoppingBag className="mr-1 h-3 w-3" />
-                {t.menu.addToCart}
+                Add
               </Button>
             )}
           </AnimatePresence>
@@ -331,7 +328,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onSelect }) => {
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>{t.menu.customize} {product.name}</DialogTitle>
+            <DialogTitle>Customize Your {product.name}</DialogTitle>
           </DialogHeader>
           
           {isLoading ? (
@@ -347,15 +344,15 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onSelect }) => {
                       <div>
                         <h3 className="font-medium">{category.name}</h3>
                         <p className="text-sm text-gray-500">
-                          {category.required ? t.menu.required : t.menu.optional} · 
-                          {t.menu.select} {category.minSelection > 0 ? `${category.minSelection}-` : ''}
-                          {category.maxSelection} {category.maxSelection !== 1 ? t.menu.items : t.menu.item}
+                          {category.required ? 'Required' : 'Optional'} · 
+                          Select {category.minSelection > 0 ? `${category.minSelection}-` : ''}
+                          {category.maxSelection} item{category.maxSelection !== 1 ? 's' : ''}
                         </p>
                       </div>
                       
                       {!isCategoryValid(category.id) && (
                         <span className="text-xs text-red-500 bg-red-50 px-2 py-1 rounded">
-                          {t.errors.required}
+                          Required
                         </span>
                       )}
                     </div>
@@ -370,7 +367,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onSelect }) => {
                             <div>
                               <p className="font-medium">{topping.name}</p>
                               {topping.price > 0 && (
-                                <p className="text-sm text-gray-500">{formatCurrency(topping.price, language)}</p>
+                                <p className="text-sm text-gray-500">${topping.price.toFixed(2)}</p>
                               )}
                             </div>
                             
@@ -413,7 +410,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onSelect }) => {
                 
                 <DialogFooter>
                   <Button type="submit" size="full">
-                    {t.menu.addToCart}
+                    Add to Order
                   </Button>
                 </DialogFooter>
               </form>

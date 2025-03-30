@@ -6,7 +6,6 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { AlertCircle } from 'lucide-react';
-import { useTranslation } from '@/hooks/use-translation';
 
 const Index: React.FC = () => {
   const [restaurantInfo, setRestaurantInfo] = useState<{
@@ -16,7 +15,6 @@ const Index: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
-  const { t } = useTranslation();
 
   useEffect(() => {
     const fetchRestaurantInfo = async () => {
@@ -33,10 +31,10 @@ const Index: React.FC = () => {
 
         if (error) {
           console.error('Error fetching restaurant info:', error);
-          setError(t.errors.failedToLoadRestaurantInfo);
+          setError('Failed to load restaurant information');
           toast({
-            title: t.common.error,
-            description: t.errors.failedToLoadRestaurantInfo,
+            title: "Error",
+            description: "Failed to load restaurant information",
             variant: "destructive"
           });
           return;
@@ -46,18 +44,18 @@ const Index: React.FC = () => {
           setRestaurantInfo(data);
         } else {
           // If no data found, set a default value or show an appropriate message
-          setError(t.errors.noRestaurantInfoFound);
+          setError('No restaurant information found');
         }
       } catch (error) {
         console.error('Unexpected error:', error);
-        setError(t.errors.unexpectedError);
+        setError('An unexpected error occurred');
       } finally {
         setLoading(false);
       }
     };
 
     fetchRestaurantInfo();
-  }, [t]);
+  }, []);
 
   if (loading) {
     return (
@@ -76,7 +74,7 @@ const Index: React.FC = () => {
       <div className="h-full w-full flex items-center justify-center p-4">
         <Alert variant="destructive" className="max-w-md">
           <AlertCircle className="h-4 w-4" />
-          <AlertTitle>{t.common.error}</AlertTitle>
+          <AlertTitle>Error</AlertTitle>
           <AlertDescription>{error}</AlertDescription>
         </Alert>
       </div>

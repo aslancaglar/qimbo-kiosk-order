@@ -5,7 +5,6 @@ import CategorySelector from './CategorySelector';
 import ProductCard from './ProductCard';
 import { Product } from './ProductCard';
 import { ToppingItem } from '../cart/types';
-import { useTranslation } from '@/hooks/use-translation';
 
 interface MenuContentProps {
   products: Product[];
@@ -29,14 +28,12 @@ const MenuContent: React.FC<MenuContentProps> = ({
   isLoading,
   onProductSelect
 }) => {
-  const { t } = useTranslation();
-  
   // Memoize filtered products to prevent recalculation on every render
   const filteredProducts = useMemo(() => {
-    return activeCategory === t.menu.categories.all
+    return activeCategory === 'All'
       ? products
       : products.filter(product => product.category === activeCategory);
-  }, [products, activeCategory, t.menu.categories.all]);
+  }, [products, activeCategory]);
 
   return (
     <div className="flex flex-1 overflow-hidden bg-amber-50">
@@ -71,7 +68,7 @@ const MenuContent: React.FC<MenuContentProps> = ({
           </div>
         ) : (
           <div className="flex flex-col items-center justify-center h-64">
-            <p className="text-gray-500 text-lg">{t.common.loading}</p>
+            <p className="text-gray-500 text-lg">No items found in this category</p>
           </div>
         )}
       </div>

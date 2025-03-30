@@ -2,7 +2,6 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { Pizza, Coffee, Utensils } from 'lucide-react';
-import { useTranslation } from '@/hooks/use-translation';
 
 interface CategorySelectorProps {
   categories: string[];
@@ -19,7 +18,6 @@ const CategorySelector: React.FC<CategorySelectorProps> = ({
   onChange,
   orientation = 'horizontal',
 }) => {
-  const { t } = useTranslation();
   const isVertical = orientation === 'vertical';
   
   return (
@@ -34,9 +32,9 @@ const CategorySelector: React.FC<CategorySelectorProps> = ({
         {/* Include All category only in horizontal orientation */}
         {!isVertical && (
           <CategoryButton
-            category={t.menu.categories.all}
+            category="All"
             icon={null}
-            isActive={activeCategory === t.menu.categories.all}
+            isActive={activeCategory === 'All'}
             onChange={onChange}
             isVertical={isVertical}
           />
@@ -75,14 +73,14 @@ const CategoryButton: React.FC<CategoryButtonProps> = ({
   // Helper function to get emoji based on category name
   const getCategoryEmoji = (category: string) => {
     const lowercased = category.toLowerCase();
-    if (lowercased.includes('all') || lowercased.includes('tous')) return '🍽️';
+    if (lowercased === 'all') return '🍽️';
     if (lowercased.includes('burger')) return '🍔';
     if (lowercased.includes('pizza')) return '🍕';
-    if (lowercased.includes('pasta') || lowercased.includes('pâtes')) return '🍝';
-    if (lowercased.includes('salad') || lowercased.includes('salade')) return '🥗';
+    if (lowercased.includes('pasta')) return '🍝';
+    if (lowercased.includes('salad')) return '🥗';
     if (lowercased.includes('dessert')) return '🍰';
-    if (lowercased.includes('drink') || lowercased.includes('boisson')) return '🥤';
-    if (lowercased.includes('side') || lowercased.includes('accompagnement')) return '🍟';
+    if (lowercased.includes('drink')) return '🥤';
+    if (lowercased.includes('side')) return '🍟';
     return '📋';
   };
   

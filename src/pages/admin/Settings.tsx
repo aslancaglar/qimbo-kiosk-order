@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "../../integrations/supabase/client";
@@ -9,11 +10,8 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Save, Settings2, Globe } from 'lucide-react';
+import { Save, Settings2 } from 'lucide-react';
 import { Switch } from "@/components/ui/switch";
-import { useTranslation } from "@/hooks/use-translation";
-import { Language } from "@/context/LanguageContext";
 
 interface OrderingSettings {
   requireTableSelection: boolean;
@@ -21,7 +19,6 @@ interface OrderingSettings {
 
 const Settings = () => {
   const { toast } = useToast();
-  const { t, language, setLanguage } = useTranslation();
   const [loading, setLoading] = useState(false);
 
   const [restaurantInfo, setRestaurantInfo] = useState({
@@ -182,14 +179,6 @@ const Settings = () => {
     }));
   };
 
-  const handleLanguageChange = (value: Language) => {
-    setLanguage(value);
-    toast({
-      title: t.toast.successTitle,
-      description: t.toast.languageChanged
-    });
-  };
-
   const saveRestaurantInfo = async () => {
     try {
       setLoading(true);
@@ -207,22 +196,22 @@ const Settings = () => {
       if (error) {
         console.error('Error updating restaurant info:', error);
         toast({
-          title: t.toast.errorTitle,
-          description: t.toast.failedToUpdateRestaurantInfo,
+          title: "Error",
+          description: "Failed to update restaurant information",
           variant: "destructive"
         });
         return;
       }
 
       toast({
-        title: t.toast.successTitle,
-        description: t.toast.restaurantInfoUpdated
+        title: "Success",
+        description: "Restaurant information updated successfully"
       });
     } catch (error) {
       console.error('Unexpected error:', error);
       toast({
-        title: t.toast.errorTitle,
-        description: t.errors.unexpectedError,
+        title: "Error",
+        description: "An unexpected error occurred",
         variant: "destructive"
       });
     } finally {
@@ -247,8 +236,8 @@ const Settings = () => {
         if (error) {
           console.error(`Error updating business hours for ${hours.day_of_week}:`, error);
           toast({
-            title: t.toast.errorTitle,
-            description: `${t.toast.failedToUpdateBusinessHours} ${hours.day_of_week}`,
+            title: "Error",
+            description: `Failed to update business hours for ${hours.day_of_week}`,
             variant: "destructive"
           });
           return;
@@ -256,14 +245,14 @@ const Settings = () => {
       }
 
       toast({
-        title: t.toast.successTitle,
-        description: t.toast.businessHoursUpdated
+        title: "Success",
+        description: "Business hours updated successfully"
       });
     } catch (error) {
       console.error('Unexpected error:', error);
       toast({
-        title: t.toast.errorTitle,
-        description: t.errors.unexpectedError,
+        title: "Error",
+        description: "An unexpected error occurred",
         variant: "destructive"
       });
     } finally {
@@ -284,8 +273,8 @@ const Settings = () => {
       if (checkError) {
         console.error('Error checking ordering settings:', checkError);
         toast({
-          title: t.toast.errorTitle,
-          description: t.toast.failedToSaveOrderingSettings,
+          title: "Error",
+          description: "Failed to check if settings exist",
           variant: "destructive"
         });
         return;
@@ -323,22 +312,22 @@ const Settings = () => {
       if (saveError) {
         console.error('Error saving ordering settings:', saveError);
         toast({
-          title: t.toast.errorTitle,
-          description: t.toast.failedToSaveOrderingSettings,
+          title: "Error",
+          description: "Failed to save ordering settings",
           variant: "destructive"
         });
         return;
       }
 
       toast({
-        title: t.toast.successTitle,
-        description: t.toast.orderingSettingsSaved
+        title: "Success",
+        description: "Ordering settings saved successfully"
       });
     } catch (error) {
       console.error('Unexpected error:', error);
       toast({
-        title: t.toast.errorTitle,
-        description: t.errors.unexpectedError,
+        title: "Error",
+        description: "An unexpected error occurred",
         variant: "destructive"
       });
     } finally {
@@ -351,25 +340,24 @@ const Settings = () => {
       <div className="space-y-6">
         <Tabs defaultValue="general">
           <TabsList>
-            <TabsTrigger value="general">{t.settings.general}</TabsTrigger>
-            <TabsTrigger value="ordering">{t.settings.ordering}</TabsTrigger>
-            <TabsTrigger value="appearance">{t.settings.appearance}</TabsTrigger>
-            <TabsTrigger value="notifications">{t.settings.notifications}</TabsTrigger>
-            <TabsTrigger value="language">{t.settings.language}</TabsTrigger>
+            <TabsTrigger value="general">General</TabsTrigger>
+            <TabsTrigger value="ordering">Ordering</TabsTrigger>
+            <TabsTrigger value="appearance">Appearance</TabsTrigger>
+            <TabsTrigger value="notifications">Notifications</TabsTrigger>
           </TabsList>
           
           <TabsContent value="general" className="mt-6 space-y-6">
             <Card>
               <CardHeader>
-                <CardTitle>{t.settings.restaurantInfo}</CardTitle>
+                <CardTitle>Restaurant Information</CardTitle>
                 <CardDescription>
-                  {t.settings.restaurantInfoDesc}
+                  Update your restaurant's basic information.
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                   <div className="space-y-2">
-                    <Label htmlFor="restaurant-name">{t.settings.restaurantName}</Label>
+                    <Label htmlFor="restaurant-name">Restaurant Name</Label>
                     <Input 
                       id="restaurant-name" 
                       value={restaurantInfo.name} 
@@ -377,7 +365,7 @@ const Settings = () => {
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="restaurant-phone">{t.settings.phoneNumber}</Label>
+                    <Label htmlFor="restaurant-phone">Phone Number</Label>
                     <Input 
                       id="restaurant-phone" 
                       value={restaurantInfo.phone} 
@@ -387,7 +375,7 @@ const Settings = () => {
                 </div>
                 
                 <div className="space-y-2">
-                  <Label htmlFor="restaurant-address">{t.settings.address}</Label>
+                  <Label htmlFor="restaurant-address">Address</Label>
                   <Input 
                     id="restaurant-address" 
                     value={restaurantInfo.address} 
@@ -396,7 +384,7 @@ const Settings = () => {
                 </div>
                 
                 <div className="space-y-2">
-                  <Label htmlFor="restaurant-description">{t.settings.description}</Label>
+                  <Label htmlFor="restaurant-description">Description</Label>
                   <Textarea 
                     id="restaurant-description" 
                     value={restaurantInfo.description || ''} 
@@ -410,16 +398,16 @@ const Settings = () => {
                   onClick={saveRestaurantInfo} 
                   disabled={loading}
                 >
-                  {loading ? t.common.loading : t.settings.saveChanges}
+                  {loading ? 'Saving...' : 'Save Changes'}
                 </Button>
               </CardContent>
             </Card>
             
             <Card>
               <CardHeader>
-                <CardTitle>{t.settings.businessHours}</CardTitle>
+                <CardTitle>Business Hours</CardTitle>
                 <CardDescription>
-                  {t.settings.businessHoursDesc}
+                  Set your restaurant's opening hours.
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -434,7 +422,7 @@ const Settings = () => {
                           onChange={(e) => handleHoursChange(day.day_of_week, 'open_time', e.target.value)}
                           className="w-24"
                         />
-                        <span>{t.settings.to}</span>
+                        <span>to</span>
                         <Input
                           type="time"
                           value={day.close_time}
@@ -449,7 +437,7 @@ const Settings = () => {
                     onClick={saveBusinessHours}
                     disabled={loading}
                   >
-                    {loading ? t.common.loading : t.settings.saveHours}
+                    {loading ? 'Saving...' : 'Save Hours'}
                   </Button>
                 </div>
               </CardContent>
@@ -461,10 +449,10 @@ const Settings = () => {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Settings2 className="h-5 w-5" />
-                  {t.settings.orderingOptions}
+                  Ordering Options
                 </CardTitle>
                 <CardDescription>
-                  {t.settings.orderingOptionsDesc}
+                  Configure ordering options and customer experience settings.
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
@@ -475,11 +463,11 @@ const Settings = () => {
                     onCheckedChange={(checked) => handleOrderingSettingChange('requireTableSelection', checked)}
                   />
                   <Label htmlFor="require-table-selection">
-                    {t.settings.requireTableSelection}
+                    Require table selection for dine-in orders
                   </Label>
                 </div>
                 <p className="text-sm text-muted-foreground pl-7">
-                  {t.settings.requireTableSelectionDesc}
+                  When disabled, customers can place dine-in orders without selecting a table number.
                 </p>
                 
                 <Button 
@@ -488,7 +476,7 @@ const Settings = () => {
                   className="mt-4"
                 >
                   <Save className="h-4 w-4 mr-2" />
-                  {loading ? t.common.loading : t.settings.saveSettings}
+                  {loading ? 'Saving...' : 'Save Settings'}
                 </Button>
               </CardContent>
             </Card>
@@ -497,13 +485,13 @@ const Settings = () => {
           <TabsContent value="appearance" className="mt-6">
             <Card>
               <CardHeader>
-                <CardTitle>{t.settings.appearanceSettings}</CardTitle>
+                <CardTitle>Appearance Settings</CardTitle>
                 <CardDescription>
-                  {t.settings.appearanceSettingsDesc}
+                  Customize how your restaurant's ordering system looks.
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <p className="text-gray-500">{t.settings.comingSoon}</p>
+                <p className="text-gray-500">Appearance settings coming soon.</p>
               </CardContent>
             </Card>
           </TabsContent>
@@ -511,41 +499,13 @@ const Settings = () => {
           <TabsContent value="notifications" className="mt-6">
             <Card>
               <CardHeader>
-                <CardTitle>{t.settings.notificationSettings}</CardTitle>
+                <CardTitle>Notification Settings</CardTitle>
                 <CardDescription>
-                  {t.settings.notificationSettingsDesc}
+                  Configure how you receive order notifications.
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <p className="text-gray-500">{t.settings.notificationsComingSoon}</p>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="language" className="mt-6">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Globe className="h-5 w-5" />
-                  {t.settings.languageSettings}
-                </CardTitle>
-                <CardDescription>
-                  {t.settings.languageSettingsDesc}
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="language-select">{t.settings.selectLanguage}</Label>
-                  <Select value={language} onValueChange={(value: Language) => handleLanguageChange(value)}>
-                    <SelectTrigger id="language-select" className="w-full sm:w-[240px]">
-                      <SelectValue placeholder={t.settings.selectLanguage} />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="en">{t.settings.english}</SelectItem>
-                      <SelectItem value="fr">{t.settings.french}</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
+                <p className="text-gray-500">Notification settings coming soon.</p>
               </CardContent>
             </Card>
           </TabsContent>

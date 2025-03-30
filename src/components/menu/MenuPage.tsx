@@ -10,14 +10,12 @@ import CartSummary from './CartSummary';
 import { useMenuData } from '@/hooks/use-menu-data';
 import { useCart } from '@/hooks/use-cart';
 import { ToppingItem } from '../cart/types';
-import { useTranslation } from '@/hooks/use-translation';
 
 const MenuPage: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const { orderType, tableNumber } = location.state || {};
-  const { t } = useTranslation();
-  const [activeCategory, setActiveCategory] = useState(t.menu.categories.all);
+  const [activeCategory, setActiveCategory] = useState('All');
 
   // Custom hooks for data fetching and cart management
   const { products, isLoading, categoryNames, categoryIcons } = useMenuData();
@@ -41,11 +39,6 @@ const MenuPage: React.FC = () => {
       navigate('/');
     }
   }, [orderType, navigate]);
-
-  // Update activeCategory when language changes
-  useEffect(() => {
-    setActiveCategory(t.menu.categories.all);
-  }, [t.menu.categories.all]);
   
   return (
     <Layout>

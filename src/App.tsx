@@ -8,7 +8,6 @@ import { lazy, Suspense, useEffect } from "react";
 import { AnimatePresence } from "framer-motion";
 import { enableRealtimeForTables } from "./utils/enableRealtimeForTables";
 import { startMeasure, endMeasure } from "./utils/performanceMonitor";
-import { LanguageProvider } from "./context/LanguageContext";
 
 // Eagerly load the Index page for fast initial load
 import Index from "./pages/Index";
@@ -99,38 +98,36 @@ const App = () => {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <LanguageProvider>
-        <TooltipProvider>
-          <Toaster />
-          <Sonner />
-          <BrowserRouter>
-            <RouteChangeTracker />
-            <AnimatePresence mode="wait">
-              <Suspense fallback={<LoadingFallback />}>
-                <Routes>
-                  {/* Customer-facing routes */}
-                  <Route path="/" element={<Index />} />
-                  <Route path="/menu" element={<MenuPage />} />
-                  <Route path="/order-summary" element={<OrderSummaryPage />} />
-                  <Route path="/confirmation" element={<OrderConfirmation />} />
-                  
-                  {/* Admin routes */}
-                  <Route path="/admin" element={<Dashboard />} />
-                  <Route path="/admin/orders" element={<Orders />} />
-                  <Route path="/admin/menu" element={<MenuItems />} />
-                  <Route path="/admin/categories" element={<Categories />} />
-                  <Route path="/admin/toppings" element={<Toppings />} />
-                  <Route path="/admin/settings" element={<Settings />} />
-                  <Route path="/admin/kitchen" element={<KitchenDisplay />} />
-                  
-                  {/* 404 route */}
-                  <Route path="*" element={<NotFound />} />
-                </Routes>
-              </Suspense>
-            </AnimatePresence>
-          </BrowserRouter>
-        </TooltipProvider>
-      </LanguageProvider>
+      <TooltipProvider>
+        <Toaster />
+        <Sonner />
+        <BrowserRouter>
+          <RouteChangeTracker />
+          <AnimatePresence mode="wait">
+            <Suspense fallback={<LoadingFallback />}>
+              <Routes>
+                {/* Customer-facing routes */}
+                <Route path="/" element={<Index />} />
+                <Route path="/menu" element={<MenuPage />} />
+                <Route path="/order-summary" element={<OrderSummaryPage />} />
+                <Route path="/confirmation" element={<OrderConfirmation />} />
+                
+                {/* Admin routes */}
+                <Route path="/admin" element={<Dashboard />} />
+                <Route path="/admin/orders" element={<Orders />} />
+                <Route path="/admin/menu" element={<MenuItems />} />
+                <Route path="/admin/categories" element={<Categories />} />
+                <Route path="/admin/toppings" element={<Toppings />} />
+                <Route path="/admin/settings" element={<Settings />} />
+                <Route path="/admin/kitchen" element={<KitchenDisplay />} />
+                
+                {/* 404 route */}
+                <Route path="*" element={<NotFound />} />
+              </Routes>
+            </Suspense>
+          </AnimatePresence>
+        </BrowserRouter>
+      </TooltipProvider>
     </QueryClientProvider>
   );
 };
