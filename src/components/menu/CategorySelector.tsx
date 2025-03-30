@@ -7,6 +7,7 @@ interface CategorySelectorProps {
   activeCategory: string;
   onChange: (category: string) => void;
   orientation?: 'horizontal' | 'vertical';
+  categoryIcons?: Record<string, string | null>;
 }
 
 const CategorySelector: React.FC<CategorySelectorProps> = ({
@@ -14,6 +15,7 @@ const CategorySelector: React.FC<CategorySelectorProps> = ({
   activeCategory,
   onChange,
   orientation = 'horizontal',
+  categoryIcons = {},
 }) => {
   const isVertical = orientation === 'vertical';
   
@@ -32,6 +34,7 @@ const CategorySelector: React.FC<CategorySelectorProps> = ({
           isActive={activeCategory === 'All'}
           onChange={onChange}
           isVertical={isVertical}
+          iconUrl={null}
         />
         
         {categories.map((category) => (
@@ -41,6 +44,7 @@ const CategorySelector: React.FC<CategorySelectorProps> = ({
             isActive={activeCategory === category}
             onChange={onChange}
             isVertical={isVertical}
+            iconUrl={categoryIcons[category]}
           />
         ))}
       </div>
@@ -53,6 +57,7 @@ interface CategoryButtonProps {
   isActive: boolean;
   onChange: (category: string) => void;
   isVertical: boolean;
+  iconUrl: string | null;
 }
 
 const CategoryButton: React.FC<CategoryButtonProps> = ({
@@ -60,7 +65,36 @@ const CategoryButton: React.FC<CategoryButtonProps> = ({
   isActive,
   onChange,
   isVertical,
+  iconUrl,
 }) => {
+  // Helper function to determine icon
+  const getIconContent = () => {
+    if (iconUrl) {
+      return (
+        <img 
+          src={iconUrl} 
+          alt={category} 
+          className="w-8 h-8 object-cover rounded"
+        />
+      );
+    }
+    
+    // Default emoji fallbacks
+    return (
+      <div className="text-xl">
+        {category === 'All' && '🍽️'}
+        {category === 'Burgers' && '🍔'}
+        {category === 'Pizza' && '🍕'}
+        {category === 'Pasta' && '🍝'}
+        {category === 'Salad' && '🥗'}
+        {category === 'Dessert' && '🍰'}
+        {category === 'Drinks' && '🥤'}
+        {category === 'Sides' && '🍟'}
+        {(!['All', 'Burgers', 'Pizza', 'Pasta', 'Salad', 'Dessert', 'Drinks', 'Sides'].includes(category)) && '📋'}
+      </div>
+    );
+  };
+
   return (
     <button
       onClick={() => onChange(category)}
@@ -78,18 +112,10 @@ const CategoryButton: React.FC<CategoryButtonProps> = ({
         />
       )}
       
-      {/* Icon for categories - simple emoji placeholders */}
+      {/* Icon for categories - either custom or emoji */}
       {isVertical && (
-        <div className="mb-1 text-xl">
-          {category === 'All' && '🍽️'}
-          {category === 'Burgers' && '🍔'}
-          {category === 'Pizza' && '🍕'}
-          {category === 'Pasta' && '🍝'}
-          {category === 'Salad' && '🥗'}
-          {category === 'Dessert' && '🍰'}
-          {category === 'Drinks' && '🥤'}
-          {category === 'Sides' && '🍟'}
-          {(!['All', 'Burgers', 'Pizza', 'Pasta', 'Salad', 'Dessert', 'Drinks', 'Sides'].includes(category)) && '📋'}
+        <div className="mb-1">
+          {getIconContent()}
         </div>
       )}
       

@@ -1,49 +1,60 @@
-
-import React, { useEffect, useState } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
-import { AnimatePresence } from 'framer-motion';
-import Layout from '../layout/Layout';
-import CancelOrderDialog from './CancelOrderDialog';
+import React, { useState, useEffect } from 'react';
 import MenuHeader from './MenuHeader';
 import MenuContent from './MenuContent';
-import CartSummary from './CartSummary';
-import { useMenuData } from '@/hooks/use-menu-data';
+import CartSidebar from '../cart/CartSidebar';
 import { useCart } from '@/hooks/use-cart';
+import { Product, ToppingItem } from './ProductCard';
+import { useMenuData } from '@/hooks/use-menu-data';
 
-const MenuPage: React.FC = () => {
-  const location = useLocation();
-  const navigate = useNavigate();
-  const { orderType, tableNumber } = location.state || {};
+const MenuPage = () => {
   const [activeCategory, setActiveCategory] = useState('All');
+  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+  const [selectedToppings, setSelectedToppings] = useState<ToppingItem[]>([]);
+  const [isProductModalOpen, setIsProductModalOpen] = useState(false);
 
-  // Custom hooks for data fetching and cart management
-  const { products, isLoading, categoryNames } = useMenuData();
-  const { 
-    cartItems,
-    isCartOpen,
-    showCancelDialog,
-    setShowCancelDialog,
-    handleProductSelect,
-    handleRemoveItem,
-    handleIncrementItem,
-    handleDecrementItem,
-    handleCancelOrderClick,
-    handleConfirmCancel,
-    handleConfirmOrder
-  } = useCart({ orderType, tableNumber });
-  
-  // Redirect if no orderType is provided
-  useEffect(() => {
-    if (!orderType) {
-      navigate('/');
+  const handleProductSelect = (product: Product, selectedToppings?: ToppingItem[]) => {
+    setSelectedProduct(product);
+    setSelectedToppings(selectedToppings || []);
+    setIsProductModalOpen(true);
+  };
+
+  const handleAddToCart = (product: Product, quantity: number, selectedToppings?: ToppingItem[]) => {
+    if (product) {
+      useCart().addToCart({
+        ...product,
+        quantity,
+        selectedToppings
+      });
+      setIsProductModalOpen(false);
     }
-  }, [orderType, navigate]);
+  };
+
+  const handleUpdateCartItem = (item: any, quantity: number) => {
+    useCart().updateCartItem(item, quantity);
+  };
+
+  const handleRemoveItem = (item: any) => {
+    useCart().removeFromCart(item);
+  };
+
+  const handleClearCart = () => {
+    useCart().clearCart();
+  };
+
+  const handlePlaceOrder = () => {
+    // Implement order placement logic here
+    console.log('Order placed!');
+    useCart().clearCart();
+  };
+
+  // Fetch menu data from hooks
+  const { products, categories, isLoading, categoryNames, categoryIcons } = useMenuData();
+  const { cart, isCartOpen, toggleCart, addToCart, removeFromCart, updateCartItem, cartSubtotal } = useCart();
   
   return (
-    <Layout>
-      <div className="flex flex-col h-screen">
-        <MenuHeader />
-        
+    <div className="flex flex-col h-[calc(100vh-170px)] overflow-hidden">
+      <MenuHeader />
+      <div className="flex flex-1 overflow-hidden">
         <MenuContent 
           products={products}
           categories={categoryNames}
@@ -51,30 +62,20 @@ const MenuPage: React.FC = () => {
           setActiveCategory={setActiveCategory}
           isLoading={isLoading}
           onProductSelect={handleProductSelect}
+          categoryIcons={categoryIcons}
         />
-        
-        <AnimatePresence>
-          {isCartOpen && (
-            <CartSummary 
-              cartItems={cartItems}
-              onRemoveItem={handleRemoveItem}
-              onIncrementItem={handleIncrementItem}
-              onDecrementItem={handleDecrementItem}
-              onCancelOrderClick={handleCancelOrderClick}
-              onConfirmOrder={handleConfirmOrder}
-              orderType={orderType}
-              tableNumber={tableNumber}
-            />
-          )}
-        </AnimatePresence>
-        
-        <CancelOrderDialog 
-          isOpen={showCancelDialog}
-          onClose={() => setShowCancelDialog(false)}
-          onConfirm={handleConfirmCancel}
+        <CartSidebar 
+          isOpen={isCartOpen}
+          onClose={toggleCart}
+          cartItems={cart}
+          onRemoveItem={handleRemoveItem}
+          onUpdateItem={handleUpdateItem}
+          onClearCart={handleClearCart}
+          onPlaceOrder={handlePlaceOrder}
+          subtotal={cartSubtotal}
         />
       </div>
-    </Layout>
+    </div>
   );
 };
 
