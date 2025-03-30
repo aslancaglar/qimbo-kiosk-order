@@ -39,12 +39,18 @@ export const fr = {
       desserts: "Desserts"
     },
     addToOrder: "Ajouter à la commande",
+    addToCart: "Ajouter au panier",
     customize: "Personnaliser",
     ingredients: "Ingrédients",
     allergies: "Allergènes",
     nutritionalInfo: "Infos nutritionnelles",
     outOfStock: "Indisponible",
-    proceedToCheckout: "Commander"
+    proceedToCheckout: "Commander",
+    required: "Obligatoire",
+    optional: "Optionnel",
+    select: "Sélectionner",
+    items: "éléments",
+    item: "élément"
   },
   cart: {
     title: "Panier",
@@ -94,11 +100,53 @@ export const fr = {
     about: "À propos",
     version: "Version",
     privacyPolicy: "Politique de confidentialité",
-    termsOfService: "Conditions d'utilisation"
+    termsOfService: "Conditions d'utilisation",
+    general: "Général",
+    ordering: "Commande",
+    restaurantInfo: "Informations du restaurant",
+    restaurantInfoDesc: "Mettre à jour les informations de base de votre restaurant",
+    restaurantName: "Nom du restaurant",
+    phoneNumber: "Numéro de téléphone",
+    address: "Adresse",
+    description: "Description",
+    saveChanges: "Enregistrer les modifications",
+    businessHours: "Heures d'ouverture",
+    businessHoursDesc: "Définir les heures d'ouverture et de fermeture de votre restaurant",
+    to: "à",
+    saveHours: "Enregistrer les heures",
+    orderingOptions: "Options de commande",
+    orderingOptionsDesc: "Configurer la façon dont les clients peuvent passer des commandes",
+    requireTableSelection: "Exiger la sélection d'une table",
+    requireTableSelectionDesc: "Les clients doivent sélectionner un numéro de table lorsqu'ils mangent sur place",
+    saveSettings: "Enregistrer les paramètres",
+    appearanceSettings: "Paramètres d'apparence",
+    appearanceSettingsDesc: "Personnaliser l'apparence du système de commande de votre restaurant",
+    comingSoon: "Bientôt disponible",
+    notificationSettings: "Paramètres de notification",
+    notificationSettingsDesc: "Configurer les préférences de notification",
+    notificationsComingSoon: "Les paramètres de notification seront bientôt disponibles",
+    languageSettings: "Paramètres de langue",
+    languageSettingsDesc: "Définir votre langue préférée",
+    selectLanguage: "Sélectionner une langue"
   },
   errors: {
     failedToLoadRestaurantInfo: "Échec du chargement des informations du restaurant",
     noRestaurantInfoFound: "Aucune information de restaurant trouvée",
-    unexpectedError: "Une erreur inattendue s'est produite"
+    unexpectedError: "Une erreur inattendue s'est produite",
+    failedToLoad: "Échec du chargement des données",
+    maximumReached: "Nombre maximum atteint pour",
+    itemsFrom: "éléments de",
+    required: "Obligatoire"
+  },
+  toast: {
+    successTitle: "Succès",
+    errorTitle: "Erreur",
+    languageChanged: "Langue changée avec succès",
+    restaurantInfoUpdated: "Informations du restaurant mises à jour avec succès",
+    failedToUpdateRestaurantInfo: "Échec de la mise à jour des informations du restaurant",
+    businessHoursUpdated: "Heures d'ouverture mises à jour avec succès",
+    failedToUpdateBusinessHours: "Échec de la mise à jour des heures d'ouverture pour",
+    orderingSettingsSaved: "Paramètres de commande enregistrés avec succès",
+    failedToSaveOrderingSettings: "Échec de l'enregistrement des paramètres de commande"
   }
 };

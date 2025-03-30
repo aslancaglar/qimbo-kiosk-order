@@ -39,12 +39,18 @@ export const en = {
       desserts: "Desserts"
     },
     addToOrder: "Add to Order",
+    addToCart: "Add to Cart",
     customize: "Customize",
     ingredients: "Ingredients",
     allergies: "Allergies",
     nutritionalInfo: "Nutritional Info",
     outOfStock: "Out of Stock",
-    proceedToCheckout: "Checkout"
+    proceedToCheckout: "Checkout",
+    required: "Required",
+    optional: "Optional",
+    select: "Select",
+    items: "items",
+    item: "item"
   },
   cart: {
     title: "Cart",
@@ -94,11 +100,53 @@ export const en = {
     about: "About",
     version: "Version",
     privacyPolicy: "Privacy Policy",
-    termsOfService: "Terms of Service"
+    termsOfService: "Terms of Service",
+    general: "General",
+    ordering: "Ordering",
+    restaurantInfo: "Restaurant Information",
+    restaurantInfoDesc: "Update your restaurant's basic information",
+    restaurantName: "Restaurant Name",
+    phoneNumber: "Phone Number",
+    address: "Address",
+    description: "Description",
+    saveChanges: "Save Changes",
+    businessHours: "Business Hours",
+    businessHoursDesc: "Set your restaurant's opening and closing times",
+    to: "to",
+    saveHours: "Save Hours",
+    orderingOptions: "Ordering Options",
+    orderingOptionsDesc: "Configure how customers can place orders",
+    requireTableSelection: "Require Table Selection",
+    requireTableSelectionDesc: "Customers must select a table number when dining in",
+    saveSettings: "Save Settings",
+    appearanceSettings: "Appearance Settings",
+    appearanceSettingsDesc: "Customize how your restaurant's ordering system looks",
+    comingSoon: "Coming Soon",
+    notificationSettings: "Notification Settings",
+    notificationSettingsDesc: "Configure notification preferences",
+    notificationsComingSoon: "Notification settings will be available soon",
+    languageSettings: "Language Settings",
+    languageSettingsDesc: "Set your preferred language",
+    selectLanguage: "Select Language"
   },
   errors: {
     failedToLoadRestaurantInfo: "Failed to load restaurant information",
     noRestaurantInfoFound: "No restaurant information found",
-    unexpectedError: "An unexpected error occurred"
+    unexpectedError: "An unexpected error occurred",
+    failedToLoad: "Failed to load data",
+    maximumReached: "Maximum selection reached for",
+    itemsFrom: "items from",
+    required: "Required"
+  },
+  toast: {
+    successTitle: "Success",
+    errorTitle: "Error",
+    languageChanged: "Language changed successfully",
+    restaurantInfoUpdated: "Restaurant information updated successfully",
+    failedToUpdateRestaurantInfo: "Failed to update restaurant information",
+    businessHoursUpdated: "Business hours updated successfully",
+    failedToUpdateBusinessHours: "Failed to update business hours for",
+    orderingSettingsSaved: "Ordering settings saved successfully",
+    failedToSaveOrderingSettings: "Failed to save ordering settings"
   }
 };
