@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { motion } from 'framer-motion';
 import { Pizza, Coffee, Utensils } from 'lucide-react';
@@ -132,7 +131,7 @@ const CategoryButton: React.FC<CategoryButtonProps> = ({
           ? isVertical ? 'text-red-600 font-bold' : 'text-primary' 
           : 'text-gray-600 hover:text-gray-900'
       }`}>
-        {isVertical ? (category.length > 7 ? category.substring(0, 7) + '...' : category) : category}
+        {isVertical ? category : category}
       </span>
     </button>
   );
