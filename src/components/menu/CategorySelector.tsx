@@ -103,7 +103,7 @@ const CategoryButton: React.FC<CategoryButtonProps> = ({
       {isVertical && (
         <div className="mb-1 text-2xl">
           {icon ? (
-            <div className="h-10 w-10 rounded-full overflow-hidden flex items-center justify-center">
+            <div className="h-14 w-14 rounded-full overflow-hidden flex items-center justify-center">
               <img 
                 src={icon} 
                 alt={category} 
