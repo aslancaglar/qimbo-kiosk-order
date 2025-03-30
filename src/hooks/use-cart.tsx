@@ -132,6 +132,8 @@ export function useCart({ orderType, tableNumber }: UseCartOptions) {
       
       console.log('Starting checkout process with order data:', orderData);
       
+      const tempOrderNumber = `ORD-${Date.now().toString().slice(-6)}`;
+      
       const { data: orderResult, error: orderError } = await supabase
         .from('orders')
         .insert({
@@ -140,8 +142,9 @@ export function useCart({ orderType, tableNumber }: UseCartOptions) {
           items_count: cartItems.reduce((sum, item) => sum + item.quantity, 0),
           total_amount: total,
           status: 'New',
+          order_number: tempOrderNumber
         })
-        .select('id')
+        .select('id, order_number')
         .single();
       
       if (orderError) {

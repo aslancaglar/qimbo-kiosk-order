@@ -54,7 +54,10 @@ const OrderSummaryPage: React.FC = () => {
   const handleConfirmOrderClick = async () => {
     try {
       await handleConfirmOrder();
-      // Removing the random order number generation
+      
+      // Generate a temporary order number
+      const tempOrderNumber = `ORD-${Date.now().toString().slice(-6)}`;
+      
       const {
         data: orderResult,
         error: orderError
@@ -64,8 +67,9 @@ const OrderSummaryPage: React.FC = () => {
         items_count: items.reduce((sum: number, item: CartItemType) => sum + item.quantity, 0),
         total_amount: total,
         status: 'New',
-        // We'll let the database generate the order_number
-      }).select('id').single();
+        order_number: tempOrderNumber
+      }).select('id, order_number').single();
+      
       if (orderError) {
         console.error('Error creating order:', orderError);
         toast({
@@ -117,7 +121,6 @@ const OrderSummaryPage: React.FC = () => {
           tax,
           total,
           orderId: orderResult.id,
-          // Use the database ID as the order number
           orderNumber: orderResult.id.toString()
         }
       });
