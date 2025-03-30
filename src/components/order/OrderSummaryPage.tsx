@@ -40,25 +40,8 @@ const OrderSummaryPage: React.FC = () => {
     navigate(-1);
   };
 
-  const handleConfirmOrderClick = async () => {
-    try {
-      // Use the existing handleConfirmOrder from the cart hook
-      await handleConfirmOrder();
-      
-      // After confirmation, redirect to the confirmation page with all order details
-      navigate('/confirmation', { 
-        state: { 
-          items, 
-          orderType, 
-          tableNumber,
-          subtotal,
-          tax,
-          total
-        } 
-      });
-    } catch (error) {
-      console.error('Error confirming order:', error);
-    }
+  const handleConfirmOrderClick = () => {
+    handleConfirmOrder();
   };
 
   return (
