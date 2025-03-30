@@ -10,36 +10,35 @@ import {
 } from "@/components/ui/toast"
 
 export function Toaster() {
-  // Handle the case where toasts might not be ready yet
+  // Safely access the toast context
+  let toasts = [];
+  
   try {
-    const { toasts } = useToast()
-    
-    return (
-      <ToastProvider>
-        {toasts.map(function ({ id, title, description, action, ...props }) {
-          return (
-            <Toast key={id} {...props}>
-              <div className="grid gap-1">
-                {title && <ToastTitle>{title}</ToastTitle>}
-                {description && (
-                  <ToastDescription>{description}</ToastDescription>
-                )}
-              </div>
-              {action}
-              <ToastClose />
-            </Toast>
-          )
-        })}
-        <ToastViewport />
-      </ToastProvider>
-    )
+    const { toasts: toastArray } = useToast();
+    toasts = toastArray || [];
   } catch (error) {
-    // Provide an empty fallback if useToast fails
-    console.error('Error rendering Toaster:', error)
-    return (
-      <ToastProvider>
-        <ToastViewport />
-      </ToastProvider>
-    )
+    console.error('Error accessing toast context:', error);
+    // Provide fallback empty array if toast context is not available
+    toasts = [];
   }
+  
+  return (
+    <ToastProvider>
+      {toasts.map(function ({ id, title, description, action, ...props }) {
+        return (
+          <Toast key={id} {...props}>
+            <div className="grid gap-1">
+              {title && <ToastTitle>{title}</ToastTitle>}
+              {description && (
+                <ToastDescription>{description}</ToastDescription>
+              )}
+            </div>
+            {action}
+            <ToastClose />
+          </Toast>
+        )
+      })}
+      <ToastViewport />
+    </ToastProvider>
+  )
 }

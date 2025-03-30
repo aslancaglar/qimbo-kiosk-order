@@ -65,7 +65,8 @@ const RouteChangeTracker = () => {
   return null;
 };
 
-const App = () => {
+// AppContent component to handle all the routing and content
+const AppContent = () => {
   // Initialize performance monitoring
   useEffect(() => {
     startMeasure('App initialization');
@@ -98,38 +99,44 @@ const App = () => {
   }, []);
 
   return (
+    <BrowserRouter>
+      <RouteChangeTracker />
+      <Toaster />
+      <Sonner />
+      <AnimatePresence mode="wait">
+        <Suspense fallback={<LoadingFallback />}>
+          <Routes>
+            {/* Customer-facing routes */}
+            <Route path="/" element={<Index />} />
+            <Route path="/menu" element={<MenuPage />} />
+            <Route path="/order-summary" element={<OrderSummaryPage />} />
+            <Route path="/confirmation" element={<OrderConfirmation />} />
+            
+            {/* Admin routes */}
+            <Route path="/admin" element={<Dashboard />} />
+            <Route path="/admin/orders" element={<Orders />} />
+            <Route path="/admin/menu" element={<MenuItems />} />
+            <Route path="/admin/categories" element={<Categories />} />
+            <Route path="/admin/toppings" element={<Toppings />} />
+            <Route path="/admin/settings" element={<Settings />} />
+            <Route path="/admin/kitchen" element={<KitchenDisplay />} />
+            
+            {/* 404 route */}
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </Suspense>
+      </AnimatePresence>
+    </BrowserRouter>
+  );
+};
+
+// Root App component
+const App = () => {
+  return (
     <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
       <QueryClientProvider client={queryClient}>
         <TooltipProvider>
-          {/* Moved toast components inside routing */}
-          <BrowserRouter>
-            <RouteChangeTracker />
-            <Toaster />
-            <Sonner />
-            <AnimatePresence mode="wait">
-              <Suspense fallback={<LoadingFallback />}>
-                <Routes>
-                  {/* Customer-facing routes */}
-                  <Route path="/" element={<Index />} />
-                  <Route path="/menu" element={<MenuPage />} />
-                  <Route path="/order-summary" element={<OrderSummaryPage />} />
-                  <Route path="/confirmation" element={<OrderConfirmation />} />
-                  
-                  {/* Admin routes */}
-                  <Route path="/admin" element={<Dashboard />} />
-                  <Route path="/admin/orders" element={<Orders />} />
-                  <Route path="/admin/menu" element={<MenuItems />} />
-                  <Route path="/admin/categories" element={<Categories />} />
-                  <Route path="/admin/toppings" element={<Toppings />} />
-                  <Route path="/admin/settings" element={<Settings />} />
-                  <Route path="/admin/kitchen" element={<KitchenDisplay />} />
-                  
-                  {/* 404 route */}
-                  <Route path="*" element={<NotFound />} />
-                </Routes>
-              </Suspense>
-            </AnimatePresence>
-          </BrowserRouter>
+          <AppContent />
         </TooltipProvider>
       </QueryClientProvider>
     </ThemeProvider>
