@@ -3,11 +3,12 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App';
 import './index.css';
-import { registerServiceWorker, clearAppCache } from './utils/serviceWorker';
+import { registerServiceWorker, clearAppCache, checkForUpdates } from './utils/serviceWorker';
 
-// Make cache clearing function available globally for debugging
+// Make cache clearing and update checking functions available globally for debugging
 if (process.env.NODE_ENV !== 'production') {
   (window as any).clearAppCache = clearAppCache;
+  (window as any).checkForUpdates = checkForUpdates;
 }
 
 // Performance measurements
@@ -26,8 +27,18 @@ root.render(
   </React.StrictMode>
 );
 
-// Register service worker for production
+// Register service worker
 registerServiceWorker().catch(console.error);
+
+// Setup periodic update checks in production
+if (process.env.NODE_ENV === 'production') {
+  // Check for updates after initial load
+  window.addEventListener('load', () => {
+    setTimeout(() => {
+      checkForUpdates().catch(console.error);
+    }, 10000); // Check after 10 seconds
+  });
+}
 
 // End performance measurement
 if (process.env.NODE_ENV !== 'production') {
