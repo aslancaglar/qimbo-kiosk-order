@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import AdminLayout from '../../components/admin/AdminLayout';
 import { Input } from "@/components/ui/input";
@@ -223,7 +222,6 @@ const MenuItems = () => {
 
   const handleDeleteItem = async (id: number) => {
     try {
-      // First, get the item to check if it has an image
       const { data: item, error: fetchError } = await supabase
         .from('menu_items')
         .select('image')
@@ -234,7 +232,6 @@ const MenuItems = () => {
         throw fetchError;
       }
       
-      // If the item has an image, delete it from storage
       if (item.image) {
         const imagePath = item.image.split('/').pop();
         if (imagePath) {
@@ -245,12 +242,10 @@ const MenuItems = () => {
             
           if (deleteImageError) {
             console.error('Error deleting image:', deleteImageError);
-            // Continue with deletion even if image removal fails
           }
         }
       }
       
-      // Delete the menu item
       const { error: deleteError } = await supabase
         .from('menu_items')
         .delete()
@@ -264,7 +259,6 @@ const MenuItems = () => {
         title: 'Success',
         description: 'Menu item deleted successfully.',
       });
-      
     } catch (error) {
       console.error('Error deleting menu item:', error);
       toast({
@@ -279,7 +273,6 @@ const MenuItems = () => {
     const file = e.target.files?.[0];
     if (!file) return;
     
-    // Validate file type
     const validTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
     if (!validTypes.includes(file.type)) {
       toast({
@@ -290,7 +283,6 @@ const MenuItems = () => {
       return;
     }
     
-    // Validate file size (max 5MB)
     if (file.size > 5 * 1024 * 1024) {
       toast({
         title: 'File too large',
@@ -302,7 +294,6 @@ const MenuItems = () => {
     
     setImageFile(file);
     
-    // Create a preview
     const reader = new FileReader();
     reader.onloadend = () => {
       setImagePreview(reader.result as string);
@@ -314,11 +305,38 @@ const MenuItems = () => {
     try {
       setIsUploading(true);
       
-      // Create a unique filename
+      const { data: buckets, error: bucketsError } = await supabase
+        .storage
+        .listBuckets();
+        
+      if (bucketsError) {
+        console.error('Error checking buckets:', bucketsError);
+        throw bucketsError;
+      }
+      
+      const bucketExists = buckets.some(bucket => bucket.name === 'menu-images');
+      
+      if (!bucketExists) {
+        console.log('Bucket does not exist, attempting to create it...');
+        const { error: createBucketError } = await supabase
+          .storage
+          .createBucket('menu-images', {
+            public: true,
+            fileSizeLimit: 5 * 1024 * 1024,
+          });
+          
+        if (createBucketError) {
+          console.error('Error creating bucket:', createBucketError);
+          throw createBucketError;
+        }
+        console.log('Bucket created successfully');
+      }
+      
       const fileExt = file.name.split('.').pop();
       const fileName = `${Date.now()}-${Math.random().toString(36).substring(2, 15)}.${fileExt}`;
       
-      // Upload the file
+      console.log(`Uploading file ${fileName} to menu-images bucket...`);
+      
       const { data, error } = await supabase.storage
         .from('menu-images')
         .upload(fileName, file, {
@@ -327,14 +345,18 @@ const MenuItems = () => {
         });
         
       if (error) {
+        console.error('Upload error:', error);
         throw error;
       }
       
-      // Get the public URL
+      console.log('File uploaded successfully:', data);
+      
       const { data: { publicUrl } } = supabase.storage
         .from('menu-images')
         .getPublicUrl(data.path);
         
+      console.log('Public URL:', publicUrl);
+      
       return publicUrl;
     } catch (error) {
       console.error('Error uploading image:', error);
@@ -350,38 +372,41 @@ const MenuItems = () => {
   };
 
   const handleRemoveImage = async () => {
-    // If we're editing and there's an existing image
     if (editItem?.image && !imageFile) {
       try {
-        // Extract the filename from the URL
         const imagePath = editItem.image.split('/').pop();
         if (imagePath) {
-          // Delete from storage
+          console.log(`Attempting to remove image: ${imagePath}`);
+          
           const { error } = await supabase
             .storage
             .from('menu-images')
             .remove([imagePath]);
             
           if (error) {
+            console.error('Error removing image from storage:', error);
             throw error;
           }
           
-          // Update the menu item to remove the image reference
+          console.log('Image removed from storage successfully');
+          
           const { error: updateError } = await supabase
             .from('menu_items')
             .update({ image: null })
             .eq('id', editItem.id);
             
           if (updateError) {
+            console.error('Error updating menu item after image removal:', updateError);
             throw updateError;
           }
+          
+          console.log('Menu item updated to remove image reference');
           
           toast({
             title: 'Success',
             description: 'Image removed successfully.',
           });
           
-          // Update the local state
           setImagePreview(null);
           if (fileInputRef.current) {
             fileInputRef.current.value = '';
@@ -396,7 +421,6 @@ const MenuItems = () => {
         });
       }
     } else {
-      // Just clear the local state for new uploads
       setImageFile(null);
       setImagePreview(null);
       if (fileInputRef.current) {
@@ -421,17 +445,21 @@ const MenuItems = () => {
         return;
       }
       
-      // Handle image upload if there's a new file
       let imageUrl = editItem?.image || null;
       if (imageFile) {
         console.log("Uploading new image");
         imageUrl = await uploadImage(imageFile);
         if (!imageUrl) {
-          // If image upload failed, you might want to stop here or continue without the image
-          console.error("Image upload failed, continuing without updating the image");
+          toast({
+            title: 'Error',
+            description: 'Image upload failed. Please try again.',
+            variant: 'destructive',
+          });
+          setIsUploading(false);
+          return;
         }
+        console.log("Image uploaded successfully, URL:", imageUrl);
       } else if (imagePreview === null && editItem?.image) {
-        // If image preview is null but there was an existing image, it means user removed it
         console.log("User removed the image");
         imageUrl = null;
       }
@@ -459,6 +487,8 @@ const MenuItems = () => {
           throw error;
         }
         
+        console.log("Menu item updated successfully");
+        
         toast({
           title: 'Success',
           description: 'Menu item updated successfully.',
@@ -472,6 +502,8 @@ const MenuItems = () => {
           console.error("Insert error:", error);
           throw error;
         }
+        
+        console.log("Menu item added successfully");
         
         toast({
           title: 'Success',
