@@ -6,9 +6,9 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Loader2, Check, X, AlertTriangle, Info } from "lucide-react";
+import { Loader2, Check, X, AlertTriangle, Info, Printer } from "lucide-react";
 import { toast } from "@/components/ui/use-toast";
-import { getPrintNodeConfig, savePrintNodeConfig, testPrintNodeConnection, fetchPrintNodePrinters } from "@/utils/printNodeService";
+import { getPrintNodeConfig, savePrintNodeConfig, testPrintNodeConnection, fetchPrintNodePrinters, sendTestPage } from "@/utils/printNodeService";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 
 interface PrintNodeSettingsProps {
@@ -34,6 +34,7 @@ const PrintNodeSettings: React.FC<PrintNodeSettingsProps> = ({
   const [printers, setPrinters] = useState<Printer[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [testStatus, setTestStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
+  const [sendingTestPage, setSendingTestPage] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [configLoaded, setConfigLoaded] = useState(false);
 
@@ -159,6 +160,56 @@ const PrintNodeSettings: React.FC<PrintNodeSettingsProps> = ({
     }, 3000);
   };
 
+  const handleSendTestPage = async () => {
+    if (!selectedPrinterId) {
+      setErrorMessage("Please select a printer first");
+      toast({
+        title: "Error",
+        description: "Please select a printer before sending a test page.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    setSendingTestPage(true);
+    setErrorMessage(null);
+    
+    // Ensure config is saved with latest values
+    await savePrintNodeConfig({
+      apiKey,
+      defaultPrinterId: selectedPrinterId,
+      enabled
+    });
+    
+    try {
+      const success = await sendTestPage();
+      
+      if (success) {
+        toast({
+          title: "Test Page Sent",
+          description: "Test page has been sent to your printer.",
+        });
+      } else {
+        setErrorMessage("Failed to send test page. Make sure your printer is online and correctly configured.");
+        toast({
+          title: "Error",
+          description: "Failed to send test page. Make sure your printer is online and correctly configured.",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error("Error sending test page:", error);
+      setErrorMessage(`Error sending test page: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      toast({
+        title: "Error",
+        description: "An error occurred while sending the test page.",
+        variant: "destructive",
+      });
+    } finally {
+      setSendingTestPage(false);
+    }
+  };
+
   const handleSave = async () => {
     // Save configuration
     await savePrintNodeConfig({
@@ -272,6 +323,25 @@ const PrintNodeSettings: React.FC<PrintNodeSettingsProps> = ({
           )}
         </div>
       </div>
+      
+      {selectedPrinterId && (
+        <div className="col-span-4 flex justify-end">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={handleSendTestPage}
+            disabled={sendingTestPage || !selectedPrinterId}
+            className="mt-2"
+          >
+            {sendingTestPage ? (
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            ) : (
+              <Printer className="mr-2 h-4 w-4" />
+            )}
+            Send Test Page
+          </Button>
+        </div>
+      )}
       
       <div className="col-span-4 mt-2">
         <p className="text-sm text-gray-500">

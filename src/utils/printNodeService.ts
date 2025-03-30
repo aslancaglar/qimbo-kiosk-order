@@ -171,6 +171,129 @@ export const fetchPrintNodePrinters = async (): Promise<any[]> => {
 };
 
 /**
+ * Generate test receipt HTML content
+ */
+export const generateTestReceiptHTML = (): string => {
+  const testDate = new Date().toLocaleString();
+  
+  return `
+    <!DOCTYPE html>
+    <html>
+      <head>
+        <meta charset="utf-8">
+        <title>Test Receipt</title>
+        <style>
+          body {
+            font-family: 'Arial', sans-serif;
+            margin: 0;
+            padding: 10px;
+            width: 80mm;
+            font-size: 12px;
+          }
+          .header {
+            text-align: center;
+            margin-bottom: 10px;
+            border-bottom: 1px dashed #000;
+            padding-bottom: 10px;
+          }
+          .content {
+            margin: 15px 0;
+          }
+          .footer {
+            margin-top: 20px;
+            text-align: center;
+            font-size: 11px;
+            border-top: 1px dashed #000;
+            padding-top: 10px;
+          }
+        </style>
+      </head>
+      <body>
+        <div class="header">
+          <h2 style="margin: 0;">TEST RECEIPT</h2>
+          <p>${testDate}</p>
+        </div>
+        
+        <div class="content">
+          <p>This is a test receipt from your POS system.</p>
+          <p>If you can read this message, your printer is configured correctly!</p>
+          
+          <p style="text-align: center; margin: 20px 0; font-size: 14px;">
+            <strong>PrintNode Integration Test</strong>
+          </p>
+          
+          <p>Below is a test of different formatting:</p>
+          <ul style="list-style-type: none; padding-left: 10px;">
+            <li><strong>Bold text</strong></li>
+            <li><em>Italic text</em></li>
+            <li>Normal text</li>
+            <li>---------</li>
+          </ul>
+        </div>
+        
+        <div class="footer">
+          <p>Test completed at: ${testDate}</p>
+          <p>Thank you for using our POS system!</p>
+        </div>
+      </body>
+    </html>
+  `;
+};
+
+/**
+ * Send test page to PrintNode printer
+ */
+export const sendTestPage = async (): Promise<boolean> => {
+  const config = getPrintNodeConfig();
+  
+  if (!config.apiKey || !config.enabled || !config.defaultPrinterId) {
+    console.log('PrintNode not configured or disabled');
+    return false;
+  }
+  
+  try {
+    console.log('Sending test page to PrintNode...');
+    
+    // Generate HTML content
+    const htmlContent = generateTestReceiptHTML();
+    
+    // Convert HTML to base64
+    const base64Content = btoa(unescape(encodeURIComponent(htmlContent)));
+    
+    // Prepare the print job
+    const printJob = {
+      printerId: config.defaultPrinterId,
+      title: `Test Receipt`,
+      contentType: "raw_base64",
+      content: base64Content,
+      source: "POS System"
+    };
+    
+    // Send to PrintNode API
+    const response = await fetch('https://api.printnode.com/printjobs', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Basic ${btoa(config.apiKey + ':')}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(printJob)
+    });
+    
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error(`Error sending test page: ${response.status} - ${errorText}`);
+      throw new Error(`HTTP error ${response.status}: ${errorText}`);
+    }
+    
+    console.log('Test page sent successfully');
+    return true;
+  } catch (error) {
+    console.error('Error sending test page to PrintNode:', error);
+    return false;
+  }
+};
+
+/**
  * Generate HTML content for receipt
  */
 export const generateReceiptHTML = (
