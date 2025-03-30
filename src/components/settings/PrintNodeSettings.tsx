@@ -6,9 +6,10 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Loader2, Check, X } from "lucide-react";
+import { Loader2, Check, X, AlertTriangle } from "lucide-react";
 import { toast } from "@/components/ui/use-toast";
 import { getPrintNodeConfig, savePrintNodeConfig, testPrintNodeConnection, fetchPrintNodePrinters } from "@/utils/printNodeService";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 interface PrintNodeSettingsProps {
   open: boolean;
@@ -33,6 +34,7 @@ const PrintNodeSettings: React.FC<PrintNodeSettingsProps> = ({
   const [printers, setPrinters] = useState<Printer[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [testStatus, setTestStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   // Load saved configuration on mount
   useEffect(() => {
@@ -50,11 +52,20 @@ const PrintNodeSettings: React.FC<PrintNodeSettingsProps> = ({
   }, [open, embedded]);
 
   const loadPrinters = async () => {
-    if (!apiKey) return;
+    if (!apiKey) {
+      setErrorMessage("API key is required to load printers");
+      return;
+    }
     
     setIsLoading(true);
+    setErrorMessage(null);
+    
     try {
       const printersList = await fetchPrintNodePrinters();
+      
+      if (printersList.length === 0) {
+        setErrorMessage("No printers found. Make sure you have printers configured in your PrintNode account.");
+      }
       
       // Format printers for the select component
       const formattedPrinters = printersList.map((printer: any) => ({
@@ -66,6 +77,7 @@ const PrintNodeSettings: React.FC<PrintNodeSettingsProps> = ({
       setPrinters(formattedPrinters);
     } catch (error) {
       console.error("Error loading printers:", error);
+      setErrorMessage("Failed to load printers. Please check your API key.");
       toast({
         title: "Error",
         description: "Failed to load printers. Please check your API key.",
@@ -77,7 +89,25 @@ const PrintNodeSettings: React.FC<PrintNodeSettingsProps> = ({
   };
 
   const handleTestConnection = async () => {
+    if (!apiKey) {
+      setErrorMessage("API key is required to test connection");
+      toast({
+        title: "Error",
+        description: "API key is required to test connection.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
     setTestStatus("loading");
+    setErrorMessage(null);
+    
+    // Save the API key first, so the test can use it
+    savePrintNodeConfig({
+      apiKey,
+      defaultPrinterId: selectedPrinterId,
+      enabled
+    });
     
     try {
       const isConnected = await testPrintNodeConnection();
@@ -91,6 +121,7 @@ const PrintNodeSettings: React.FC<PrintNodeSettingsProps> = ({
         });
       } else {
         setTestStatus("error");
+        setErrorMessage("Could not connect to PrintNode. Please check your API key.");
         toast({
           title: "Connection Failed",
           description: "Could not connect to PrintNode. Please check your API key.",
@@ -99,6 +130,7 @@ const PrintNodeSettings: React.FC<PrintNodeSettingsProps> = ({
       }
     } catch (error) {
       setTestStatus("error");
+      setErrorMessage(`Error: ${error instanceof Error ? error.message : 'Unknown error'}`);
       toast({
         title: "Error",
         description: "An error occurred while testing the connection.",
@@ -171,6 +203,13 @@ const PrintNodeSettings: React.FC<PrintNodeSettingsProps> = ({
         </div>
       </div>
       
+      {errorMessage && (
+        <Alert variant="destructive" className="mt-2">
+          <AlertTriangle className="h-4 w-4" />
+          <AlertDescription>{errorMessage}</AlertDescription>
+        </Alert>
+      )}
+      
       <div className="grid grid-cols-4 items-center gap-4">
         <Label htmlFor="printer-select" className="text-right col-span-1">
           Printer
@@ -198,6 +237,13 @@ const PrintNodeSettings: React.FC<PrintNodeSettingsProps> = ({
             </p>
           )}
         </div>
+      </div>
+      
+      <div className="col-span-4 mt-2">
+        <p className="text-sm text-gray-500">
+          <strong>Note:</strong> You need a valid PrintNode account and API key. 
+          Visit <a href="https://www.printnode.com" target="_blank" rel="noreferrer" className="text-blue-500 hover:underline">PrintNode.com</a> to create an account.
+        </p>
       </div>
     </div>
   );

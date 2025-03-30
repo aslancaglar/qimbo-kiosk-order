@@ -53,17 +53,28 @@ export const testPrintNodeConnection = async (): Promise<boolean> => {
   const config = getPrintNodeConfig();
   
   if (!config.apiKey) {
+    console.log('PrintNode API key is empty');
     return false;
   }
   
   try {
+    console.log('Testing PrintNode connection...');
+    
     const response = await fetch('https://api.printnode.com/whoami', {
       headers: {
         'Authorization': `Basic ${btoa(config.apiKey + ':')}`
       }
     });
     
-    return response.ok;
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error(`PrintNode API error: ${response.status} - ${errorText}`);
+      return false;
+    }
+    
+    const data = await response.json();
+    console.log('PrintNode connection successful', data);
+    return true;
   } catch (error) {
     console.error('PrintNode connection test failed:', error);
     return false;
@@ -77,10 +88,13 @@ export const fetchPrintNodePrinters = async (): Promise<any[]> => {
   const config = getPrintNodeConfig();
   
   if (!config.apiKey || !config.enabled) {
+    console.log('Cannot fetch printers: API key is empty or printing is disabled');
     return [];
   }
   
   try {
+    console.log('Fetching PrintNode printers...');
+    
     const response = await fetch('https://api.printnode.com/printers', {
       headers: {
         'Authorization': `Basic ${btoa(config.apiKey + ':')}`
@@ -88,10 +102,13 @@ export const fetchPrintNodePrinters = async (): Promise<any[]> => {
     });
     
     if (!response.ok) {
-      throw new Error(`HTTP error ${response.status}`);
+      const errorText = await response.text();
+      console.error(`Error fetching PrintNode printers: ${response.status} - ${errorText}`);
+      throw new Error(`HTTP error ${response.status}: ${errorText}`);
     }
     
     const printers = await response.json();
+    console.log(`Found ${printers.length} printers:`, printers);
     return printers;
   } catch (error) {
     console.error('Error fetching PrintNode printers:', error);
