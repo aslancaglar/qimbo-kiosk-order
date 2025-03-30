@@ -9,6 +9,7 @@ import MenuContent from './MenuContent';
 import CartSummary from './CartSummary';
 import { useMenuData } from '@/hooks/use-menu-data';
 import { useCart } from '@/hooks/use-cart';
+import { ToppingItem } from '../cart/types';
 
 const MenuPage: React.FC = () => {
   const location = useLocation();
@@ -17,7 +18,7 @@ const MenuPage: React.FC = () => {
   const [activeCategory, setActiveCategory] = useState('All');
 
   // Custom hooks for data fetching and cart management
-  const { products, isLoading, categoryNames } = useMenuData();
+  const { products, isLoading, categoryNames, categoryIcons } = useMenuData();
   const { 
     cartItems,
     isCartOpen,
@@ -47,6 +48,7 @@ const MenuPage: React.FC = () => {
         <MenuContent 
           products={products}
           categories={categoryNames}
+          categoryIcons={categoryIcons}
           activeCategory={activeCategory}
           setActiveCategory={setActiveCategory}
           isLoading={isLoading}

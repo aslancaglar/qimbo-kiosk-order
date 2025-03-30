@@ -8,6 +8,7 @@ import { ToppingItem } from '../cart/types';
 interface MenuContentProps {
   products: Product[];
   categories: string[];
+  categoryIcons?: Record<string, string | null>;
   activeCategory: string;
   setActiveCategory: (category: string) => void;
   isLoading: boolean;
@@ -17,6 +18,7 @@ interface MenuContentProps {
 const MenuContent: React.FC<MenuContentProps> = ({
   products,
   categories,
+  categoryIcons = {},
   activeCategory,
   setActiveCategory,
   isLoading,
@@ -31,6 +33,7 @@ const MenuContent: React.FC<MenuContentProps> = ({
       <div className="w-20 md:w-24 bg-gradient-to-b from-yellow-400 to-yellow-500 overflow-y-auto">
         <CategorySelector 
           categories={categories} 
+          categoryIcons={categoryIcons}
           activeCategory={activeCategory} 
           onChange={setActiveCategory}
           orientation="vertical"

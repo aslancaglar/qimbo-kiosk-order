@@ -1,9 +1,11 @@
 
 import React from 'react';
 import { motion } from 'framer-motion';
+import { Pizza, Coffee, Utensils } from 'lucide-react';
 
 interface CategorySelectorProps {
   categories: string[];
+  categoryIcons?: Record<string, string | null>;
   activeCategory: string;
   onChange: (category: string) => void;
   orientation?: 'horizontal' | 'vertical';
@@ -11,6 +13,7 @@ interface CategorySelectorProps {
 
 const CategorySelector: React.FC<CategorySelectorProps> = ({
   categories,
+  categoryIcons = {},
   activeCategory,
   onChange,
   orientation = 'horizontal',
@@ -29,6 +32,7 @@ const CategorySelector: React.FC<CategorySelectorProps> = ({
         {/* Always include All category */}
         <CategoryButton
           category="All"
+          icon={null}
           isActive={activeCategory === 'All'}
           onChange={onChange}
           isVertical={isVertical}
@@ -38,6 +42,7 @@ const CategorySelector: React.FC<CategorySelectorProps> = ({
           <CategoryButton
             key={category}
             category={category}
+            icon={categoryIcons[category]}
             isActive={activeCategory === category}
             onChange={onChange}
             isVertical={isVertical}
@@ -50,6 +55,7 @@ const CategorySelector: React.FC<CategorySelectorProps> = ({
 
 interface CategoryButtonProps {
   category: string;
+  icon: string | null;
   isActive: boolean;
   onChange: (category: string) => void;
   isVertical: boolean;
@@ -57,10 +63,25 @@ interface CategoryButtonProps {
 
 const CategoryButton: React.FC<CategoryButtonProps> = ({
   category,
+  icon,
   isActive,
   onChange,
   isVertical,
 }) => {
+  // Helper function to get emoji based on category name
+  const getCategoryEmoji = (category: string) => {
+    const lowercased = category.toLowerCase();
+    if (lowercased === 'all') return '🍽️';
+    if (lowercased.includes('burger')) return '🍔';
+    if (lowercased.includes('pizza')) return '🍕';
+    if (lowercased.includes('pasta')) return '🍝';
+    if (lowercased.includes('salad')) return '🥗';
+    if (lowercased.includes('dessert')) return '🍰';
+    if (lowercased.includes('drink')) return '🥤';
+    if (lowercased.includes('side')) return '🍟';
+    return '📋';
+  };
+  
   return (
     <button
       onClick={() => onChange(category)}
@@ -78,18 +99,26 @@ const CategoryButton: React.FC<CategoryButtonProps> = ({
         />
       )}
       
-      {/* Icon for categories - simple emoji placeholders */}
+      {/* Icon for categories - use uploaded icon or fallback to emoji */}
       {isVertical && (
         <div className="mb-1 text-xl">
-          {category === 'All' && '🍽️'}
-          {category === 'Burgers' && '🍔'}
-          {category === 'Pizza' && '🍕'}
-          {category === 'Pasta' && '🍝'}
-          {category === 'Salad' && '🥗'}
-          {category === 'Dessert' && '🍰'}
-          {category === 'Drinks' && '🥤'}
-          {category === 'Sides' && '🍟'}
-          {(!['All', 'Burgers', 'Pizza', 'Pasta', 'Salad', 'Dessert', 'Drinks', 'Sides'].includes(category)) && '📋'}
+          {icon ? (
+            <div className="h-8 w-8 rounded-full overflow-hidden flex items-center justify-center">
+              <img 
+                src={icon} 
+                alt={category} 
+                className="h-full w-full object-cover"
+                onError={(e) => {
+                  // If image fails to load, show emoji fallback
+                  (e.target as HTMLImageElement).style.display = 'none';
+                  (e.target as HTMLImageElement).nextElementSibling!.style.display = 'block';
+                }}
+              />
+              <span className="hidden">{getCategoryEmoji(category)}</span>
+            </div>
+          ) : (
+            <span>{getCategoryEmoji(category)}</span>
+          )}
         </div>
       )}
       
