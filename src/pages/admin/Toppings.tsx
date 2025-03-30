@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import AdminLayout from '../../components/admin/AdminLayout';
 import { 
@@ -11,7 +10,7 @@ import {
 } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Search, Plus, Edit, Trash, ChevronDown, ChevronUp } from "lucide-react";
+import { Search, Plus, Edit, Trash, ChevronDown, ChevronUp, MoveUp, MoveDown } from "lucide-react";
 import { 
   Dialog,
   DialogContent,
@@ -63,6 +62,7 @@ interface Topping {
   category_id: number;
   category: string;
   max_quantity: number;
+  display_order: number;
 }
 
 // Form schema for topping validation
@@ -155,7 +155,7 @@ const Toppings = () => {
       const { data, error } = await supabase
         .from('toppings')
         .select('*')
-        .order('name');
+        .order('display_order');
         
       if (error) {
         throw error;
@@ -325,6 +325,112 @@ const Toppings = () => {
     );
   };
 
+  const handleMoveToppingUp = async (topping: Topping, categoryToppings: Topping[]) => {
+    // Find the current index of the topping in the sorted list
+    const sortedToppings = [...categoryToppings].sort((a, b) => a.display_order - b.display_order);
+    const currentIndex = sortedToppings.findIndex(t => t.id === topping.id);
+    
+    // If already at the top, do nothing
+    if (currentIndex <= 0) return;
+    
+    // Get the topping above this one
+    const previousTopping = sortedToppings[currentIndex - 1];
+    
+    try {
+      // Swap the display_order values
+      const prevOrder = previousTopping.display_order;
+      const currentOrder = topping.display_order;
+      
+      // Update the previous topping
+      const { error: error1 } = await supabase
+        .from('toppings')
+        .update({ display_order: currentOrder })
+        .eq('id', previousTopping.id);
+        
+      if (error1) throw error1;
+      
+      // Update the current topping
+      const { error: error2 } = await supabase
+        .from('toppings')
+        .update({ display_order: prevOrder })
+        .eq('id', topping.id);
+        
+      if (error2) throw error2;
+      
+      // Update the local state
+      setToppings(toppings.map(t => {
+        if (t.id === topping.id) return { ...t, display_order: prevOrder };
+        if (t.id === previousTopping.id) return { ...t, display_order: currentOrder };
+        return t;
+      }));
+      
+      toast({
+        title: 'Success',
+        description: 'Topping order updated successfully.',
+      });
+    } catch (error) {
+      console.error('Error updating topping order:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to update topping order. Please try again.',
+        variant: 'destructive',
+      });
+    }
+  };
+  
+  const handleMoveToppingDown = async (topping: Topping, categoryToppings: Topping[]) => {
+    // Find the current index of the topping in the sorted list
+    const sortedToppings = [...categoryToppings].sort((a, b) => a.display_order - b.display_order);
+    const currentIndex = sortedToppings.findIndex(t => t.id === topping.id);
+    
+    // If already at the bottom, do nothing
+    if (currentIndex >= sortedToppings.length - 1 || currentIndex === -1) return;
+    
+    // Get the topping below this one
+    const nextTopping = sortedToppings[currentIndex + 1];
+    
+    try {
+      // Swap the display_order values
+      const nextOrder = nextTopping.display_order;
+      const currentOrder = topping.display_order;
+      
+      // Update the next topping
+      const { error: error1 } = await supabase
+        .from('toppings')
+        .update({ display_order: currentOrder })
+        .eq('id', nextTopping.id);
+        
+      if (error1) throw error1;
+      
+      // Update the current topping
+      const { error: error2 } = await supabase
+        .from('toppings')
+        .update({ display_order: nextOrder })
+        .eq('id', topping.id);
+        
+      if (error2) throw error2;
+      
+      // Update the local state
+      setToppings(toppings.map(t => {
+        if (t.id === topping.id) return { ...t, display_order: nextOrder };
+        if (t.id === nextTopping.id) return { ...t, display_order: currentOrder };
+        return t;
+      }));
+      
+      toast({
+        title: 'Success',
+        description: 'Topping order updated successfully.',
+      });
+    } catch (error) {
+      console.error('Error updating topping order:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to update topping order. Please try again.',
+        variant: 'destructive',
+      });
+    }
+  };
+
   const onSubmitTopping = async (data: ToppingFormValues) => {
     try {
       if (editTopping) {
@@ -354,6 +460,12 @@ const Toppings = () => {
         // Add new topping
         const categoryName = categories.find(c => c.id === data.category_id)?.name || "";
         
+        // Find the highest display_order in this category
+        const categoryToppings = toppings.filter(t => t.category_id === data.category_id);
+        const maxOrder = categoryToppings.length > 0 
+          ? Math.max(...categoryToppings.map(t => t.display_order || 0))
+          : 0;
+        
         const { error } = await supabase
           .from('toppings')
           .insert([{
@@ -362,7 +474,8 @@ const Toppings = () => {
             category_id: data.category_id,
             available: data.available,
             max_quantity: data.max_quantity,
-            category: categoryName // Add the category name
+            category: categoryName, // Add the category name
+            display_order: maxOrder + 1 // Set the display order to be after the last item
           }]);
           
         if (error) {
@@ -553,31 +666,67 @@ const Toppings = () => {
                       <TableBody>
                         {filteredToppings
                           .filter(topping => topping.category_id === category.id)
-                          .map((topping) => (
-                            <TableRow key={topping.id}>
-                              <TableCell>{topping.name}</TableCell>
-                              <TableCell>${topping.price.toFixed(2)}</TableCell>
-                              <TableCell>{topping.max_quantity}</TableCell>
-                              <TableCell>
-                                <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium ${topping.available ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}`}>
-                                  {topping.available ? 'Available' : 'Unavailable'}
-                                </span>
-                              </TableCell>
-                              <TableCell className="text-right space-x-2">
-                                <Button variant="outline" size="sm" className="h-8 w-8 p-0" onClick={() => handleEditTopping(topping)}>
-                                  <Edit className="h-4 w-4" />
-                                </Button>
-                                <Button 
-                                  variant="outline" 
-                                  size="sm" 
-                                  className="h-8 w-8 p-0 text-red-500 hover:text-red-700"
-                                  onClick={() => handleDeleteTopping(topping.id)}
-                                >
-                                  <Trash className="h-4 w-4" />
-                                </Button>
-                              </TableCell>
-                            </TableRow>
-                          ))}
+                          .sort((a, b) => (a.display_order || 0) - (b.display_order || 0))
+                          .map((topping) => {
+                            // Get all toppings in this category for move up/down logic
+                            const categoryToppings = filteredToppings.filter(t => t.category_id === category.id);
+                            const sortedCategoryToppings = [...categoryToppings].sort((a, b) => 
+                              (a.display_order || 0) - (b.display_order || 0)
+                            );
+                            const isFirst = sortedCategoryToppings[0]?.id === topping.id;
+                            const isLast = sortedCategoryToppings[sortedCategoryToppings.length - 1]?.id === topping.id;
+                            
+                            return (
+                              <TableRow key={topping.id}>
+                                <TableCell>{topping.name}</TableCell>
+                                <TableCell>${topping.price.toFixed(2)}</TableCell>
+                                <TableCell>{topping.max_quantity}</TableCell>
+                                <TableCell>
+                                  <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium ${topping.available ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}`}>
+                                    {topping.available ? 'Available' : 'Unavailable'}
+                                  </span>
+                                </TableCell>
+                                <TableCell className="text-right flex items-center justify-end space-x-2">
+                                  <Button 
+                                    variant="outline" 
+                                    size="sm" 
+                                    className={`h-8 w-8 p-0 ${isFirst ? 'opacity-50' : ''}`}
+                                    disabled={isFirst}
+                                    onClick={() => handleMoveToppingUp(topping, categoryToppings)}
+                                    title="Move up"
+                                  >
+                                    <MoveUp className="h-4 w-4" />
+                                  </Button>
+                                  <Button 
+                                    variant="outline" 
+                                    size="sm" 
+                                    className={`h-8 w-8 p-0 ${isLast ? 'opacity-50' : ''}`}
+                                    disabled={isLast}
+                                    onClick={() => handleMoveToppingDown(topping, categoryToppings)}
+                                    title="Move down"
+                                  >
+                                    <MoveDown className="h-4 w-4" />
+                                  </Button>
+                                  <Button 
+                                    variant="outline" 
+                                    size="sm" 
+                                    className="h-8 w-8 p-0" 
+                                    onClick={() => handleEditTopping(topping)}
+                                  >
+                                    <Edit className="h-4 w-4" />
+                                  </Button>
+                                  <Button 
+                                    variant="outline" 
+                                    size="sm" 
+                                    className="h-8 w-8 p-0 text-red-500 hover:text-red-700"
+                                    onClick={() => handleDeleteTopping(topping.id)}
+                                  >
+                                    <Trash className="h-4 w-4" />
+                                  </Button>
+                                </TableCell>
+                              </TableRow>
+                            );
+                          })}
                         {filteredToppings.filter(t => t.category_id === category.id).length === 0 && (
                           <TableRow>
                             <TableCell colSpan={5} className="text-center py-4 text-muted-foreground">
