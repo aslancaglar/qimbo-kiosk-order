@@ -2,7 +2,8 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import CategorySelector from './CategorySelector';
-import ProductCard, { Product } from './ProductCard';
+import ProductCard from './ProductCard';
+import { Product } from './types/productTypes';
 import { ToppingItem } from '../cart/types';
 
 interface MenuContentProps {

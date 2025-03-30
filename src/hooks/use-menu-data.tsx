@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from '@/hooks/use-toast';
-import { Product } from '@/components/menu/ProductCard';
+import { Product } from '@/components/menu/types/productTypes';
 
 interface Category {
   id: number;

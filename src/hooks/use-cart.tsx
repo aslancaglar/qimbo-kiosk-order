@@ -1,6 +1,7 @@
+
 import { useState, useEffect } from 'react';
 import { CartItemType, ToppingItem } from '@/components/cart/types';
-import { Product } from '@/components/menu/ProductCard';
+import { Product } from '@/components/menu/types/productTypes';
 import { useToast } from '@/hooks/use-toast';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from "@/integrations/supabase/client";
