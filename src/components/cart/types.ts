@@ -1,5 +1,5 @@
 
-import { Product } from '../menu/types/productTypes';
+import { Product } from '../menu/ProductCard';
 
 export interface ToppingItem {
   id: number;
