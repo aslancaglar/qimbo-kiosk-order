@@ -43,7 +43,7 @@ const MenuPage: React.FC = () => {
   return (
     <Layout>
       <div className="flex flex-col h-screen">
-        <MenuHeader />
+        <MenuHeader title="Menu" />
         
         <MenuContent 
           products={products}
