@@ -1,4 +1,3 @@
-
 import * as SheetPrimitive from "@radix-ui/react-dialog"
 import { cva, type VariantProps } from "class-variance-authority"
 import { X } from "lucide-react"
@@ -67,7 +66,7 @@ const SheetContent = React.forwardRef<
       {...props}
     >
       {enableScrollArea ? (
-        <ScrollArea className="h-full pr-4">
+        <ScrollArea className="h-full pr-4 overflow-y-auto">
           <div className="pb-10">
             {children}
           </div>
@@ -140,4 +139,3 @@ export {
   Sheet, SheetClose,
   SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetOverlay, SheetPortal, SheetTitle, SheetTrigger
 }
-
