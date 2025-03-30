@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { motion } from 'framer-motion';
 import { Pizza, Coffee, Utensils } from 'lucide-react';
@@ -100,9 +101,9 @@ const CategoryButton: React.FC<CategoryButtonProps> = ({
       
       {/* Icon for categories - use uploaded icon or fallback to emoji */}
       {isVertical && (
-        <div className="mb-1 text-xl">
+        <div className="mb-1 text-2xl">
           {icon ? (
-            <div className="h-8 w-8 rounded-full overflow-hidden flex items-center justify-center">
+            <div className="h-10 w-10 rounded-full overflow-hidden flex items-center justify-center">
               <img 
                 src={icon} 
                 alt={category} 
@@ -126,7 +127,7 @@ const CategoryButton: React.FC<CategoryButtonProps> = ({
         </div>
       )}
       
-      <span className={`relative z-10 ${isVertical ? 'text-xs' : ''} ${
+      <span className={`relative z-10 ${isVertical ? 'text-sm font-bold' : ''} ${
         isActive
           ? isVertical ? 'text-red-600 font-bold' : 'text-primary' 
           : 'text-gray-600 hover:text-gray-900'
