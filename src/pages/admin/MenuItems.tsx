@@ -10,7 +10,7 @@ import {
   TableCell 
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Search, Plus, Edit, Trash } from "lucide-react";
+import { Search, Plus, Edit, Trash, Upload, Image } from "lucide-react";
 import { 
   Dialog,
   DialogContent,
@@ -36,6 +36,8 @@ import { useForm } from "react-hook-form";
 import * as z from "zod";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
 
 interface MenuItem {
   id: number;
@@ -45,6 +47,7 @@ interface MenuItem {
   status: "Active" | "Inactive";
   hasToppings: boolean;
   availableToppingCategories?: number[];
+  image?: string;
 }
 
 interface ToppingCategory {
@@ -63,6 +66,7 @@ const menuItemFormSchema = z.object({
   status: z.enum(["Active", "Inactive"]),
   hasToppings: z.boolean().default(false),
   availableToppingCategories: z.array(z.number()).optional(),
+  image: z.string().optional(),
 });
 
 type MenuItemFormValues = z.infer<typeof menuItemFormSchema>;
@@ -74,6 +78,9 @@ const MenuItems = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [toppingCategories, setToppingCategories] = useState<ToppingCategory[]>([]);
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
   const { toast } = useToast();
   
   const form = useForm<MenuItemFormValues>({
@@ -85,6 +92,7 @@ const MenuItems = () => {
       status: "Active",
       hasToppings: false,
       availableToppingCategories: [],
+      image: "",
     },
   });
 
@@ -106,7 +114,8 @@ const MenuItems = () => {
         price: `$${item.price}`,
         status: item.status as "Active" | "Inactive",
         hasToppings: item.has_toppings,
-        availableToppingCategories: item.available_topping_categories || []
+        availableToppingCategories: item.available_topping_categories || [],
+        image: item.image
       }));
       
       setMenuItems(transformedItems);
@@ -186,6 +195,7 @@ const MenuItems = () => {
 
   const handleEditItem = (item: MenuItem) => {
     setEditItem(item);
+    setImagePreview(item.image || null);
     form.reset({
       name: item.name,
       category: item.category,
@@ -193,12 +203,15 @@ const MenuItems = () => {
       status: item.status,
       hasToppings: item.hasToppings,
       availableToppingCategories: item.availableToppingCategories || [],
+      image: item.image,
     });
     setIsDialogOpen(true);
   };
 
   const handleAddItem = () => {
     setEditItem(null);
+    setImageFile(null);
+    setImagePreview(null);
     form.reset({
       name: "",
       category: "",
@@ -206,8 +219,113 @@ const MenuItems = () => {
       status: "Active",
       hasToppings: false,
       availableToppingCategories: [],
+      image: "",
     });
     setIsDialogOpen(true);
+  };
+
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
+      
+      if (file.size > 5 * 1024 * 1024) {
+        toast({
+          title: 'File too large',
+          description: 'Image must be less than 5MB',
+          variant: 'destructive',
+        });
+        return;
+      }
+      
+      if (!['image/jpeg', 'image/png', 'image/gif', 'image/webp'].includes(file.type)) {
+        toast({
+          title: 'Invalid file type',
+          description: 'Please upload an image file (JPEG, PNG, GIF, WEBP)',
+          variant: 'destructive',
+        });
+        return;
+      }
+      
+      setImageFile(file);
+      setImagePreview(URL.createObjectURL(file));
+    }
+  };
+
+  const uploadImage = async (file: File): Promise<string | null> => {
+    if (!file) return null;
+    
+    setIsUploading(true);
+    try {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${Date.now()}_${Math.random().toString(36).substring(2, 15)}.${fileExt}`;
+      const filePath = `menu_items/${fileName}`;
+      
+      const { error: uploadError } = await supabase.storage
+        .from('menu_images')
+        .upload(filePath, file);
+        
+      if (uploadError) {
+        throw uploadError;
+      }
+      
+      const { data } = supabase.storage
+        .from('menu_images')
+        .getPublicUrl(filePath);
+        
+      return data.publicUrl;
+    } catch (error) {
+      console.error('Error uploading image:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to upload image. Please try again.',
+        variant: 'destructive',
+      });
+      return null;
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  const handleDeleteImage = async () => {
+    if (!imagePreview || !editItem || !editItem.image) return;
+    
+    try {
+      const urlParts = editItem.image.split('/');
+      const filePath = `menu_items/${urlParts[urlParts.length - 1]}`;
+      
+      const { error } = await supabase.storage
+        .from('menu_images')
+        .remove([filePath]);
+        
+      if (error) {
+        throw error;
+      }
+      
+      const { error: updateError } = await supabase
+        .from('menu_items')
+        .update({ image: null })
+        .eq('id', editItem.id);
+        
+      if (updateError) {
+        throw updateError;
+      }
+      
+      setImagePreview(null);
+      form.setValue('image', '');
+      
+      toast({
+        title: 'Success',
+        description: 'Image deleted successfully',
+      });
+      
+    } catch (error) {
+      console.error('Error deleting image:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to delete image. Please try again.',
+        variant: 'destructive',
+      });
+    }
   };
 
   const handleDeleteItem = async (id: number) => {
@@ -249,13 +367,19 @@ const MenuItems = () => {
         return;
       }
       
+      let imageUrl = data.image;
+      if (imageFile) {
+        imageUrl = await uploadImage(imageFile);
+      }
+      
       const menuItemData = {
         name: data.name,
         category: data.category,
         price: priceValue,
         status: data.status,
         has_toppings: data.hasToppings,
-        available_topping_categories: data.hasToppings ? data.availableToppingCategories : []
+        available_topping_categories: data.hasToppings ? data.availableToppingCategories : [],
+        image: imageUrl
       };
       
       console.log("Saving menu item data:", menuItemData);
@@ -336,6 +460,7 @@ const MenuItems = () => {
               <TableHeader className="sticky top-0 bg-white z-10">
                 <TableRow>
                   <TableHead>ID</TableHead>
+                  <TableHead>Image</TableHead>
                   <TableHead>Name</TableHead>
                   <TableHead>Category</TableHead>
                   <TableHead>Price</TableHead>
@@ -347,7 +472,7 @@ const MenuItems = () => {
               <TableBody>
                 {isLoading ? (
                   <TableRow>
-                    <TableCell colSpan={7} className="text-center py-8">
+                    <TableCell colSpan={8} className="text-center py-8">
                       <div className="flex justify-center">
                         <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary"></div>
                       </div>
@@ -357,19 +482,30 @@ const MenuItems = () => {
                   filteredMenuItems.map((item) => (
                     <TableRow key={item.id}>
                       <TableCell className="font-medium">#{item.id}</TableCell>
+                      <TableCell>
+                        <Avatar className="h-10 w-10">
+                          {item.image ? (
+                            <AvatarImage src={item.image} alt={item.name} />
+                          ) : (
+                            <AvatarFallback className="bg-primary/10">
+                              <Image className="h-4 w-4 text-primary" />
+                            </AvatarFallback>
+                          )}
+                        </Avatar>
+                      </TableCell>
                       <TableCell>{item.name}</TableCell>
                       <TableCell>{item.category}</TableCell>
                       <TableCell>{item.price}</TableCell>
                       <TableCell>
-                        <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusClass(item.status)}`}>
+                        <Badge variant={item.status === "Active" ? "default" : "secondary"}>
                           {item.status}
-                        </span>
+                        </Badge>
                       </TableCell>
                       <TableCell>
                         {item.hasToppings ? (
-                          <span className="bg-blue-100 text-blue-800 text-xs font-medium px-2.5 py-0.5 rounded-full">
-                            Has Toppings: {item.availableToppingCategories?.length || 0} categories
-                          </span>
+                          <Badge variant="outline" className="bg-blue-50 text-blue-800 border-blue-200">
+                            {item.availableToppingCategories?.length || 0} categories
+                          </Badge>
                         ) : (
                           <span className="text-gray-500 text-xs">None</span>
                         )}
@@ -391,7 +527,7 @@ const MenuItems = () => {
                   ))
                 ) : (
                   <TableRow>
-                    <TableCell colSpan={7} className="text-center py-8">
+                    <TableCell colSpan={8} className="text-center py-8">
                       No menu items found
                     </TableCell>
                   </TableRow>
@@ -415,84 +551,158 @@ const MenuItems = () => {
             <div className="p-1">
               <Form {...form}>
                 <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-                  <FormField
-                    control={form.control}
-                    name="name"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Name</FormLabel>
-                        <FormControl>
-                          <Input placeholder="Item name" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  
-                  <FormField
-                    control={form.control}
-                    name="category"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Category</FormLabel>
-                        <FormControl>
-                          <Input placeholder="e.g., Burgers, Salads" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  
-                  <FormField
-                    control={form.control}
-                    name="price"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Price</FormLabel>
-                        <FormControl>
-                          <Input placeholder="e.g., 10.99" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  
-                  <FormField
-                    control={form.control}
-                    name="status"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Status</FormLabel>
-                        <div className="flex gap-4">
-                          <FormItem className="flex items-center space-x-2">
-                            <FormControl>
-                              <input
-                                type="radio"
-                                value="Active"
-                                checked={field.value === "Active"}
-                                onChange={() => field.onChange("Active")}
-                                className="text-primary"
-                              />
-                            </FormControl>
-                            <FormLabel className="font-normal cursor-pointer">Active</FormLabel>
-                          </FormItem>
-                          <FormItem className="flex items-center space-x-2">
-                            <FormControl>
-                              <input
-                                type="radio"
-                                value="Inactive"
-                                checked={field.value === "Inactive"}
-                                onChange={() => field.onChange("Inactive")}
-                                className="text-primary"
-                              />
-                            </FormControl>
-                            <FormLabel className="font-normal cursor-pointer">Inactive</FormLabel>
-                          </FormItem>
+                  <div className="flex flex-col md:flex-row gap-4">
+                    <div className="md:w-1/3 space-y-4">
+                      <FormItem className="mb-4">
+                        <FormLabel>Product Image</FormLabel>
+                        <div className="flex flex-col items-center justify-center border-2 border-dashed border-gray-300 rounded-lg p-4">
+                          {imagePreview ? (
+                            <div className="relative w-full">
+                              <div className="relative mx-auto w-32 h-32 overflow-hidden rounded-lg mb-2">
+                                <img 
+                                  src={imagePreview} 
+                                  alt="Product preview" 
+                                  className="w-full h-full object-cover"
+                                />
+                              </div>
+                              <div className="flex justify-center space-x-2">
+                                <label 
+                                  htmlFor="image-upload" 
+                                  className="flex items-center justify-center px-4 py-1.5 text-sm font-medium rounded-md bg-gray-100 text-gray-700 hover:bg-gray-200 cursor-pointer"
+                                >
+                                  <Upload className="mr-2 h-3.5 w-3.5" />
+                                  Change
+                                </label>
+                                <Button 
+                                  type="button" 
+                                  size="sm" 
+                                  variant="outline" 
+                                  className="text-red-500 hover:text-red-700"
+                                  onClick={handleDeleteImage}
+                                >
+                                  <Trash className="mr-2 h-3.5 w-3.5" />
+                                  Remove
+                                </Button>
+                              </div>
+                            </div>
+                          ) : (
+                            <div className="text-center">
+                              <Image className="mx-auto h-12 w-12 text-gray-400" />
+                              <div className="mt-2 flex text-sm text-gray-600">
+                                <label
+                                  htmlFor="image-upload"
+                                  className="relative cursor-pointer rounded-md bg-white font-medium text-primary hover:text-primary/90 focus-within:outline-none"
+                                >
+                                  <span>Upload a file</span>
+                                  <input
+                                    id="image-upload"
+                                    name="image-upload"
+                                    type="file"
+                                    className="sr-only"
+                                    accept="image/jpeg,image/png,image/gif,image/webp"
+                                    onChange={handleImageChange}
+                                  />
+                                </label>
+                                <p className="pl-1">or drag and drop</p>
+                              </div>
+                              <p className="text-xs text-gray-500">
+                                PNG, JPG, GIF, WEBP up to 5MB
+                              </p>
+                            </div>
+                          )}
+                          <input
+                            id="image-upload"
+                            name="image-upload"
+                            type="file"
+                            className="sr-only"
+                            accept="image/jpeg,image/png,image/gif,image/webp"
+                            onChange={handleImageChange}
+                          />
                         </div>
-                        <FormMessage />
                       </FormItem>
-                    )}
-                  />
+                    </div>
+                    
+                    <div className="md:w-2/3 space-y-4">
+                      <FormField
+                        control={form.control}
+                        name="name"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Name</FormLabel>
+                            <FormControl>
+                              <Input placeholder="Item name" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      
+                      <FormField
+                        control={form.control}
+                        name="category"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Category</FormLabel>
+                            <FormControl>
+                              <Input placeholder="e.g., Burgers, Salads" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      
+                      <FormField
+                        control={form.control}
+                        name="price"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Price</FormLabel>
+                            <FormControl>
+                              <Input placeholder="e.g., 10.99" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      
+                      <FormField
+                        control={form.control}
+                        name="status"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Status</FormLabel>
+                            <div className="flex gap-4">
+                              <FormItem className="flex items-center space-x-2">
+                                <FormControl>
+                                  <input
+                                    type="radio"
+                                    value="Active"
+                                    checked={field.value === "Active"}
+                                    onChange={() => field.onChange("Active")}
+                                    className="text-primary"
+                                  />
+                                </FormControl>
+                                <FormLabel className="font-normal cursor-pointer">Active</FormLabel>
+                              </FormItem>
+                              <FormItem className="flex items-center space-x-2">
+                                <FormControl>
+                                  <input
+                                    type="radio"
+                                    value="Inactive"
+                                    checked={field.value === "Inactive"}
+                                    onChange={() => field.onChange("Inactive")}
+                                    className="text-primary"
+                                  />
+                                </FormControl>
+                                <FormLabel className="font-normal cursor-pointer">Inactive</FormLabel>
+                              </FormItem>
+                            </div>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+                  </div>
                   
                   <FormField
                     control={form.control}
@@ -590,7 +800,19 @@ const MenuItems = () => {
                     <DialogClose asChild>
                       <Button variant="outline">Cancel</Button>
                     </DialogClose>
-                    <Button type="submit">{editItem ? 'Update' : 'Add'} Menu Item</Button>
+                    <Button 
+                      type="submit" 
+                      disabled={isUploading}
+                    >
+                      {isUploading ? (
+                        <>
+                          <div className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-b-transparent"></div>
+                          Uploading...
+                        </>
+                      ) : (
+                        <>{editItem ? 'Update' : 'Add'} Menu Item</>
+                      )}
+                    </Button>
                   </DialogFooter>
                 </form>
               </Form>
