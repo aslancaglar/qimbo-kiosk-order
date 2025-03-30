@@ -260,11 +260,22 @@ const MenuItems = () => {
       const fileName = `${Date.now()}_${Math.random().toString(36).substring(2, 15)}.${fileExt}`;
       const filePath = `menu_items/${fileName}`;
       
+      const { data: bucketData, error: bucketError } = await supabase.storage
+        .getBucket('menu_images');
+        
+      if (bucketError && bucketError.message.includes('does not exist')) {
+        await supabase.storage.createBucket('menu_images', {
+          public: true,
+          fileSizeLimit: 5 * 1024 * 1024,
+        });
+      }
+      
       const { error: uploadError } = await supabase.storage
         .from('menu_images')
         .upload(filePath, file);
         
       if (uploadError) {
+        console.error('Upload error:', uploadError);
         throw uploadError;
       }
       
@@ -272,6 +283,7 @@ const MenuItems = () => {
         .from('menu_images')
         .getPublicUrl(filePath);
         
+      console.log('Uploaded image URL:', data.publicUrl);  
       return data.publicUrl;
     } catch (error) {
       console.error('Error uploading image:', error);
@@ -356,6 +368,7 @@ const MenuItems = () => {
 
   const onSubmit = async (data: MenuItemFormValues) => {
     try {
+      setIsUploading(true);
       const priceValue = parseFloat(data.price.replace('$', ''));
       
       if (isNaN(priceValue)) {
@@ -367,9 +380,20 @@ const MenuItems = () => {
         return;
       }
       
-      let imageUrl = data.image;
+      let imageUrl = data.image || null;
+      
       if (imageFile) {
+        console.log('Uploading new image file...');
         imageUrl = await uploadImage(imageFile);
+        if (!imageUrl) {
+          toast({
+            title: 'Error',
+            description: 'Failed to upload image. Please try again.',
+            variant: 'destructive',
+          });
+          setIsUploading(false);
+          return;
+        }
       }
       
       const menuItemData = {
@@ -417,6 +441,9 @@ const MenuItems = () => {
       
       setIsDialogOpen(false);
       fetchMenuItems();
+      
+      setImageFile(null);
+      setImagePreview(null);
     } catch (error) {
       console.error('Error saving menu item:', error);
       toast({
@@ -424,6 +451,8 @@ const MenuItems = () => {
         description: 'Failed to save menu item. Please try again.',
         variant: 'destructive',
       });
+    } finally {
+      setIsUploading(false);
     }
   };
   
