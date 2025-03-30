@@ -9,23 +9,15 @@ interface PrintNodeConfig {
 }
 
 /**
- * Converts HTML content to a PDF blob optimized for thermal receipt printers (80mm width)
+ * Converts HTML content to a PDF blob
  */
 export const htmlToPdf = async (htmlContent: string): Promise<Blob> => {
-  // 80mm is approximately 226.8 points (at 72dpi)
-  // Configure for thermal receipt printer
   const options = {
-    margin: [5, 0, 5, 0], // [top, right, bottom, left] in mm
+    margin: 10,
     filename: 'receipt.pdf',
-    image: { type: 'jpeg', quality: 0.95 },
-    html2canvas: { scale: 2, useCORS: true },
-    jsPDF: { 
-      unit: 'mm', 
-      format: [80, 297], // 80mm width (standard thermal receipt width), variable height
-      orientation: 'portrait',
-      hotfixes: ["px_scaling"]
-    },
-    pagebreak: { mode: 'avoid-all' }
+    image: { type: 'jpeg', quality: 0.98 },
+    html2canvas: { scale: 2 },
+    jsPDF: { unit: 'mm', format: 'a7', orientation: 'portrait' }
   };
 
   try {

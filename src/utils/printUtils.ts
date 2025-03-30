@@ -19,60 +19,53 @@ export const formatOrderReceipt = (
         <title>Order #${orderNumber}</title>
         <style>
           body {
-            font-family: 'Courier New', monospace; /* Using monospace font typical for receipts */
-            margin: 0;
-            padding: 6px;
-            font-size: 10px;
-            width: 72mm; /* 80mm minus margins */
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            max-width: 400px;
+            margin: 0 auto;
           }
-          h1 {
-            font-size: 12px;
+          h1, h2 {
             text-align: center;
-            margin: 5px 0;
-          }
-          h2 {
-            font-size: 11px;
-            text-align: center;
-            margin: 4px 0;
           }
           .order-details {
-            margin-bottom: 8px;
+            margin-bottom: 20px;
           }
           .order-item {
             display: flex;
             justify-content: space-between;
-            margin-bottom: 4px;
+            margin-bottom: 8px;
           }
           .topping-item {
             display: flex;
             justify-content: space-between;
-            margin-left: 10px;
-            font-size: 9px;
-            color: #333;
+            margin-left: 20px;
+            font-size: 0.9em;
+            color: #666;
           }
           .divider {
             border-top: 1px dashed #ccc;
-            margin: 6px 0;
+            margin: 15px 0;
           }
           .totals {
-            margin-top: 6px;
+            margin-top: 20px;
           }
           .total-row {
             display: flex;
             justify-content: space-between;
-            margin-bottom: 2px;
+            margin-bottom: 5px;
           }
           .final-total {
             font-weight: bold;
-            font-size: 11px;
-            margin-top: 4px;
+            font-size: 1.2em;
+            margin-top: 10px;
             border-top: 1px solid black;
-            padding-top: 4px;
+            padding-top: 10px;
           }
           .footer {
-            margin-top: 8px;
+            margin-top: 30px;
             text-align: center;
-            font-size: 9px;
+            font-size: 0.9em;
+            color: #666;
           }
         </style>
       </head>
