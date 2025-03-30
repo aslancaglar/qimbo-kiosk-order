@@ -7,7 +7,7 @@ export const useFormatCurrency = () => {
   return (amount: number) => {
     return new Intl.NumberFormat(language === 'fr' ? 'fr-FR' : 'en-US', { 
       style: 'currency',
-      currency: 'USD',
+      currency: language === 'fr' ? 'EUR' : 'USD',
       minimumFractionDigits: 2,
       maximumFractionDigits: 2
     }).format(amount);

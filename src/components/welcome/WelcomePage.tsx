@@ -1,10 +1,10 @@
-
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Button from '../common/Button';
 import TableSelector from '../common/TableSelector';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../../integrations/supabase/client';
+import { useLanguage } from '@/context/LanguageContext';
 
 interface RestaurantInfoProps {
   name: string;
@@ -73,6 +73,8 @@ const WelcomePage: React.FC<WelcomePageProps> = ({ restaurantInfo }) => {
   const handleTableSelected = (tableNumber: number) => {
     navigate('/menu', { state: { orderType: 'eat-in', tableNumber } });
   };
+
+  const { t, language } = useLanguage();
   
   return (
     <div className="relative h-full w-full flex flex-col items-center justify-center bg-gradient-to-b from-gray-50 to-gray-100">
@@ -110,7 +112,7 @@ const WelcomePage: React.FC<WelcomePageProps> = ({ restaurantInfo }) => {
               animate={{ opacity: 1 }}
               transition={{ delay: 0.4 }}
             >
-              How would you like to enjoy your meal today?
+              {t.welcome.chooseOrderType}
             </motion.h2>
             
             <div className="flex flex-col sm:flex-row gap-6 justify-center">
@@ -119,14 +121,14 @@ const WelcomePage: React.FC<WelcomePageProps> = ({ restaurantInfo }) => {
                 onClick={handleTakeaway}
                 className="text-xl py-8 sm:min-w-[220px]"
               >
-                Takeaway
+                {t.welcome.takeaway}
               </Button>
               <Button 
                 size="lg" 
                 onClick={handleEatIn}
                 className="text-xl py-8 sm:min-w-[220px]"
               >
-                Eat In
+                {t.welcome.eatIn}
               </Button>
             </div>
           </motion.div>

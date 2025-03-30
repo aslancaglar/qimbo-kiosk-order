@@ -31,9 +31,7 @@ const CancelOrderDialog: React.FC<CancelOrderDialogProps> = ({
         <AlertDialogHeader>
           <AlertDialogTitle>{t.cart.cancelOrder}</AlertDialogTitle>
           <AlertDialogDescription>
-            {t.cart.empty === "Your cart is empty" ? 
-              "Are you sure you want to cancel your order? This will remove all items from your cart." :
-              "Êtes-vous sûr de vouloir annuler votre commande? Cela supprimera tous les articles de votre panier."}
+            {t.cart.empty}
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
