@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Button from '../common/Button';
@@ -409,7 +410,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onSelect }) => {
                 
                 <DialogFooter>
                   <Button type="submit" size="full">
-                    Add to Order
+                    Ajouter au panier
                   </Button>
                 </DialogFooter>
               </form>
@@ -422,3 +423,4 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onSelect }) => {
 };
 
 export default ProductCard;
+
