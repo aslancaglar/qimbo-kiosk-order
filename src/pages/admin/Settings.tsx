@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from 'react';
 import { useToast } from "@/hooks/use-toast";
-import { useLocation, useNavigate } from "react-router-dom";
 import { supabase } from "../../integrations/supabase/client";
 import { Json } from "../../integrations/supabase/types";
 import AdminLayout from '../../components/admin/AdminLayout';
@@ -10,11 +9,10 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
-import { Save, Settings2, RefreshCw, Printer } from 'lucide-react';
+import { Save, Settings2, RefreshCw } from 'lucide-react';
 import { Switch } from "@/components/ui/switch";
 import { clearAppCache } from "../../utils/serviceWorker";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import PrintNodeSettings from "../../components/settings/PrintNodeSettings";
 
 interface OrderingSettings {
   requireTableSelection: boolean;
@@ -22,14 +20,8 @@ interface OrderingSettings {
 
 const Settings = () => {
   const { toast } = useToast();
-  const location = useLocation();
-  const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [clearingCache, setClearingCache] = useState(false);
-  const [showPrintNodeSettings, setShowPrintNodeSettings] = useState(false);
-
-  const queryParams = new URLSearchParams(location.search);
-  const defaultTab = queryParams.get('tab') === 'printnode' ? 'printnode' : 'general';
 
   const [restaurantInfo, setRestaurantInfo] = useState({
     id: 1,
@@ -374,20 +366,15 @@ const Settings = () => {
     }
   };
 
-  const handleTabChange = (value: string) => {
-    navigate(`/admin/settings${value === 'printnode' ? '?tab=printnode' : ''}`, { replace: true });
-  };
-
   return (
     <AdminLayout>
       <div className="space-y-6">
-        <Tabs defaultValue={defaultTab} onValueChange={handleTabChange}>
+        <Tabs defaultValue="general">
           <TabsList>
             <TabsTrigger value="general">General</TabsTrigger>
             <TabsTrigger value="ordering">Ordering</TabsTrigger>
             <TabsTrigger value="appearance">Appearance</TabsTrigger>
             <TabsTrigger value="notifications">Notifications</TabsTrigger>
-            <TabsTrigger value="printnode">PrintNode</TabsTrigger>
             <TabsTrigger value="system">System</TabsTrigger>
           </TabsList>
           
@@ -551,27 +538,6 @@ const Settings = () => {
               </CardHeader>
               <CardContent>
                 <p className="text-gray-500">Notification settings coming soon.</p>
-              </CardContent>
-            </Card>
-          </TabsContent>
-          
-          <TabsContent value="printnode" className="mt-6">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Printer className="h-5 w-5" />
-                  PrintNode Integration
-                </CardTitle>
-                <CardDescription>
-                  Configure automatic receipt printing with PrintNode.
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <PrintNodeSettings 
-                  open={true} 
-                  onOpenChange={() => {}} 
-                  embedded={true} 
-                />
               </CardContent>
             </Card>
           </TabsContent>

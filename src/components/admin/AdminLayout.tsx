@@ -11,8 +11,7 @@ import {
   X, 
   ChevronRight,
   Utensils,
-  FolderTree,
-  Printer
+  FolderTree
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -38,7 +37,6 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
     { name: 'Toppings', href: '/admin/toppings', icon: Package },
     { name: 'Settings', href: '/admin/settings', icon: Settings },
     { name: 'Kitchen Display', href: '/admin/kitchen', icon: Utensils },
-    { name: 'PrintNode Settings', href: '/admin/settings?tab=printnode', icon: Printer },
   ];
 
   return (
