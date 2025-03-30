@@ -734,7 +734,6 @@ const Toppings = () => {
                           .map((topping, toppingIndex, filteredCategoryToppings) => (
                             <TableRow 
                               key={topping.id}
-                              isDragging={draggedItem?.type === 'topping' && draggedItem.id === topping.id}
                             >
                               {isReordering && (
                                 <TableCell className="w-10">
@@ -960,4 +959,6 @@ const Toppings = () => {
                   <FormItem>
                     <FormLabel>Description</FormLabel>
                     <FormControl>
-                      <Input placeholder
+                      <Input placeholder="Optional description" {...field} />
+                    </FormControl>
+                    <FormMessage />
