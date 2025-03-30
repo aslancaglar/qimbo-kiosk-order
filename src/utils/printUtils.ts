@@ -198,3 +198,54 @@ export const printOrder = (
     printOrderBrowser(orderNumber, items, orderType, tableNumber, subtotal, tax, total);
   });
 };
+
+// New function for downloading order receipt as PDF
+export const downloadOrderReceiptPdf = async (
+  orderNumber: string | number,
+  items: CartItemType[],
+  orderType: string,
+  tableNumber: string | number | undefined,
+  subtotal: number,
+  tax: number,
+  total: number
+): Promise<void> => {
+  try {
+    // Import html2pdf dynamically
+    const html2pdf = (await import('html2pdf.js')).default;
+    
+    // Generate receipt HTML
+    const receiptHtml = formatOrderReceipt(
+      orderNumber,
+      items,
+      orderType,
+      tableNumber,
+      subtotal,
+      tax,
+      total
+    );
+    
+    // Create a div to render the HTML
+    const element = document.createElement('div');
+    element.innerHTML = receiptHtml;
+    document.body.appendChild(element);
+    
+    const options = {
+      margin: 5, // Reduce margins for a thermal printer
+      filename: `receipt-order-${orderNumber}.pdf`,
+      image: { type: 'jpeg', quality: 0.98 },
+      html2canvas: { scale: 2 },
+      jsPDF: { unit: 'mm', format: [80, 297], orientation: 'portrait' } // 80mm width, dynamic height
+    };
+    
+    // Generate and download PDF
+    await html2pdf()
+      .from(element)
+      .set(options)
+      .save();
+    
+    // Remove the temporary element
+    document.body.removeChild(element);
+  } catch (error) {
+    console.error('Error generating PDF receipt:', error);
+  }
+};
