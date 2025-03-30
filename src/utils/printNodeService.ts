@@ -1,4 +1,3 @@
-
 import { CartItemType } from "@/components/cart/types";
 
 // PrintNode API configuration
@@ -17,33 +16,88 @@ interface PrintNodeJob {
   source: string;
 }
 
-// Store configuration in localStorage for persistence
+// Storage key constants
 const STORAGE_KEY = 'printnode_config';
+const API_KEY_KEY = 'printnode_api_key';
+const ENABLED_KEY = 'printnode_enabled';
+const PRINTER_ID_KEY = 'printnode_printer_id';
 
 /**
- * Get PrintNode configuration from localStorage
+ * Get PrintNode configuration from localStorage with fallback mechanisms
  */
 export const getPrintNodeConfig = (): PrintNodeConfig => {
+  // Try to get the complete config object first
   const storedConfig = localStorage.getItem(STORAGE_KEY);
-  if (storedConfig) {
-    try {
-      return JSON.parse(storedConfig);
-    } catch (e) {
-      console.error('Error parsing PrintNode config:', e);
-    }
-  }
   
-  return {
-    apiKey: '',
-    enabled: false
-  };
+  try {
+    // If we have a stored config, parse and return it
+    if (storedConfig) {
+      const config = JSON.parse(storedConfig);
+      
+      // Validate essential properties
+      if (typeof config.apiKey === 'string') {
+        console.log('Retrieved complete PrintNode config from storage');
+        return config;
+      }
+    }
+    
+    // If complete config wasn't valid, try individual values as fallback
+    const apiKey = localStorage.getItem(API_KEY_KEY) || '';
+    const enabledStr = localStorage.getItem(ENABLED_KEY);
+    const printerIdStr = localStorage.getItem(PRINTER_ID_KEY);
+    
+    const enabled = enabledStr === 'true';
+    const defaultPrinterId = printerIdStr ? parseInt(printerIdStr, 10) : undefined;
+    
+    // If we have an API key from individual storage, use that
+    if (apiKey) {
+      console.log('Retrieved PrintNode config from individual keys');
+      
+      // Also save the complete object for future use
+      const rebuiltConfig = { apiKey, enabled, defaultPrinterId };
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(rebuiltConfig));
+      
+      return rebuiltConfig;
+    }
+    
+    // Default empty config
+    console.log('No PrintNode config found, using defaults');
+    return {
+      apiKey: '',
+      enabled: false
+    };
+    
+  } catch (e) {
+    console.error('Error parsing PrintNode config:', e);
+    return {
+      apiKey: '',
+      enabled: false
+    };
+  }
 };
 
 /**
- * Save PrintNode configuration to localStorage
+ * Save PrintNode configuration to localStorage using multiple storage methods for redundancy
  */
 export const savePrintNodeConfig = (config: PrintNodeConfig): void => {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(config));
+  try {
+    // Store as complete object
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(config));
+    
+    // Also store as individual values for fallback
+    localStorage.setItem(API_KEY_KEY, config.apiKey);
+    localStorage.setItem(ENABLED_KEY, String(config.enabled));
+    
+    if (config.defaultPrinterId !== undefined) {
+      localStorage.setItem(PRINTER_ID_KEY, String(config.defaultPrinterId));
+    } else {
+      localStorage.removeItem(PRINTER_ID_KEY);
+    }
+    
+    console.log('PrintNode config saved successfully');
+  } catch (error) {
+    console.error('Failed to save PrintNode config:', error);
+  }
 };
 
 /**

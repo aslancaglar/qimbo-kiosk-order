@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Loader2, Check, X, AlertTriangle } from "lucide-react";
+import { Loader2, Check, X, AlertTriangle, Info } from "lucide-react";
 import { toast } from "@/components/ui/use-toast";
 import { getPrintNodeConfig, savePrintNodeConfig, testPrintNodeConnection, fetchPrintNodePrinters } from "@/utils/printNodeService";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -35,21 +35,29 @@ const PrintNodeSettings: React.FC<PrintNodeSettingsProps> = ({
   const [isLoading, setIsLoading] = useState(false);
   const [testStatus, setTestStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [configLoaded, setConfigLoaded] = useState(false);
 
-  // Load saved configuration on mount
+  // Load saved configuration on mount and when dialog opens
   useEffect(() => {
     if (open || embedded) {
-      const config = getPrintNodeConfig();
-      setApiKey(config.apiKey || "");
-      setEnabled(config.enabled || false);
-      setSelectedPrinterId(config.defaultPrinterId);
-      
-      // If API key exists, fetch printers
-      if (config.apiKey) {
-        loadPrinters();
-      }
+      loadConfiguration();
     }
   }, [open, embedded]);
+
+  const loadConfiguration = () => {
+    const config = getPrintNodeConfig();
+    console.log('Loading PrintNode config:', config);
+    
+    setApiKey(config.apiKey || "");
+    setEnabled(config.enabled || false);
+    setSelectedPrinterId(config.defaultPrinterId);
+    setConfigLoaded(true);
+    
+    // If API key exists, fetch printers
+    if (config.apiKey) {
+      loadPrinters();
+    }
+  };
 
   const loadPrinters = async () => {
     if (!apiKey) {
@@ -61,6 +69,13 @@ const PrintNodeSettings: React.FC<PrintNodeSettingsProps> = ({
     setErrorMessage(null);
     
     try {
+      // Ensure config is saved before fetching printers
+      await savePrintNodeConfig({
+        apiKey,
+        defaultPrinterId: selectedPrinterId,
+        enabled
+      });
+      
       const printersList = await fetchPrintNodePrinters();
       
       if (printersList.length === 0) {
@@ -103,7 +118,7 @@ const PrintNodeSettings: React.FC<PrintNodeSettingsProps> = ({
     setErrorMessage(null);
     
     // Save the API key first, so the test can use it
-    savePrintNodeConfig({
+    await savePrintNodeConfig({
       apiKey,
       defaultPrinterId: selectedPrinterId,
       enabled
@@ -144,18 +159,30 @@ const PrintNodeSettings: React.FC<PrintNodeSettingsProps> = ({
     }, 3000);
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     // Save configuration
-    savePrintNodeConfig({
+    await savePrintNodeConfig({
       apiKey,
       defaultPrinterId: selectedPrinterId,
       enabled
     });
     
-    toast({
-      title: "Settings Saved",
-      description: "PrintNode settings have been saved.",
-    });
+    // Verify the configuration was saved correctly
+    const savedConfig = getPrintNodeConfig();
+    
+    if (savedConfig.apiKey !== apiKey) {
+      console.error('API key not saved correctly!', { saved: savedConfig.apiKey, expected: apiKey });
+      toast({
+        title: "Warning",
+        description: "There might be an issue saving your API key. Please verify your settings.",
+        variant: "destructive",
+      });
+    } else {
+      toast({
+        title: "Settings Saved",
+        description: "PrintNode settings have been saved.",
+      });
+    }
     
     if (!embedded) {
       onOpenChange(false);
@@ -202,6 +229,13 @@ const PrintNodeSettings: React.FC<PrintNodeSettingsProps> = ({
           </Button>
         </div>
       </div>
+      
+      {!configLoaded && (
+        <Alert className="mt-2">
+          <Info className="h-4 w-4" />
+          <AlertDescription>Loading configuration...</AlertDescription>
+        </Alert>
+      )}
       
       {errorMessage && (
         <Alert variant="destructive" className="mt-2">
