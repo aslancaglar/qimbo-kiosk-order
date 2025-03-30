@@ -53,7 +53,6 @@ interface Topping {
   price: number;
   categoryId: number;
   maxQuantity: number;
-  display_order?: number;
 }
 
 interface ProductCardProps {
@@ -68,8 +67,7 @@ const toppingsFormSchema = z.object({
     price: z.number(),
     categoryId: z.number(),
     quantity: z.number().min(0),
-    maxQuantity: z.number().optional(),
-    display_order: z.number().optional()
+    maxQuantity: z.number().optional()
   }))
 });
 
@@ -131,7 +129,6 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onSelect }) => {
           .select('*')
           .eq('category_id', category.id)
           .eq('available', true)
-          .order('display_order', { ascending: true })
           .order('name');
         
         if (toppingsError) throw toppingsError;
@@ -147,8 +144,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onSelect }) => {
             name: topping.name,
             price: topping.price,
             categoryId: topping.category_id,
-            maxQuantity: topping.max_quantity,
-            display_order: topping.display_order
+            maxQuantity: topping.max_quantity
           }))
         };
       });

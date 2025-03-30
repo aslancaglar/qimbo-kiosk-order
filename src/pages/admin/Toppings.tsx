@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import AdminLayout from '../../components/admin/AdminLayout';
 import { 
@@ -42,8 +43,8 @@ import { useForm } from "react-hook-form";
 import * as z from "zod";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import UpdateToppingOrder from "@/components/admin/UpdateToppingOrder";
 
+// Define the ToppingCategory interface
 interface ToppingCategory {
   id: number;
   name: string;
@@ -53,6 +54,7 @@ interface ToppingCategory {
   required: boolean;
 }
 
+// Define the Topping interface
 interface Topping {
   id: number;
   name: string;
@@ -61,18 +63,18 @@ interface Topping {
   category_id: number;
   category: string;
   max_quantity: number;
-  display_order?: number;
 }
 
+// Form schema for topping validation
 const toppingFormSchema = z.object({
   name: z.string().min(2, { message: "Name must be at least 2 characters." }),
   price: z.coerce.number().min(0, { message: "Price must be a positive number." }),
   category_id: z.coerce.number().min(1, { message: "Category is required." }),
   available: z.boolean().default(true),
-  max_quantity: z.coerce.number().min(1, { message: "Max quantity must be at least 1." }).max(10, { message: "Max quantity cannot exceed 10." }),
-  display_order: z.coerce.number().optional()
+  max_quantity: z.coerce.number().min(1, { message: "Max quantity must be at least 1." }).max(10, { message: "Max quantity cannot exceed 10." })
 });
 
+// Form schema for category validation
 const categoryFormSchema = z.object({
   name: z.string().min(2, { message: "Name must be at least 2 characters." }),
   min_selection: z.coerce.number().min(0, { message: "Minimum selection cannot be negative." }),
@@ -103,8 +105,7 @@ const Toppings = () => {
       price: 0,
       category_id: 1,
       available: true,
-      max_quantity: 1,
-      display_order: 100
+      max_quantity: 1
     },
   });
 
@@ -134,6 +135,7 @@ const Toppings = () => {
       const fetchedCategories = data as ToppingCategory[];
       setCategories(fetchedCategories);
       
+      // Expand all categories by default
       setExpandedCategories(fetchedCategories.map(c => c.id));
     } catch (error) {
       console.error('Error fetching topping categories:', error);
@@ -153,7 +155,6 @@ const Toppings = () => {
       const { data, error } = await supabase
         .from('toppings')
         .select('*')
-        .order('display_order', { ascending: true })
         .order('name');
         
       if (error) {
@@ -207,8 +208,7 @@ const Toppings = () => {
       price: topping.price,
       category_id: topping.category_id,
       available: topping.available,
-      max_quantity: topping.max_quantity,
-      display_order: topping.display_order || 100
+      max_quantity: topping.max_quantity
     });
     setIsAddToppingDialogOpen(true);
   };
@@ -220,8 +220,7 @@ const Toppings = () => {
       price: 0,
       category_id: categories.length > 0 ? categories[0].id : 1,
       available: true,
-      max_quantity: 1,
-      display_order: 100
+      max_quantity: 1
     });
     setIsAddToppingDialogOpen(true);
   };
@@ -266,6 +265,7 @@ const Toppings = () => {
         description: 'Topping deleted successfully.',
       });
       
+      // Optimistic update
       setToppings(toppings.filter(topping => topping.id !== id));
     } catch (error) {
       console.error('Error deleting topping:', error);
@@ -279,6 +279,7 @@ const Toppings = () => {
 
   const handleDeleteCategory = async (id: number) => {
     try {
+      // Check if there are any toppings using this category
       const toppingsInCategory = toppings.filter(t => t.category_id === id);
       
       if (toppingsInCategory.length > 0) {
@@ -304,6 +305,7 @@ const Toppings = () => {
         description: 'Category deleted successfully.',
       });
       
+      // Optimistic update
       setCategories(categories.filter(category => category.id !== id));
     } catch (error) {
       console.error('Error deleting category:', error);
@@ -311,53 +313,6 @@ const Toppings = () => {
         title: 'Error',
         description: 'Failed to delete category. Please try again.',
         variant: 'destructive',
-      });
-    }
-  };
-
-  const moveTopping = async (toppingId: number, direction: 'up' | 'down') => {
-    const currentTopping = toppings.find(t => t.id === toppingId);
-    if (!currentTopping) return;
-    
-    const sameCategoryToppings = toppings
-      .filter(t => t.category_id === currentTopping.category_id)
-      .sort((a, b) => (a.display_order || 999) - (b.display_order || 999));
-    
-    const currentIndex = sameCategoryToppings.findIndex(t => t.id === toppingId);
-    if (currentIndex === -1) return;
-    
-    if (direction === 'up' && currentIndex === 0) return;
-    if (direction === 'down' && currentIndex === sameCategoryToppings.length - 1) return;
-    
-    const targetIndex = direction === 'up' ? currentIndex - 1 : currentIndex + 1;
-    const targetTopping = sameCategoryToppings[targetIndex];
-    
-    const currentOrder = currentTopping.display_order || 100;
-    const targetOrder = targetTopping.display_order || 100;
-    
-    try {
-      await supabase
-        .from('toppings')
-        .update({ display_order: targetOrder })
-        .eq('id', currentTopping.id);
-      
-      await supabase
-        .from('toppings')
-        .update({ display_order: currentOrder })
-        .eq('id', targetTopping.id);
-      
-      fetchToppings();
-      
-      toast({
-        title: "Success",
-        description: `Moved ${currentTopping.name} ${direction}`,
-      });
-    } catch (error) {
-      console.error(`Error moving topping ${direction}:`, error);
-      toast({
-        title: "Error",
-        description: `Failed to move topping ${direction}`,
-        variant: "destructive",
       });
     }
   };
@@ -373,6 +328,7 @@ const Toppings = () => {
   const onSubmitTopping = async (data: ToppingFormValues) => {
     try {
       if (editTopping) {
+        // Update existing topping
         const { error } = await supabase
           .from('toppings')
           .update({
@@ -381,8 +337,8 @@ const Toppings = () => {
             category_id: data.category_id,
             available: data.available,
             max_quantity: data.max_quantity,
-            category: categories.find(c => c.id === data.category_id)?.name || "",
-            display_order: data.display_order || editTopping.display_order || 100
+            // Get the category name from the selected category
+            category: categories.find(c => c.id === data.category_id)?.name || ""
           })
           .eq('id', editTopping.id);
           
@@ -395,11 +351,8 @@ const Toppings = () => {
           description: 'Topping updated successfully.',
         });
       } else {
+        // Add new topping
         const categoryName = categories.find(c => c.id === data.category_id)?.name || "";
-        
-        const maxOrder = toppings
-          .filter(t => t.category_id === data.category_id)
-          .reduce((max, t) => Math.max(max, t.display_order || 0), 0);
         
         const { error } = await supabase
           .from('toppings')
@@ -409,8 +362,7 @@ const Toppings = () => {
             category_id: data.category_id,
             available: data.available,
             max_quantity: data.max_quantity,
-            category: categoryName,
-            display_order: maxOrder + 10
+            category: categoryName // Add the category name
           }]);
           
         if (error) {
@@ -438,6 +390,7 @@ const Toppings = () => {
   const onSubmitCategory = async (data: CategoryFormValues) => {
     try {
       if (editCategory) {
+        // Update existing category
         const { error } = await supabase
           .from('topping_categories')
           .update({
@@ -458,6 +411,7 @@ const Toppings = () => {
           description: 'Category updated successfully.',
         });
       } else {
+        // Add new category
         const { error } = await supabase
           .from('topping_categories')
           .insert([{
@@ -490,10 +444,12 @@ const Toppings = () => {
     }
   };
 
+  // Filter toppings based on search term
   const filteredToppings = toppings.filter(topping => 
     topping.name.toLowerCase().includes(filterText.toLowerCase())
   );
 
+  // Filter categories that have matching toppings or match the search term
   const filteredCategories = categories.filter(category => 
     category.name.toLowerCase().includes(filterText.toLowerCase()) ||
     filteredToppings.some(topping => topping.category_id === category.id)
@@ -515,8 +471,6 @@ const Toppings = () => {
             </Button>
           </div>
         </div>
-        
-        <UpdateToppingOrder />
         
         <div className="relative w-full max-w-sm">
           <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-500" />
@@ -592,7 +546,6 @@ const Toppings = () => {
                           <TableHead>Name</TableHead>
                           <TableHead>Price</TableHead>
                           <TableHead>Max Quantity</TableHead>
-                          <TableHead>Display Order</TableHead>
                           <TableHead>Status</TableHead>
                           <TableHead className="text-right">Actions</TableHead>
                         </TableRow>
@@ -600,25 +553,17 @@ const Toppings = () => {
                       <TableBody>
                         {filteredToppings
                           .filter(topping => topping.category_id === category.id)
-                          .sort((a, b) => (a.display_order || 999) - (b.display_order || 999))
                           .map((topping) => (
                             <TableRow key={topping.id}>
                               <TableCell>{topping.name}</TableCell>
                               <TableCell>${topping.price.toFixed(2)}</TableCell>
                               <TableCell>{topping.max_quantity}</TableCell>
-                              <TableCell>{topping.display_order || 'Not set'}</TableCell>
                               <TableCell>
                                 <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium ${topping.available ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}`}>
                                   {topping.available ? 'Available' : 'Unavailable'}
                                 </span>
                               </TableCell>
                               <TableCell className="text-right space-x-2">
-                                <Button variant="outline" size="sm" onClick={() => moveTopping(topping.id, 'up')}>
-                                  Up
-                                </Button>
-                                <Button variant="outline" size="sm" onClick={() => moveTopping(topping.id, 'down')}>
-                                  Down
-                                </Button>
                                 <Button variant="outline" size="sm" className="h-8 w-8 p-0" onClick={() => handleEditTopping(topping)}>
                                   <Edit className="h-4 w-4" />
                                 </Button>
@@ -635,7 +580,7 @@ const Toppings = () => {
                           ))}
                         {filteredToppings.filter(t => t.category_id === category.id).length === 0 && (
                           <TableRow>
-                            <TableCell colSpan={6} className="text-center py-4 text-muted-foreground">
+                            <TableCell colSpan={5} className="text-center py-4 text-muted-foreground">
                               <p className="mb-2">No toppings in this category</p>
                               <Button variant="outline" size="sm" onClick={() => {
                                 toppingForm.setValue('category_id', category.id);
@@ -663,6 +608,7 @@ const Toppings = () => {
         )}
       </div>
 
+      {/* Topping Dialog */}
       <Dialog open={isAddToppingDialogOpen} onOpenChange={setIsAddToppingDialogOpen}>
         <DialogContent>
           <DialogHeader>
@@ -729,23 +675,6 @@ const Toppings = () => {
               
               <FormField
                 control={toppingForm.control}
-                name="display_order"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Display Order</FormLabel>
-                    <FormControl>
-                      <Input type="number" min="1" {...field} />
-                    </FormControl>
-                    <FormDescription>
-                      Lower numbers appear first (e.g., 1 appears before 10)
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              <FormField
-                control={toppingForm.control}
                 name="max_quantity"
                 render={({ field }) => (
                   <FormItem>
@@ -790,6 +719,7 @@ const Toppings = () => {
         </DialogContent>
       </Dialog>
 
+      {/* Category Dialog */}
       <Dialog open={isAddCategoryDialogOpen} onOpenChange={setIsAddCategoryDialogOpen}>
         <DialogContent>
           <DialogHeader>
