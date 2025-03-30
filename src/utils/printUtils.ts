@@ -1,5 +1,6 @@
 
 import { CartItemType } from "../components/cart/types";
+import { sendPrintJob } from "./printBiz";
 
 // Format order for printing
 export const formatOrderReceipt = (
@@ -126,7 +127,7 @@ export const formatOrderReceipt = (
   `;
 };
 
-// Print order using browser's print functionality
+// Print order using browser's print functionality - but no longer auto-prints
 export const printOrderBrowser = (
   orderNumber: string | number,
   items: CartItemType[],
@@ -158,11 +159,11 @@ export const printOrderBrowser = (
     
     iframe.contentDocument.close();
     
-    // Print using browser
+    // Remove the automatic print trigger, just display in iframe
     setTimeout(() => {
-      iframe.contentWindow?.print();
+      // iframe.contentWindow?.print();
       
-      // Remove the iframe after printing
+      // Remove the iframe after a delay
       setTimeout(() => {
         iframe.remove();
       }, 2000);
@@ -172,9 +173,8 @@ export const printOrderBrowser = (
   }
 };
 
-// Print order - this is now just a wrapper around browser printing 
-// since PrintBiz integration is removed
-export const printOrder = (
+// Print order via PrintNode
+export const printOrder = async (
   orderNumber: string | number,
   items: CartItemType[],
   orderType: string,
@@ -182,6 +182,46 @@ export const printOrder = (
   subtotal: number,
   tax: number,
   total: number
-): void => {
-  printOrderBrowser(orderNumber, items, orderType, tableNumber, subtotal, tax, total);
+): Promise<boolean> => {
+  try {
+    // Get config to check if PrintNode is enabled
+    const configStr = localStorage.getItem('printBizConfig');
+    const config = configStr ? JSON.parse(configStr) : { enabled: false };
+    
+    if (!config.enabled || !config.apiKey || !config.defaultPrinterId) {
+      // Fall back to browser printing (without auto-print) if PrintNode not configured
+      printOrderBrowser(orderNumber, items, orderType, tableNumber, subtotal, tax, total);
+      return false;
+    }
+    
+    // Format the HTML receipt
+    const receiptHtml = formatOrderReceipt(
+      orderNumber,
+      items,
+      orderType,
+      tableNumber,
+      subtotal,
+      tax,
+      total
+    );
+    
+    // Send to PrintNode
+    const success = await sendPrintJob({
+      printer_id: config.defaultPrinterId,
+      content: receiptHtml,
+      type: 'receipt',
+      copies: 1
+    });
+    
+    if (!success) {
+      console.warn('PrintNode printing failed, falling back to browser');
+      // Fall back to browser display without auto-print
+      printOrderBrowser(orderNumber, items, orderType, tableNumber, subtotal, tax, total);
+    }
+    
+    return success;
+  } catch (error) {
+    console.error('Error printing order:', error);
+    return false;
+  }
 };
