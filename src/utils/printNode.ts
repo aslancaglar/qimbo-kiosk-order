@@ -13,11 +13,17 @@ interface PrintNodeConfig {
  */
 export const htmlToPdf = async (htmlContent: string): Promise<Blob> => {
   const options = {
-    margin: 10,
+    margin: 1, // Reduced margin from 10 to 1mm
     filename: 'receipt.pdf',
     image: { type: 'jpeg', quality: 0.98 },
     html2canvas: { scale: 2 },
-    jsPDF: { unit: 'mm', format: 'a7', orientation: 'portrait' }
+    jsPDF: { 
+      unit: 'mm', 
+      format: [72, 300], // Setting width to 72mm (80mm with adjustment for printer margins)
+      orientation: 'portrait',
+      compress: true,
+      hotfixes: ['px_scaling']
+    }
   };
 
   try {
