@@ -169,6 +169,24 @@ function toast({ ...props }: Toast) {
   }
 }
 
+// French toast presets
+const successToast = (message: string) => toast({
+  title: "Succès",
+  description: message,
+  variant: "default",
+});
+
+const errorToast = (message: string) => toast({
+  title: "Erreur",
+  description: message,
+  variant: "destructive",
+});
+
+const infoToast = (message: string) => toast({
+  title: "Information",
+  description: message,
+});
+
 function useToast() {
   const [state, setState] = React.useState<State>(memoryState)
 
@@ -185,8 +203,11 @@ function useToast() {
   return {
     ...state,
     toast,
+    successToast,
+    errorToast,
+    infoToast,
     dismiss: (toastId?: string) => dispatch({ type: "DISMISS_TOAST", toastId }),
   }
 }
 
-export { useToast, toast }
+export { useToast, toast, successToast, errorToast, infoToast }

@@ -26,15 +26,15 @@ const CancelOrderDialog: React.FC<CancelOrderDialogProps> = ({
     <AlertDialog open={isOpen} onOpenChange={onClose}>
       <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogTitle>Cancel Order</AlertDialogTitle>
+          <AlertDialogTitle>Annuler la commande</AlertDialogTitle>
           <AlertDialogDescription>
-            Are you sure you want to cancel your order? This will remove all items from your cart.
+            Êtes-vous sûr de vouloir annuler votre commande? Cela supprimera tous les articles de votre panier.
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogCancel>No, keep my order</AlertDialogCancel>
+          <AlertDialogCancel>Non, garder ma commande</AlertDialogCancel>
           <AlertDialogAction onClick={onConfirm} className="bg-red-600 hover:bg-red-700">
-            Yes, cancel order
+            Oui, annuler la commande
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>
