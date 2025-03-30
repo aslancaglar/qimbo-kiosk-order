@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "../../integrations/supabase/client";
@@ -10,8 +9,10 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
-import { Save, Settings2 } from 'lucide-react';
+import { Save, Settings2, RefreshCw } from 'lucide-react';
 import { Switch } from "@/components/ui/switch";
+import { clearAppCache } from "../../utils/serviceWorker";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 interface OrderingSettings {
   requireTableSelection: boolean;
@@ -20,6 +21,7 @@ interface OrderingSettings {
 const Settings = () => {
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
+  const [clearingCache, setClearingCache] = useState(false);
 
   const [restaurantInfo, setRestaurantInfo] = useState({
     id: 1,
@@ -335,6 +337,35 @@ const Settings = () => {
     }
   };
 
+  const handleClearCache = async () => {
+    try {
+      setClearingCache(true);
+      const success = await clearAppCache();
+      
+      if (success) {
+        toast({
+          title: "Cache cleared",
+          description: "Application cache has been successfully cleared"
+        });
+      } else {
+        toast({
+          title: "Error",
+          description: "Failed to clear application cache",
+          variant: "destructive"
+        });
+      }
+    } catch (error) {
+      console.error('Error clearing cache:', error);
+      toast({
+        title: "Error",
+        description: "An unexpected error occurred while clearing cache",
+        variant: "destructive"
+      });
+    } finally {
+      setClearingCache(false);
+    }
+  };
+
   return (
     <AdminLayout>
       <div className="space-y-6">
@@ -344,6 +375,7 @@ const Settings = () => {
             <TabsTrigger value="ordering">Ordering</TabsTrigger>
             <TabsTrigger value="appearance">Appearance</TabsTrigger>
             <TabsTrigger value="notifications">Notifications</TabsTrigger>
+            <TabsTrigger value="system">System</TabsTrigger>
           </TabsList>
           
           <TabsContent value="general" className="mt-6 space-y-6">
@@ -506,6 +538,39 @@ const Settings = () => {
               </CardHeader>
               <CardContent>
                 <p className="text-gray-500">Notification settings coming soon.</p>
+              </CardContent>
+            </Card>
+          </TabsContent>
+          
+          <TabsContent value="system" className="mt-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <RefreshCw className="h-5 w-5" />
+                  System Maintenance
+                </CardTitle>
+                <CardDescription>
+                  Manage cache and system maintenance options.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-4">
+                  <Alert>
+                    <AlertDescription>
+                      Clearing the application cache will remove stored data and reload the latest content.
+                      This can help fix issues with outdated content or unexpected behavior.
+                    </AlertDescription>
+                  </Alert>
+                  
+                  <Button 
+                    onClick={handleClearCache}
+                    disabled={clearingCache}
+                    className="mt-4"
+                  >
+                    <RefreshCw className={`h-4 w-4 mr-2 ${clearingCache ? 'animate-spin' : ''}`} />
+                    {clearingCache ? 'Clearing Cache...' : 'Clear Application Cache'}
+                  </Button>
+                </div>
               </CardContent>
             </Card>
           </TabsContent>
