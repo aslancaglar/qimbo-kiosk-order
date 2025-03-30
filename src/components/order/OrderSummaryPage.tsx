@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
@@ -9,7 +8,6 @@ import { CartItemType } from '../cart/types';
 import { useCart } from '@/hooks/use-cart';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-
 const OrderSummaryPage: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
@@ -27,7 +25,6 @@ const OrderSummaryPage: React.FC = () => {
     orderType,
     tableNumber
   });
-  
   React.useEffect(() => {
     if (!items || items.length === 0) {
       navigate('/', {
@@ -35,7 +32,6 @@ const OrderSummaryPage: React.FC = () => {
       });
     }
   }, [items, navigate]);
-  
   const subtotal = items?.reduce((sum: number, item: CartItemType) => {
     let itemTotal = item.product.price * item.quantity;
     if (item.selectedToppings && item.selectedToppings.length > 0) {
@@ -46,18 +42,13 @@ const OrderSummaryPage: React.FC = () => {
   }, 0) || 0;
   const tax = subtotal * 0.1;
   const total = subtotal + tax;
-  
   const handleGoBack = () => {
     navigate(-1);
   };
-  
   const handleConfirmOrderClick = async () => {
     try {
       await handleConfirmOrder();
-      
-      // Generate a temporary order number
-      const tempOrderNumber = `ORD-${Date.now().toString().slice(-6)}`;
-      
+      const orderNumber = Math.floor(10000 + Math.random() * 90000).toString();
       const {
         data: orderResult,
         error: orderError
@@ -67,19 +58,18 @@ const OrderSummaryPage: React.FC = () => {
         items_count: items.reduce((sum: number, item: CartItemType) => sum + item.quantity, 0),
         total_amount: total,
         status: 'New',
-        order_number: tempOrderNumber
+        order_number: orderNumber
       }).select('id, order_number').single();
-      
       if (orderError) {
         console.error('Error creating order:', orderError);
         toast({
-          title: "Erreur",
-          description: "Impossible de traiter votre commande. Veuillez réessayer.",
+          title: "Error",
+          description: "Could not process your order. Please try again.",
           variant: "destructive"
         });
         return;
       }
-      
+      console.log('Order created successfully:', orderResult);
       for (const item of items) {
         const {
           data: orderItemResult,
@@ -111,7 +101,6 @@ const OrderSummaryPage: React.FC = () => {
           }
         }
       }
-      
       navigate('/confirmation', {
         state: {
           items,
@@ -121,7 +110,7 @@ const OrderSummaryPage: React.FC = () => {
           tax,
           total,
           orderId: orderResult.id,
-          orderNumber: orderResult.id.toString()
+          orderNumber: orderResult.order_number
         }
       });
     } catch (error) {
@@ -133,7 +122,6 @@ const OrderSummaryPage: React.FC = () => {
       });
     }
   };
-  
   return <Layout>
       <div className="h-full flex flex-col">
         <header className="flex justify-between items-center p-6 border-b border-gray-100">

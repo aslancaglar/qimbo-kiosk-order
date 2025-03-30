@@ -132,7 +132,7 @@ export function useCart({ orderType, tableNumber }: UseCartOptions) {
       
       console.log('Starting checkout process with order data:', orderData);
       
-      const tempOrderNumber = `ORD-${Date.now().toString().slice(-6)}`;
+      const orderNumber = Math.floor(10000 + Math.random() * 90000).toString();
       
       const { data: orderResult, error: orderError } = await supabase
         .from('orders')
@@ -142,9 +142,9 @@ export function useCart({ orderType, tableNumber }: UseCartOptions) {
           items_count: cartItems.reduce((sum, item) => sum + item.quantity, 0),
           total_amount: total,
           status: 'New',
-          order_number: tempOrderNumber
+          order_number: orderNumber
         })
-        .select('id, order_number')
+        .select('id')
         .single();
       
       if (orderError) {
@@ -193,14 +193,13 @@ export function useCart({ orderType, tableNumber }: UseCartOptions) {
       navigate('/confirmation', { 
         state: { 
           ...orderData,
-          orderId: orderResult.id,
-          orderNumber: orderResult.id.toString()
+          orderId: orderResult.id
         } 
       });
       
       toast({
-        title: "Commande envoyée",
-        description: `Votre commande #${orderResult.id} a été passée avec succès!`,
+        title: "Order Submitted",
+        description: `Your order #${orderResult.id} has been placed successfully!`,
       });
       
       setCartItems([]);
@@ -208,8 +207,8 @@ export function useCart({ orderType, tableNumber }: UseCartOptions) {
     } catch (error) {
       console.error('Checkout error:', error);
       toast({
-        title: "Erreur",
-        description: "Impossible de finaliser la commande. Veuillez réessayer.",
+        title: "Error",
+        description: "Could not complete checkout. Please try again.",
         variant: "destructive",
       });
     }
