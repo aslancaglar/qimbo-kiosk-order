@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { CartItemType, ToppingItem } from '@/components/cart/types';
 import { Product } from '@/components/menu/ProductCard';
@@ -132,7 +133,8 @@ export function useCart({ orderType, tableNumber }: UseCartOptions) {
       
       console.log('Starting checkout process with order data:', orderData);
       
-      const orderNumber = Math.floor(10000 + Math.random() * 90000).toString();
+      // Generate a temporary order number for the database
+      const tempOrderNumber = `ORD-${Date.now().toString().slice(-6)}`;
       
       const { data: orderResult, error: orderError } = await supabase
         .from('orders')
@@ -142,9 +144,9 @@ export function useCart({ orderType, tableNumber }: UseCartOptions) {
           items_count: cartItems.reduce((sum, item) => sum + item.quantity, 0),
           total_amount: total,
           status: 'New',
-          order_number: orderNumber
+          order_number: tempOrderNumber
         })
-        .select('id')
+        .select('id, order_number')
         .single();
       
       if (orderError) {
@@ -193,7 +195,8 @@ export function useCart({ orderType, tableNumber }: UseCartOptions) {
       navigate('/confirmation', { 
         state: { 
           ...orderData,
-          orderId: orderResult.id
+          orderId: orderResult.id,
+          orderNumber: orderResult.order_number || orderResult.id
         } 
       });
       
