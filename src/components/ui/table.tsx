@@ -31,11 +31,11 @@ TableHeader.displayName = "TableHeader"
 
 const TableBody = React.forwardRef<
   HTMLTableSectionElement,
-  React.HTMLAttributes<HTMLTableSectionElement>
->(({ className, ...props }, ref) => (
+  React.HTMLAttributes<HTMLTableSectionElement> & { reorderable?: boolean }
+>(({ className, reorderable, ...props }, ref) => (
   <tbody
     ref={ref}
-    className={cn("[&_tr:last-child]:border-0", className)}
+    className={cn("[&_tr:last-child]:border-0", reorderable && "divide-y divide-dashed", className)}
     {...props}
   />
 ))
@@ -58,12 +58,13 @@ TableFooter.displayName = "TableFooter"
 
 const TableRow = React.forwardRef<
   HTMLTableRowElement,
-  React.HTMLAttributes<HTMLTableRowElement>
->(({ className, ...props }, ref) => (
+  React.HTMLAttributes<HTMLTableRowElement> & { isDragging?: boolean }
+>(({ className, isDragging, ...props }, ref) => (
   <tr
     ref={ref}
     className={cn(
       "border-b transition-colors hover:bg-muted/50 data-[state=selected]:bg-muted",
+      isDragging && "opacity-50 bg-muted/70",
       className
     )}
     {...props}
