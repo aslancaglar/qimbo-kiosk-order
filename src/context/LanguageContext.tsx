@@ -1,7 +1,7 @@
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import en from '../translations/en';
-import fr from '../translations/fr';
+import { en } from '../translations/en';
+import { fr } from '../translations/fr';
 
 // Define available languages
 export type Language = 'en' | 'fr';
