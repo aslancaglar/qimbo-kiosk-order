@@ -13,6 +13,7 @@ interface CartSummaryProps {
   onIncrementItem: (index: number) => void;
   onDecrementItem: (index: number) => void;
   onCancelOrderClick: () => void;
+  onConfirmOrder: () => Promise<void>; // Added the missing prop
   orderType: 'takeaway' | 'eat-in';
   tableNumber?: number;
 }
@@ -23,6 +24,7 @@ const CartSummary: React.FC<CartSummaryProps> = ({
   onIncrementItem,
   onDecrementItem,
   onCancelOrderClick,
+  onConfirmOrder, // Added the missing prop in destructuring
   orderType,
   tableNumber
 }) => {
