@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { motion } from 'framer-motion';
-import { X, Minus, Plus, Edit } from 'lucide-react';
+import { X, Minus, Plus } from 'lucide-react';
 import { CartItemType } from './types';
 
 interface CartItemProps {
@@ -9,7 +9,6 @@ interface CartItemProps {
   onRemove: () => void;
   onIncrement: () => void;
   onDecrement: () => void;
-  onEditToppings?: () => void;
   isTablet?: boolean;
 }
 
@@ -18,7 +17,6 @@ const CartItem: React.FC<CartItemProps> = ({
   onRemove,
   onIncrement,
   onDecrement,
-  onEditToppings,
   isTablet = false,
 }) => {
   return (
@@ -43,22 +41,12 @@ const CartItem: React.FC<CartItemProps> = ({
         <div className="flex-1 min-w-0">
           <div className="flex justify-between items-start">
             <h4 className="font-medium text-gray-900 truncate">{item.product.name}</h4>
-            <div className="flex">
-              {item.selectedToppings && item.selectedToppings.length > 0 && onEditToppings && (
-                <button
-                  className="text-gray-400 hover:text-gray-900 p-1 -m-1 mr-1"
-                  onClick={onEditToppings}
-                >
-                  <Edit size={16} />
-                </button>
-              )}
-              <button
-                className="text-gray-400 hover:text-gray-900 p-1 -m-1"
-                onClick={onRemove}
-              >
-                <X size={16} />
-              </button>
-            </div>
+            <button
+              className="text-gray-400 hover:text-gray-900 p-1 -m-1"
+              onClick={onRemove}
+            >
+              <X size={16} />
+            </button>
           </div>
           
           {item.options && item.options.length > 0 && (

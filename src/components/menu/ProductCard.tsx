@@ -1,8 +1,7 @@
-
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Button from '../common/Button';
-import { ShoppingBag, Plus, Minus, Check, Edit } from 'lucide-react';
+import { ShoppingBag, Plus, Minus, Check } from 'lucide-react';
 import { ToppingItem } from '../cart/types';
 import {
   Dialog,
@@ -59,12 +58,6 @@ interface Topping {
 interface ProductCardProps {
   product: Product;
   onSelect: (product: Product, selectedToppings?: ToppingItem[]) => void;
-  existingItem?: {
-    index: number;
-    toppings: ToppingItem[];
-    quantity: number;
-  };
-  onEditComplete?: (index: number, toppings: ToppingItem[]) => void;
 }
 
 const toppingsFormSchema = z.object({
@@ -80,13 +73,12 @@ const toppingsFormSchema = z.object({
 
 type ToppingsFormValues = z.infer<typeof toppingsFormSchema>;
 
-const ProductCard: React.FC<ProductCardProps> = ({ product, onSelect, existingItem, onEditComplete }) => {
+const ProductCard: React.FC<ProductCardProps> = ({ product, onSelect }) => {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [toppingCategories, setToppingCategories] = useState<ToppingCategory[]>([]);
   const [showAddedAnimation, setShowAddedAnimation] = useState(false);
   const { toast } = useToast();
-  const isEditMode = !!existingItem;
   
   const form = useForm<ToppingsFormValues>({
     resolver: zodResolver(toppingsFormSchema),
@@ -119,11 +111,9 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onSelect, existingIt
     
     setIsLoading(true);
     try {
-      if (!isEditMode) {
-        form.reset({
-          selectedToppings: []
-        });
-      }
+      form.reset({
+        selectedToppings: []
+      });
       
       const { data: categoriesData, error: categoriesError } = await supabase
         .from('topping_categories')
@@ -162,23 +152,12 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onSelect, existingIt
       const categories = await Promise.all(toppingPromises);
       setToppingCategories(categories);
       
-      // Create the complete list of toppings, with quantities set to 0 initially
       const allToppings = categories.flatMap(category => 
         category.toppings.map(topping => ({
           ...topping,
           quantity: 0
         }))
       );
-      
-      // If in edit mode, set the quantities based on existing toppings
-      if (isEditMode && existingItem?.toppings) {
-        existingItem.toppings.forEach(existingTopping => {
-          const toppingIndex = allToppings.findIndex(t => t.id === existingTopping.id);
-          if (toppingIndex !== -1) {
-            allToppings[toppingIndex].quantity = existingTopping.quantity || 1;
-          }
-        });
-      }
       
       form.reset({
         selectedToppings: allToppings
@@ -285,17 +264,9 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onSelect, existingIt
       return;
     }
     
-    if (isEditMode && onEditComplete) {
-      onEditComplete(existingItem.index, selectedToppings);
-    } else {
-      onSelect(product, selectedToppings);
-    }
-    
+    onSelect(product, selectedToppings);
     setIsDialogOpen(false);
-    
-    if (!isEditMode) {
-      showAddedConfirmation();
-    }
+    showAddedConfirmation();
   };
   
   const isCategoryValid = (categoryId: number): boolean => {
@@ -352,13 +323,9 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onSelect, existingIt
       </div>
       
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent showFooter={true} footer={
-          <Button type="button" onClick={form.handleSubmit(handleToppingSubmit)} size="full">
-            {isEditMode ? "Update Toppings" : "Add to Order"}
-          </Button>
-        }>
+        <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>{isEditMode ? `Edit Toppings for ${product.name}` : `Customize Your ${product.name}`}</DialogTitle>
+            <DialogTitle>Customize Your {product.name}</DialogTitle>
           </DialogHeader>
           
           {isLoading ? (
@@ -367,7 +334,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onSelect, existingIt
             </div>
           ) : (
             <Form {...form}>
-              <form onSubmit={(e) => e.preventDefault()} className="space-y-6">
+              <form onSubmit={form.handleSubmit(handleToppingSubmit)} className="space-y-6 p-1">
                 {toppingCategories.map((category) => (
                   <div key={category.id} className="space-y-3">
                     <div className="flex justify-between items-start">
@@ -437,6 +404,12 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onSelect, existingIt
                     <Separator />
                   </div>
                 ))}
+                
+                <DialogFooter>
+                  <Button type="submit" size="full">
+                    Add to Order
+                  </Button>
+                </DialogFooter>
               </form>
             </Form>
           )}
