@@ -318,7 +318,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onSelect }) => {
             ) : (
               <Button size="sm" onClick={handleAddToCart} className="bg-red-600 hover:bg-red-700 text-white text-xs py-1 px-2">
                 <ShoppingBag className="mr-1 h-3 w-3" />
-                Add
+                Ajouter au panier
               </Button>
             )}
           </AnimatePresence>
