@@ -13,11 +13,11 @@ interface PrintNodeConfig {
  */
 export const htmlToPdf = async (htmlContent: string): Promise<Blob> => {
   const options = {
-    margin: 10,
+    margin: 5, // Reduce margins for a thermal printer
     filename: 'receipt.pdf',
     image: { type: 'jpeg', quality: 0.98 },
     html2canvas: { scale: 2 },
-    jsPDF: { unit: 'mm', format: 'a7', orientation: 'portrait' }
+    jsPDF: { unit: 'mm', format: [80, 297], orientation: 'portrait' } // 80mm width, dynamic height
   };
 
   try {
