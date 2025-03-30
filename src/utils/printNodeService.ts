@@ -1,5 +1,5 @@
-
 import { CartItemType } from "@/components/cart/types";
+import htmlToPdf from 'html-pdf-node';
 
 // PrintNode API configuration
 interface PrintNodeConfig {
@@ -242,6 +242,33 @@ export const generateTestReceiptHTML = (): string => {
 };
 
 /**
+ * Convert HTML content to PDF buffer
+ */
+const convertHTMLToPDF = async (htmlContent: string): Promise<Buffer> => {
+  try {
+    console.log('Converting HTML to PDF...');
+    const options = { 
+      format: 'A4',
+      printBackground: true,
+      margin: { 
+        top: '10mm',
+        right: '10mm',
+        bottom: '10mm',
+        left: '10mm' 
+      }
+    };
+    
+    const file = { content: htmlContent };
+    const pdfBuffer = await htmlToPdf.generatePdf(file, options);
+    console.log('PDF generated successfully');
+    return pdfBuffer;
+  } catch (error) {
+    console.error('Error converting HTML to PDF:', error);
+    throw error;
+  }
+};
+
+/**
  * Send test page to PrintNode printer
  */
 export const sendTestPage = async (): Promise<boolean> => {
@@ -258,14 +285,17 @@ export const sendTestPage = async (): Promise<boolean> => {
     // Generate HTML content
     const htmlContent = generateTestReceiptHTML();
     
-    // Convert HTML to base64
-    const base64Content = btoa(unescape(encodeURIComponent(htmlContent)));
+    // Convert HTML to PDF
+    const pdfBuffer = await convertHTMLToPDF(htmlContent);
+    
+    // Convert PDF to base64
+    const base64Content = pdfBuffer.toString('base64');
     
     // Prepare the print job
     const printJob = {
       printerId: config.defaultPrinterId,
       title: `Test Receipt`,
-      contentType: "raw_base64",
+      contentType: "pdf_base64",
       content: base64Content,
       source: "POS System"
     };
@@ -464,14 +494,18 @@ export const sendToPrintNode = async (
       total
     );
     
-    // Convert HTML to base64
-    const base64Content = btoa(unescape(encodeURIComponent(htmlContent)));
+    console.log('Converting receipt HTML to PDF...');
+    // Convert HTML to PDF
+    const pdfBuffer = await convertHTMLToPDF(htmlContent);
+    
+    // Convert PDF to base64
+    const base64Content = pdfBuffer.toString('base64');
     
     // Prepare the print job
     const printJob = {
       printerId: config.defaultPrinterId,
       title: `Order #${orderNumber}`,
-      contentType: "raw_base64",
+      contentType: "pdf_base64",
       content: base64Content,
       source: "POS System"
     };
