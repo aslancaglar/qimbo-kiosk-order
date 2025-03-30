@@ -1,4 +1,3 @@
-
 import React, { lazy, Suspense, useEffect } from 'react';
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
@@ -9,9 +8,6 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { enableRealtimeForTables } from "./utils/enableRealtimeForTables";
 import { startMeasure, endMeasure } from "./utils/performanceMonitor";
-
-// Eagerly load the Index page for fast initial load
-import Index from "./pages/Index";
 
 // Lazy load other pages to reduce initial bundle size
 const NotFound = lazy(() => import("./pages/NotFound"));

@@ -8,15 +8,19 @@ type ToasterProps = React.ComponentProps<typeof Sonner>
 const Toaster = ({ ...props }: ToasterProps) => {
   // Add error handling for theme context
   const [mounted, setMounted] = useState(false)
+  const { theme = "system" } = useTheme()
   
   // Only try to access theme after component is mounted
   useEffect(() => {
     setMounted(true)
   }, [])
   
-  const { theme = "system" } = mounted ? useTheme() : { theme: "system" }
+  // Don't render anything until component is mounted
+  if (!mounted) {
+    return null
+  }
 
-  return mounted ? (
+  return (
     <Sonner
       theme={theme as ToasterProps["theme"]}
       className="toaster group"
@@ -33,7 +37,7 @@ const Toaster = ({ ...props }: ToasterProps) => {
       }}
       {...props}
     />
-  ) : null
+  )
 }
 
 export { Toaster }

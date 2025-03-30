@@ -12,16 +12,19 @@ import { useToast } from "@/hooks/use-toast"
 
 export function Toaster() {
   const [mounted, setMounted] = useState(false)
+  const { toasts } = useToast()
   
   // Only run the hook after mount to ensure we're in a React context
   useEffect(() => {
     setMounted(true)
   }, [])
   
-  // Only try to access toast data after component is mounted
-  const { toasts } = mounted ? useToast() : { toasts: [] }
+  // Don't render anything until component is mounted
+  if (!mounted) {
+    return null
+  }
 
-  return mounted ? (
+  return (
     <ToastProvider>
       {toasts.map(function ({ id, title, description, action, ...props }) {
         return (
@@ -39,5 +42,5 @@ export function Toaster() {
       })}
       <ToastViewport />
     </ToastProvider>
-  ) : null
+  )
 }
