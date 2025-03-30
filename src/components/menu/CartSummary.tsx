@@ -71,7 +71,7 @@ const CartSummary: React.FC<CartSummaryProps> = ({
         <div className="flex justify-between items-center mb-3">
           <div className="flex items-center gap-2">
             <ShoppingBag className="h-5 w-5 text-red-600" />
-            <h2 className="text-lg font-semibold">YOUR ORDER ({totalItems})</h2>
+            <h2 className="text-lg font-semibold">VOTRE COMMANDE ({totalItems})</h2>
           </div>
         </div>
         
