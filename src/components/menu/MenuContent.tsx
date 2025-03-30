@@ -1,8 +1,9 @@
 
-import React from 'react';
+import React, { memo, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import CategorySelector from './CategorySelector';
-import ProductCard, { Product } from './ProductCard';
+import ProductCard from './ProductCard';
+import { Product } from './ProductCard';
 import { ToppingItem } from '../cart/types';
 
 interface MenuContentProps {
@@ -15,6 +16,9 @@ interface MenuContentProps {
   onProductSelect: (product: Product, selectedToppings?: ToppingItem[]) => void;
 }
 
+// Memoized product card component to prevent unnecessary re-renders
+const MemoizedProductCard = memo(ProductCard);
+
 const MenuContent: React.FC<MenuContentProps> = ({
   products,
   categories,
@@ -24,9 +28,12 @@ const MenuContent: React.FC<MenuContentProps> = ({
   isLoading,
   onProductSelect
 }) => {
-  const filteredProducts = activeCategory === 'All'
-    ? products
-    : products.filter(product => product.category === activeCategory);
+  // Memoize filtered products to prevent recalculation on every render
+  const filteredProducts = useMemo(() => {
+    return activeCategory === 'All'
+      ? products
+      : products.filter(product => product.category === activeCategory);
+  }, [products, activeCategory]);
 
   return (
     <div className="flex flex-1 overflow-hidden bg-amber-50">
@@ -52,7 +59,7 @@ const MenuContent: React.FC<MenuContentProps> = ({
         ) : filteredProducts.length > 0 ? (
           <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 gap-4">
             {filteredProducts.map((product) => (
-              <ProductCard 
+              <MemoizedProductCard 
                 key={product.id} 
                 product={product} 
                 onSelect={onProductSelect} 
@@ -69,4 +76,5 @@ const MenuContent: React.FC<MenuContentProps> = ({
   );
 };
 
-export default MenuContent;
+// Memoize the entire component to prevent unnecessary re-renders
+export default memo(MenuContent);
