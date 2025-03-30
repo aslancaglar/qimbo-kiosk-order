@@ -13,7 +13,7 @@ interface PrintNodeConfig {
  */
 export const htmlToPdf = async (htmlContent: string): Promise<Blob> => {
   const options = {
-    margin: 3, // Minimal margins for POS printer
+    margin: [0, 0, 0, 0], // Minimal margins: top, right, bottom, left
     filename: 'receipt.pdf',
     image: { type: 'jpeg', quality: 0.95 },
     html2canvas: { scale: 2, logging: false },

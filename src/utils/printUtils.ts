@@ -21,26 +21,26 @@ export const formatOrderReceipt = (
           body {
             font-family: 'Courier New', monospace;
             padding: 0;
-            margin: 1mm;
+            margin: 0;
             width: 72mm; /* Accounting for margins */
             font-size: 9pt;
             line-height: 1.2;
           }
           h1 {
-            text-align: center;
+            text-align: left;
             font-size: 12pt;
-            margin: 2mm 0;
+            margin: 1mm 0;
           }
           h2 {
-            text-align: center;
+            text-align: left;
             font-size: 10pt;
-            margin: 2mm 0;
+            margin: 1mm 0;
           }
           .order-details {
-            margin-bottom: 3mm;
+            margin-bottom: 2mm;
           }
           .order-details p {
-            margin: 0.5mm 0;
+            margin: 0;
           }
           .order-item {
             display: flex;
@@ -50,16 +50,16 @@ export const formatOrderReceipt = (
           .topping-item {
             display: flex;
             justify-content: space-between;
-            margin-left: 5mm;
+            margin-left: 3mm;
             font-size: 8pt;
           }
           .divider {
-            text-align: center;
-            margin: 2mm 0;
+            text-align: left;
+            margin: 1mm 0;
             font-weight: normal;
           }
           .totals {
-            margin-top: 3mm;
+            margin-top: 2mm;
           }
           .total-row {
             display: flex;
@@ -69,13 +69,13 @@ export const formatOrderReceipt = (
           .final-total {
             font-weight: bold;
             font-size: 10pt;
-            margin-top: 2mm;
+            margin-top: 1mm;
             border-top: 0.5pt solid black;
             padding-top: 1mm;
           }
           .footer {
-            margin-top: 5mm;
-            text-align: center;
+            margin-top: 3mm;
+            text-align: left;
             font-size: 8pt;
           }
         </style>
