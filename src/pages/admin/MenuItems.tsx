@@ -10,7 +10,7 @@ import {
   TableCell 
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Search, Plus, Edit, Trash, Upload, Image } from "lucide-react";
+import { Search, Plus, Edit, Trash, Upload, Image, FileImage } from "lucide-react";
 import { 
   Dialog,
   DialogContent,
@@ -587,11 +587,11 @@ const MenuItems = () => {
                             </div>
                           ) : (
                             <div className="text-center">
-                              <Image className="mx-auto h-12 w-12 text-gray-400" />
-                              <div className="mt-2 flex text-sm text-gray-600">
+                              <FileImage className="mx-auto h-12 w-12 text-gray-400" />
+                              <div className="mt-2 flex flex-col sm:flex-row text-sm text-gray-600 items-center justify-center">
                                 <label
                                   htmlFor="image-upload"
-                                  className="relative cursor-pointer rounded-md bg-white font-medium text-primary hover:text-primary/90 focus-within:outline-none"
+                                  className="relative cursor-pointer mb-2 sm:mb-0 rounded-md bg-primary px-3 py-1.5 text-white font-medium hover:bg-primary/90 focus-within:outline-none"
                                 >
                                   <span>Upload a file</span>
                                   <input
