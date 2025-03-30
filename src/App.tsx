@@ -9,6 +9,9 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { enableRealtimeForTables } from "./utils/enableRealtimeForTables";
 import { startMeasure, endMeasure } from "./utils/performanceMonitor";
 
+// Lazily import the Index page
+const Index = lazy(() => import("./pages/Index"));
+
 // Lazy load other pages to reduce initial bundle size
 const NotFound = lazy(() => import("./pages/NotFound"));
 const MenuPage = lazy(() => import("./components/menu/MenuPage"));
