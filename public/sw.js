@@ -1,26 +1,27 @@
 
 // Cache version - increment this when deploying new versions
-const CACHE_NAME = 'restaurant-app-v5';
+const CACHE_NAME = 'restaurant-app-v3';
 
-// Assets to cache on install - minimal critical assets only
+// Assets to cache on install
 const CACHE_ASSETS = [
+  '/',
+  '/index.html',
   '/favicon.ico',
   '/notification.mp3',
   '/placeholder.svg'
 ];
 
-// Install event - cache minimal assets
+// Install event - cache core assets
 self.addEventListener('install', (event) => {
-  console.log('[ServiceWorker] Install - caching disabled');
+  console.log('[ServiceWorker] Install');
   
   // Skip waiting to activate immediately
   self.skipWaiting();
   
-  // Only cache minimal assets
   event.waitUntil(
     caches.open(CACHE_NAME)
       .then((cache) => {
-        console.log('[ServiceWorker] Caching minimal assets');
+        console.log('[ServiceWorker] Caching app shell');
         return cache.addAll(CACHE_ASSETS);
       })
       .catch(err => console.error('[ServiceWorker] Cache install error:', err))
@@ -29,9 +30,9 @@ self.addEventListener('install', (event) => {
 
 // Activate event - clean up old caches
 self.addEventListener('activate', (event) => {
-  console.log('[ServiceWorker] Activate - removing old caches');
+  console.log('[ServiceWorker] Activate');
   
-  // Clear all old versions of caches immediately
+  // Clear old versions of caches immediately
   event.waitUntil(
     caches.keys().then((keyList) => {
       return Promise.all(keyList.map((key) => {
@@ -75,82 +76,71 @@ self.addEventListener('message', (event) => {
   }
 });
 
-// Fetch event - strict network-first strategy with no caching for API and HTML
+// Fetch event - serve from cache, fall back to network, with network-first strategy for HTML
 self.addEventListener('fetch', (event) => {
-  // Skip for non-GET requests
-  if (event.request.method !== 'GET') {
+  // Skip for API requests, supabase calls, etc.
+  if (event.request.url.includes('/rest/v1/') || 
+      event.request.url.includes('/auth/') ||
+      event.request.method !== 'GET') {
     return;
   }
   
-  const url = new URL(event.request.url);
-  const isAPI = url.pathname.includes('/rest/v1/') || 
-                url.pathname.includes('/auth/v1/') || 
-                url.pathname.includes('/storage/v1/');
-  const isHTML = event.request.headers.get('accept')?.includes('text/html');
-  
-  // Always use network-first for API and HTML requests
-  if (isAPI || isHTML) {
+  // For HTML pages, use network-first strategy to ensure fresh content
+  if (event.request.headers.get('accept').includes('text/html')) {
     event.respondWith(
-      fetch(event.request, {
-        // Add cache-busting headers
-        headers: {
-          'Cache-Control': 'no-cache, no-store, must-revalidate',
-          'Pragma': 'no-cache',
-          'Expires': '0'
-        },
-        // Don't use any cached version
-        cache: 'no-store'
-      })
-      .then(response => {
-        return response;
-      })
-      .catch(() => {
-        // For HTML, try to serve the index as fallback
-        if (isHTML) {
-          return caches.match('/');
-        }
-        
-        // Only try to serve API requests from cache as absolute last resort
-        if (isAPI) {
-          return caches.match(event.request)
-            .then(cachedResponse => {
-              if (cachedResponse) {
-                console.log('[ServiceWorker] Serving API from cache as fallback:', event.request.url);
-                return cachedResponse;
-              }
-              
-              return new Response(JSON.stringify({error: 'Network error'}), {
-                status: 408,
-                headers: { 'Content-Type': 'application/json' }
-              });
-            });
-        }
-        
-        return new Response('Network error occurred', {
-          status: 408,
-          headers: { 'Content-Type': 'text/plain' }
-        });
-      })
-    );
-  } else {
-    // For other assets, still prefer network but allow cache fallback
-    event.respondWith(
-      fetch(event.request, { cache: 'no-store' })
+      fetch(event.request)
         .then(response => {
+          // Clone the response to store in cache
+          const responseToCache = response.clone();
+          caches.open(CACHE_NAME).then(cache => {
+            cache.put(event.request, responseToCache);
+          });
           return response;
         })
         .catch(() => {
-          return caches.match(event.request)
-            .then(cachedResponse => {
-              if (cachedResponse) {
-                return cachedResponse;
-              }
-              return new Response('Network error occurred', {
-                status: 408,
-                headers: { 'Content-Type': 'text/plain' }
-              });
-            });
+          // If network fails, try to serve from cache
+          return caches.match(event.request).then(cachedResponse => {
+            return cachedResponse || caches.match('/');
+          });
         })
     );
+    return;
   }
+  
+  // For other assets, try cache first, then network
+  event.respondWith(
+    caches.match(event.request)
+      .then((response) => {
+        // Return cached response if found
+        if (response) {
+          return response;
+        }
+        
+        // Otherwise, fetch from network
+        return fetch(event.request)
+          .then((networkResponse) => {
+            // Don't cache responses that aren't successful
+            if (!networkResponse || networkResponse.status !== 200 || networkResponse.type !== 'basic') {
+              return networkResponse;
+            }
+            
+            // For successful responses, clone and cache
+            const responseToCache = networkResponse.clone();
+            
+            caches.open(CACHE_NAME)
+              .then((cache) => {
+                cache.put(event.request, responseToCache);
+              });
+              
+            return networkResponse;
+          })
+          .catch(err => {
+            console.error('[ServiceWorker] Fetch failed:', err);
+            // Offline fallback if available
+            if (event.request.headers.get('accept').includes('text/html')) {
+              return caches.match('/');
+            }
+          });
+      })
+  );
 });

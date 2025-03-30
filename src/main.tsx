@@ -30,19 +30,15 @@ root.render(
 // Register service worker
 registerServiceWorker().catch(console.error);
 
-// Setup frequent update checks
-const checkInterval = 1 * 60 * 1000; // 1 minute (reduced from 2 minutes)
-// Check for updates after initial load
-window.addEventListener('load', () => {
-  setTimeout(() => {
-    checkForUpdates().catch(console.error);
-  }, 5000); // Check after 5 seconds (reduced from 10 seconds)
-  
-  // Setup regular checking interval
-  setInterval(() => {
-    checkForUpdates().catch(console.error);
-  }, checkInterval);
-});
+// Setup periodic update checks in production
+if (process.env.NODE_ENV === 'production') {
+  // Check for updates after initial load
+  window.addEventListener('load', () => {
+    setTimeout(() => {
+      checkForUpdates().catch(console.error);
+    }, 10000); // Check after 10 seconds
+  });
+}
 
 // End performance measurement
 if (process.env.NODE_ENV !== 'production') {
