@@ -19,63 +19,53 @@ export const formatOrderReceipt = (
         <title>Order #${orderNumber}</title>
         <style>
           body {
-            font-family: 'Courier', monospace;
-            padding: 0;
-            margin: 0;
-            width: 72mm;
-            font-size: 8px;
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            max-width: 400px;
+            margin: 0 auto;
           }
-          h1 {
+          h1, h2 {
             text-align: center;
-            font-size: 12px;
-            margin: 3px 0;
-          }
-          h2 {
-            text-align: center;
-            font-size: 10px;
-            margin: 3px 0;
           }
           .order-details {
-            margin-bottom: 3px;
-          }
-          .order-details p {
-            margin: 1px 0;
+            margin-bottom: 20px;
           }
           .order-item {
             display: flex;
             justify-content: space-between;
-            margin-bottom: 1px;
+            margin-bottom: 8px;
           }
           .topping-item {
             display: flex;
             justify-content: space-between;
-            margin-left: 8px;
-            font-size: 7px;
+            margin-left: 20px;
+            font-size: 0.9em;
             color: #666;
           }
           .divider {
             border-top: 1px dashed #ccc;
-            margin: 3px 0;
+            margin: 15px 0;
           }
           .totals {
-            margin-top: 3px;
+            margin-top: 20px;
           }
           .total-row {
             display: flex;
             justify-content: space-between;
-            margin-bottom: 1px;
+            margin-bottom: 5px;
           }
           .final-total {
             font-weight: bold;
-            font-size: 10px;
-            margin-top: 3px;
+            font-size: 1.2em;
+            margin-top: 10px;
             border-top: 1px solid black;
-            padding-top: 2px;
+            padding-top: 10px;
           }
           .footer {
-            margin-top: 5px;
+            margin-top: 30px;
             text-align: center;
-            font-size: 8px;
+            font-size: 0.9em;
+            color: #666;
           }
         </style>
       </head>

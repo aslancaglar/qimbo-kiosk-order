@@ -13,35 +13,16 @@ interface PrintNodeConfig {
  */
 export const htmlToPdf = async (htmlContent: string): Promise<Blob> => {
   const options = {
-    margin: 0, // Zero margin
+    margin: 10,
     filename: 'receipt.pdf',
     image: { type: 'jpeg', quality: 0.98 },
-    html2canvas: { 
-      scale: 2,
-      logging: true,
-      letterRendering: true 
-    },
-    jsPDF: { 
-      unit: 'mm', 
-      format: [72, 300], // 80mm thermal paper width (adjusted for margins)
-      orientation: 'portrait',
-      compress: true,
-      precision: 16,
-      hotfixes: ['px_scaling']
-    }
+    html2canvas: { scale: 2 },
+    jsPDF: { unit: 'mm', format: 'a7', orientation: 'portrait' }
   };
 
   try {
-    // Wrap HTML in a div with specific width to ensure proper rendering
-    const wrappedHtml = `
-      <div style="width: 72mm;">
-        ${htmlContent}
-      </div>
-    `;
-    
-    // Generate PDF
     return await html2pdf()
-      .from(wrappedHtml)
+      .from(htmlContent)
       .set(options)
       .outputPdf('blob');
   } catch (error) {
