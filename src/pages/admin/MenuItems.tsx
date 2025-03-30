@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import AdminLayout from '../../components/admin/AdminLayout';
 import { Input } from "@/components/ui/input";
@@ -206,7 +207,6 @@ const MenuItems = () => {
   };
 
   const handleEditItem = (item: MenuItem) => {
-    console.log("Edit item clicked:", item);
     setEditItem(item);
     form.reset({
       name: item.name,
@@ -567,24 +567,17 @@ const MenuItems = () => {
                           <span className="text-gray-500 text-xs">None</span>
                         )}
                       </TableCell>
-                      <TableCell className="text-right space-x-2 whitespace-nowrap">
-                        <Button 
-                          variant="outline" 
-                          size="sm" 
-                          className="h-8 w-8 p-0 bg-blue-50 hover:bg-blue-100 border-blue-200"
-                          onClick={() => handleEditItem(item)}
-                        >
-                          <Edit className="h-4 w-4 text-blue-600" />
-                          <span className="sr-only">Edit</span>
+                      <TableCell className="text-right space-x-2">
+                        <Button variant="outline" size="sm" className="h-8 w-8 p-0" onClick={() => handleEditItem(item)}>
+                          <Edit className="h-4 w-4" />
                         </Button>
                         <Button 
                           variant="outline" 
                           size="sm" 
-                          className="h-8 w-8 p-0 bg-red-50 hover:bg-red-100 border-red-200"
+                          className="h-8 w-8 p-0 text-red-500 hover:text-red-700"
                           onClick={() => handleDeleteItem(item.id)}
                         >
-                          <Trash className="h-4 w-4 text-red-600" />
-                          <span className="sr-only">Delete</span>
+                          <Trash className="h-4 w-4" />
                         </Button>
                       </TableCell>
                     </TableRow>

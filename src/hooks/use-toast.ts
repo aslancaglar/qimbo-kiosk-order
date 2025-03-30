@@ -159,7 +159,6 @@ function toast({ ...props }: Toast) {
       onOpenChange: (open) => {
         if (!open) dismiss()
       },
-      className: "bg-green-500 text-white",
     },
   })
 
