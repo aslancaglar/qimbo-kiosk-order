@@ -1,5 +1,7 @@
 
 import { CartItemType } from "../components/cart/types";
+import { sendPrintJob } from "./printBiz";
+import html2pdf from 'html2pdf.js';
 
 // Format order for printing
 export const formatOrderReceipt = (
@@ -160,9 +162,9 @@ export const printOrderBrowser = (
     
     // Print using browser
     setTimeout(() => {
-      iframe.contentWindow?.print();
+      // iframe.contentWindow?.print(); - Disabled automatic printing
       
-      // Remove the iframe after printing
+      // Remove the iframe after a delay
       setTimeout(() => {
         iframe.remove();
       }, 2000);
@@ -172,9 +174,8 @@ export const printOrderBrowser = (
   }
 };
 
-// Print order - this is now just a wrapper around browser printing 
-// since PrintBiz integration is removed
-export const printOrder = (
+// Print order using PrintNode
+export const printOrderPrintNode = async (
   orderNumber: string | number,
   items: CartItemType[],
   orderType: string,
@@ -182,6 +183,82 @@ export const printOrder = (
   subtotal: number,
   tax: number,
   total: number
-): void => {
-  printOrderBrowser(orderNumber, items, orderType, tableNumber, subtotal, tax, total);
+): Promise<boolean> => {
+  try {
+    // Generate receipt HTML
+    const receiptHtml = formatOrderReceipt(
+      orderNumber,
+      items,
+      orderType,
+      tableNumber,
+      subtotal,
+      tax,
+      total
+    );
+    
+    // Create element for html2pdf
+    const element = document.createElement('div');
+    element.innerHTML = receiptHtml;
+    document.body.appendChild(element);
+    
+    // Convert HTML to PDF using html2pdf
+    const pdfBlob = await html2pdf().from(element).outputPdf('blob');
+    
+    // Remove the temporary element
+    document.body.removeChild(element);
+    
+    // Convert blob to base64
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onloadend = async () => {
+        const base64data = reader.result?.toString().split(',')[1] || '';
+        
+        // Send to PrintNode
+        const success = await sendPrintJob({
+          printer_id: '', // Will use default from config
+          content: base64data,
+          type: 'receipt',
+          copies: 1,
+          metadata: {
+            orderNumber,
+            orderType,
+            tableNumber,
+          }
+        });
+        
+        resolve(success);
+      };
+      reader.readAsDataURL(pdfBlob);
+    });
+  } catch (error) {
+    console.error('Error printing order with PrintNode:', error);
+    return false;
+  }
+};
+
+// Print order - main function that decides which method to use
+export const printOrder = async (
+  orderNumber: string | number,
+  items: CartItemType[],
+  orderType: string,
+  tableNumber: string | number | undefined,
+  subtotal: number,
+  tax: number,
+  total: number
+): Promise<void> => {
+  // Try to print with PrintNode first
+  const printNodeSuccess = await printOrderPrintNode(
+    orderNumber, 
+    items, 
+    orderType, 
+    tableNumber, 
+    subtotal, 
+    tax, 
+    total
+  );
+  
+  // If PrintNode fails, fall back to browser printing
+  if (!printNodeSuccess) {
+    printOrderBrowser(orderNumber, items, orderType, tableNumber, subtotal, tax, total);
+  }
 };
