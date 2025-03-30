@@ -10,7 +10,7 @@ import {
 } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Search, Plus, Edit, Trash, ChevronDown, ChevronUp, MoveUp, MoveDown, ArrowUp, ArrowDown } from "lucide-react";
+import { Search, Plus, Edit, Trash, ChevronDown, ChevronUp, MoveUp, MoveDown } from "lucide-react";
 import { 
   Dialog,
   DialogContent,
@@ -51,7 +51,6 @@ interface ToppingCategory {
   max_selection: number;
   description: string;
   required: boolean;
-  display_order: number;
 }
 
 // Define the Topping interface
@@ -127,7 +126,7 @@ const Toppings = () => {
       const { data, error } = await supabase
         .from('topping_categories')
         .select('*')
-        .order('display_order');
+        .order('name');
         
       if (error) {
         throw error;
@@ -432,112 +431,6 @@ const Toppings = () => {
     }
   };
 
-  const handleMoveCategoryUp = async (category: ToppingCategory) => {
-    // Find the sorted list of categories
-    const sortedCategories = [...categories].sort((a, b) => (a.display_order || 0) - (b.display_order || 0));
-    const currentIndex = sortedCategories.findIndex(c => c.id === category.id);
-    
-    // If already at the top, do nothing
-    if (currentIndex <= 0) return;
-    
-    // Get the category above this one
-    const previousCategory = sortedCategories[currentIndex - 1];
-    
-    try {
-      // Swap the display_order values
-      const prevOrder = previousCategory.display_order;
-      const currentOrder = category.display_order;
-      
-      // Update the previous category
-      const { error: error1 } = await supabase
-        .from('topping_categories')
-        .update({ display_order: currentOrder })
-        .eq('id', previousCategory.id);
-        
-      if (error1) throw error1;
-      
-      // Update the current category
-      const { error: error2 } = await supabase
-        .from('topping_categories')
-        .update({ display_order: prevOrder })
-        .eq('id', category.id);
-        
-      if (error2) throw error2;
-      
-      // Update the local state
-      setCategories(categories.map(c => {
-        if (c.id === category.id) return { ...c, display_order: prevOrder };
-        if (c.id === previousCategory.id) return { ...c, display_order: currentOrder };
-        return c;
-      }));
-      
-      toast({
-        title: 'Success',
-        description: 'Category order updated successfully.',
-      });
-    } catch (error) {
-      console.error('Error updating category order:', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to update category order. Please try again.',
-        variant: 'destructive',
-      });
-    }
-  };
-  
-  const handleMoveCategoryDown = async (category: ToppingCategory) => {
-    // Find the sorted list of categories
-    const sortedCategories = [...categories].sort((a, b) => (a.display_order || 0) - (b.display_order || 0));
-    const currentIndex = sortedCategories.findIndex(c => c.id === category.id);
-    
-    // If already at the bottom, do nothing
-    if (currentIndex >= sortedCategories.length - 1 || currentIndex === -1) return;
-    
-    // Get the category below this one
-    const nextCategory = sortedCategories[currentIndex + 1];
-    
-    try {
-      // Swap the display_order values
-      const nextOrder = nextCategory.display_order;
-      const currentOrder = category.display_order;
-      
-      // Update the next category
-      const { error: error1 } = await supabase
-        .from('topping_categories')
-        .update({ display_order: currentOrder })
-        .eq('id', nextCategory.id);
-        
-      if (error1) throw error1;
-      
-      // Update the current category
-      const { error: error2 } = await supabase
-        .from('topping_categories')
-        .update({ display_order: nextOrder })
-        .eq('id', category.id);
-        
-      if (error2) throw error2;
-      
-      // Update the local state
-      setCategories(categories.map(c => {
-        if (c.id === category.id) return { ...c, display_order: nextOrder };
-        if (c.id === nextCategory.id) return { ...c, display_order: currentOrder };
-        return c;
-      }));
-      
-      toast({
-        title: 'Success',
-        description: 'Category order updated successfully.',
-      });
-    } catch (error) {
-      console.error('Error updating category order:', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to update category order. Please try again.',
-        variant: 'destructive',
-      });
-    }
-  };
-
   const onSubmitTopping = async (data: ToppingFormValues) => {
     try {
       if (editTopping) {
@@ -664,16 +557,16 @@ const Toppings = () => {
     }
   };
 
+  // Filter toppings based on search term
   const filteredToppings = toppings.filter(topping => 
     topping.name.toLowerCase().includes(filterText.toLowerCase())
   );
 
+  // Filter categories that have matching toppings or match the search term
   const filteredCategories = categories.filter(category => 
     category.name.toLowerCase().includes(filterText.toLowerCase()) ||
     filteredToppings.some(topping => topping.category_id === category.id)
   );
-
-  const sortedCategories = [...filteredCategories].sort((a, b) => (a.display_order || 0) - (b.display_order || 0));
 
   return (
     <AdminLayout>
@@ -717,161 +610,143 @@ const Toppings = () => {
           </div>
         ) : (
           <div className="space-y-4">
-            {sortedCategories.map((category, index) => {
-              const isFirst = index === 0;
-              const isLast = index === sortedCategories.length - 1;
-              
-              return (
-                <div key={category.id} className="border rounded-md">
-                  <div className="flex justify-between items-center p-4 bg-muted/30">
-                    <div 
-                      className="flex items-center cursor-pointer"
-                      onClick={() => toggleCategoryExpansion(category.id)}
-                    >
-                      {expandedCategories.includes(category.id) ? 
-                        <ChevronUp className="h-4 w-4 mr-2" /> : 
-                        <ChevronDown className="h-4 w-4 mr-2" />
-                      }
-                      <div>
-                        <h3 className="font-medium">{category.name}</h3>
-                        <p className="text-sm text-muted-foreground">{category.description}</p>
-                      </div>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <span className="text-sm text-muted-foreground">
-                        {category.required ? "Required" : "Optional"} 
-                        {` (${category.min_selection}-${category.max_selection} selections)`}
-                      </span>
-                      <Button 
-                        variant="outline" 
-                        size="sm" 
-                        className={`h-8 w-8 p-0 ${isFirst ? 'opacity-50' : ''}`}
-                        disabled={isFirst}
-                        onClick={() => handleMoveCategoryUp(category)}
-                        title="Move category up"
-                      >
-                        <ArrowUp className="h-4 w-4" />
-                      </Button>
-                      <Button 
-                        variant="outline" 
-                        size="sm" 
-                        className={`h-8 w-8 p-0 ${isLast ? 'opacity-50' : ''}`}
-                        disabled={isLast}
-                        onClick={() => handleMoveCategoryDown(category)}
-                        title="Move category down"
-                      >
-                        <ArrowDown className="h-4 w-4" />
-                      </Button>
-                      <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => handleEditCategory(category)}>
-                        <Edit className="h-4 w-4" />
-                      </Button>
-                      <Button 
-                        variant="ghost" 
-                        size="sm" 
-                        className="h-8 w-8 p-0 text-red-500 hover:text-red-700 hover:bg-red-50"
-                        onClick={() => handleDeleteCategory(category.id)}
-                      >
-                        <Trash className="h-4 w-4" />
-                      </Button>
+            {filteredCategories.map((category) => (
+              <div key={category.id} className="border rounded-md">
+                <div 
+                  className="flex justify-between items-center p-4 bg-muted/30 cursor-pointer"
+                  onClick={() => toggleCategoryExpansion(category.id)}
+                >
+                  <div className="flex items-center">
+                    {expandedCategories.includes(category.id) ? 
+                      <ChevronUp className="h-4 w-4 mr-2" /> : 
+                      <ChevronDown className="h-4 w-4 mr-2" />
+                    }
+                    <div>
+                      <h3 className="font-medium">{category.name}</h3>
+                      <p className="text-sm text-muted-foreground">{category.description}</p>
                     </div>
                   </div>
-                  
-                  {expandedCategories.includes(category.id) && (
-                    <div className="p-4 border-t">
-                      <Table>
-                        <TableHeader>
-                          <TableRow>
-                            <TableHead>Name</TableHead>
-                            <TableHead>Price</TableHead>
-                            <TableHead>Max Quantity</TableHead>
-                            <TableHead>Status</TableHead>
-                            <TableHead className="text-right">Actions</TableHead>
-                          </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                          {filteredToppings
-                            .filter(topping => topping.category_id === category.id)
-                            .sort((a, b) => (a.display_order || 0) - (b.display_order || 0))
-                            .map((topping) => {
-                              const categoryToppings = filteredToppings.filter(t => t.category_id === category.id);
-                              const sortedCategoryToppings = [...categoryToppings].sort((a, b) => 
-                                (a.display_order || 0) - (b.display_order || 0)
-                              );
-                              const isFirst = sortedCategoryToppings[0]?.id === topping.id;
-                              const isLast = sortedCategoryToppings[sortedCategoryToppings.length - 1]?.id === topping.id;
-                              
-                              return (
-                                <TableRow key={topping.id}>
-                                  <TableCell>{topping.name}</TableCell>
-                                  <TableCell>${topping.price.toFixed(2)}</TableCell>
-                                  <TableCell>{topping.max_quantity}</TableCell>
-                                  <TableCell>
-                                    <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium ${topping.available ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}`}>
-                                      {topping.available ? 'Available' : 'Unavailable'}
-                                    </span>
-                                  </TableCell>
-                                  <TableCell className="text-right flex items-center justify-end space-x-2">
-                                    <Button 
-                                      variant="outline" 
-                                      size="sm" 
-                                      className={`h-8 w-8 p-0 ${isFirst ? 'opacity-50' : ''}`}
-                                      disabled={isFirst}
-                                      onClick={() => handleMoveToppingUp(topping, categoryToppings)}
-                                      title="Move up"
-                                    >
-                                      <MoveUp className="h-4 w-4" />
-                                    </Button>
-                                    <Button 
-                                      variant="outline" 
-                                      size="sm" 
-                                      className={`h-8 w-8 p-0 ${isLast ? 'opacity-50' : ''}`}
-                                      disabled={isLast}
-                                      onClick={() => handleMoveToppingDown(topping, categoryToppings)}
-                                      title="Move down"
-                                    >
-                                      <MoveDown className="h-4 w-4" />
-                                    </Button>
-                                    <Button 
-                                      variant="outline" 
-                                      size="sm" 
-                                      className="h-8 w-8 p-0" 
-                                      onClick={() => handleEditTopping(topping)}
-                                    >
-                                      <Edit className="h-4 w-4" />
-                                    </Button>
-                                    <Button 
-                                      variant="outline" 
-                                      size="sm" 
-                                      className="h-8 w-8 p-0 text-red-500 hover:text-red-700"
-                                      onClick={() => handleDeleteTopping(topping.id)}
-                                    >
-                                      <Trash className="h-4 w-4" />
-                                    </Button>
-                                  </TableCell>
-                                </TableRow>
-                              );
-                            })}
-                          {filteredToppings.filter(t => t.category_id === category.id).length === 0 && (
-                            <TableRow>
-                              <TableCell colSpan={5} className="text-center py-4 text-muted-foreground">
-                                <p className="mb-2">No toppings in this category</p>
-                                <Button variant="outline" size="sm" onClick={() => {
-                                  toppingForm.setValue('category_id', category.id);
-                                  handleAddTopping();
-                                }}>
-                                  <Plus className="mr-2 h-4 w-4" />
-                                  Add Topping
-                                </Button>
-                              </TableCell>
-                            </TableRow>
-                          )}
-                        </TableBody>
-                      </Table>
-                    </div>
-                  )}
+                  <div className="flex items-center space-x-2">
+                    <span className="text-sm text-muted-foreground">
+                      {category.required ? "Required" : "Optional"} 
+                      {` (${category.min_selection}-${category.max_selection} selections)`}
+                    </span>
+                    <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={(e) => {
+                      e.stopPropagation();
+                      handleEditCategory(category);
+                    }}>
+                      <Edit className="h-4 w-4" />
+                    </Button>
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      className="h-8 w-8 p-0 text-red-500 hover:text-red-700 hover:bg-red-50"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDeleteCategory(category.id);
+                      }}
+                    >
+                      <Trash className="h-4 w-4" />
+                    </Button>
+                  </div>
                 </div>
-              );
-            })}
+                
+                {expandedCategories.includes(category.id) && (
+                  <div className="p-4 border-t">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Name</TableHead>
+                          <TableHead>Price</TableHead>
+                          <TableHead>Max Quantity</TableHead>
+                          <TableHead>Status</TableHead>
+                          <TableHead className="text-right">Actions</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {filteredToppings
+                          .filter(topping => topping.category_id === category.id)
+                          .sort((a, b) => (a.display_order || 0) - (b.display_order || 0))
+                          .map((topping) => {
+                            // Get all toppings in this category for move up/down logic
+                            const categoryToppings = filteredToppings.filter(t => t.category_id === category.id);
+                            const sortedCategoryToppings = [...categoryToppings].sort((a, b) => 
+                              (a.display_order || 0) - (b.display_order || 0)
+                            );
+                            const isFirst = sortedCategoryToppings[0]?.id === topping.id;
+                            const isLast = sortedCategoryToppings[sortedCategoryToppings.length - 1]?.id === topping.id;
+                            
+                            return (
+                              <TableRow key={topping.id}>
+                                <TableCell>{topping.name}</TableCell>
+                                <TableCell>${topping.price.toFixed(2)}</TableCell>
+                                <TableCell>{topping.max_quantity}</TableCell>
+                                <TableCell>
+                                  <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium ${topping.available ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}`}>
+                                    {topping.available ? 'Available' : 'Unavailable'}
+                                  </span>
+                                </TableCell>
+                                <TableCell className="text-right flex items-center justify-end space-x-2">
+                                  <Button 
+                                    variant="outline" 
+                                    size="sm" 
+                                    className={`h-8 w-8 p-0 ${isFirst ? 'opacity-50' : ''}`}
+                                    disabled={isFirst}
+                                    onClick={() => handleMoveToppingUp(topping, categoryToppings)}
+                                    title="Move up"
+                                  >
+                                    <MoveUp className="h-4 w-4" />
+                                  </Button>
+                                  <Button 
+                                    variant="outline" 
+                                    size="sm" 
+                                    className={`h-8 w-8 p-0 ${isLast ? 'opacity-50' : ''}`}
+                                    disabled={isLast}
+                                    onClick={() => handleMoveToppingDown(topping, categoryToppings)}
+                                    title="Move down"
+                                  >
+                                    <MoveDown className="h-4 w-4" />
+                                  </Button>
+                                  <Button 
+                                    variant="outline" 
+                                    size="sm" 
+                                    className="h-8 w-8 p-0" 
+                                    onClick={() => handleEditTopping(topping)}
+                                  >
+                                    <Edit className="h-4 w-4" />
+                                  </Button>
+                                  <Button 
+                                    variant="outline" 
+                                    size="sm" 
+                                    className="h-8 w-8 p-0 text-red-500 hover:text-red-700"
+                                    onClick={() => handleDeleteTopping(topping.id)}
+                                  >
+                                    <Trash className="h-4 w-4" />
+                                  </Button>
+                                </TableCell>
+                              </TableRow>
+                            );
+                          })}
+                        {filteredToppings.filter(t => t.category_id === category.id).length === 0 && (
+                          <TableRow>
+                            <TableCell colSpan={5} className="text-center py-4 text-muted-foreground">
+                              <p className="mb-2">No toppings in this category</p>
+                              <Button variant="outline" size="sm" onClick={() => {
+                                toppingForm.setValue('category_id', category.id);
+                                handleAddTopping();
+                              }}>
+                                <Plus className="mr-2 h-4 w-4" />
+                                Add Topping
+                              </Button>
+                            </TableCell>
+                          </TableRow>
+                        )}
+                      </TableBody>
+                    </Table>
+                  </div>
+                )}
+              </div>
+            ))}
             
             {filteredCategories.length === 0 && !isLoading && (
               <div className="text-center py-8 border rounded-md">
@@ -882,6 +757,7 @@ const Toppings = () => {
         )}
       </div>
 
+      {/* Topping Dialog */}
       <Dialog open={isAddToppingDialogOpen} onOpenChange={setIsAddToppingDialogOpen}>
         <DialogContent>
           <DialogHeader>
@@ -992,6 +868,7 @@ const Toppings = () => {
         </DialogContent>
       </Dialog>
 
+      {/* Category Dialog */}
       <Dialog open={isAddCategoryDialogOpen} onOpenChange={setIsAddCategoryDialogOpen}>
         <DialogContent>
           <DialogHeader>
