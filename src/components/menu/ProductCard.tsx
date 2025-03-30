@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Button from '../common/Button';
@@ -120,7 +119,6 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onSelect }) => {
         .from('topping_categories')
         .select('*')
         .in('id', product.availableToppingCategories)
-        .order('display_order', { ascending: true })
         .order('name');
       
       if (categoriesError) throw categoriesError;
@@ -131,7 +129,6 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onSelect }) => {
           .select('*')
           .eq('category_id', category.id)
           .eq('available', true)
-          .order('display_order', { ascending: true })
           .order('name');
         
         if (toppingsError) throw toppingsError;

@@ -43,8 +43,8 @@ import { useForm } from "react-hook-form";
 import * as z from "zod";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { DragDropContext, Droppable, Draggable, DropResult } from 'react-beautiful-dnd';
 
+// Define the ToppingCategory interface
 interface ToppingCategory {
   id: number;
   name: string;
@@ -55,6 +55,7 @@ interface ToppingCategory {
   display_order?: number;
 }
 
+// Define the Topping interface
 interface Topping {
   id: number;
   name: string;
@@ -66,6 +67,7 @@ interface Topping {
   display_order?: number;
 }
 
+// Form schema for topping validation
 const toppingFormSchema = z.object({
   name: z.string().min(2, { message: "Name must be at least 2 characters." }),
   price: z.coerce.number().min(0, { message: "Price must be a positive number." }),
@@ -74,6 +76,7 @@ const toppingFormSchema = z.object({
   max_quantity: z.coerce.number().min(1, { message: "Max quantity must be at least 1." }).max(10, { message: "Max quantity cannot exceed 10." })
 });
 
+// Form schema for category validation
 const categoryFormSchema = z.object({
   name: z.string().min(2, { message: "Name must be at least 2 characters." }),
   min_selection: z.coerce.number().min(0, { message: "Minimum selection cannot be negative." }),
@@ -97,7 +100,6 @@ const Toppings = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [isReordering, setIsReordering] = useState(false);
   const [draggedItem, setDraggedItem] = useState<{ type: 'category' | 'topping', id: number } | null>(null);
-  const [isDragging, setIsDragging] = useState(false);
   const { toast } = useToast();
   
   const toppingForm = useForm<ToppingFormValues>({
@@ -138,6 +140,7 @@ const Toppings = () => {
       const fetchedCategories = data as ToppingCategory[];
       setCategories(fetchedCategories);
       
+      // Expand all categories by default
       setExpandedCategories(fetchedCategories.map(c => c.id));
     } catch (error) {
       console.error('Error fetching topping categories:', error);
@@ -268,6 +271,7 @@ const Toppings = () => {
         description: 'Topping deleted successfully.',
       });
       
+      // Optimistic update
       setToppings(toppings.filter(topping => topping.id !== id));
     } catch (error) {
       console.error('Error deleting topping:', error);
@@ -281,6 +285,7 @@ const Toppings = () => {
 
   const handleDeleteCategory = async (id: number) => {
     try {
+      // Check if there are any toppings using this category
       const toppingsInCategory = toppings.filter(t => t.category_id === id);
       
       if (toppingsInCategory.length > 0) {
@@ -306,6 +311,7 @@ const Toppings = () => {
         description: 'Category deleted successfully.',
       });
       
+      // Optimistic update
       setCategories(categories.filter(category => category.id !== id));
     } catch (error) {
       console.error('Error deleting category:', error);
@@ -328,6 +334,7 @@ const Toppings = () => {
   const onSubmitTopping = async (data: ToppingFormValues) => {
     try {
       if (editTopping) {
+        // Update existing topping
         const { error } = await supabase
           .from('toppings')
           .update({
@@ -336,6 +343,7 @@ const Toppings = () => {
             category_id: data.category_id,
             available: data.available,
             max_quantity: data.max_quantity,
+            // Get the category name from the selected category
             category: categories.find(c => c.id === data.category_id)?.name || ""
           })
           .eq('id', editTopping.id);
@@ -349,8 +357,10 @@ const Toppings = () => {
           description: 'Topping updated successfully.',
         });
       } else {
+        // Add new topping
         const categoryName = categories.find(c => c.id === data.category_id)?.name || "";
         
+        // Get the max display_order for this category
         const maxOrderTopping = toppings
           .filter(t => t.category_id === data.category_id)
           .reduce((max, t) => Math.max(max, t.display_order || 0), 0);
@@ -364,7 +374,7 @@ const Toppings = () => {
             available: data.available,
             max_quantity: data.max_quantity,
             category: categoryName,
-            display_order: maxOrderTopping + 10
+            display_order: maxOrderTopping + 10 // Add with a gap of 10 for easier reordering later
           }]);
           
         if (error) {
@@ -392,6 +402,7 @@ const Toppings = () => {
   const onSubmitCategory = async (data: CategoryFormValues) => {
     try {
       if (editCategory) {
+        // Update existing category
         const { error } = await supabase
           .from('topping_categories')
           .update({
@@ -412,9 +423,11 @@ const Toppings = () => {
           description: 'Category updated successfully.',
         });
       } else {
+        // Get the max display_order for categories
         const maxOrderCategory = categories
           .reduce((max, c) => Math.max(max, c.display_order || 0), 0);
           
+        // Add new category
         const { error } = await supabase
           .from('topping_categories')
           .insert([{
@@ -423,7 +436,7 @@ const Toppings = () => {
             max_selection: data.max_selection,
             description: data.description || "",
             required: data.required,
-            display_order: maxOrderCategory + 10
+            display_order: maxOrderCategory + 10 // Add with a gap of 10 for easier reordering
           }]);
           
         if (error) {
@@ -454,21 +467,24 @@ const Toppings = () => {
       (direction === 'up' && categoryIndex === 0) || 
       (direction === 'down' && categoryIndex === categories.length - 1)
     ) {
-      return;
+      return; // Already at the end
     }
 
     const targetIndex = direction === 'up' ? categoryIndex - 1 : categoryIndex + 1;
     const targetCategory = categories[targetIndex];
     const currentCategory = categories[categoryIndex];
 
+    // Swap display orders
     const tempOrder = targetCategory.display_order || targetIndex * 10;
     
     try {
+      // Update the target category
       await supabase
         .from('topping_categories')
         .update({ display_order: currentCategory.display_order || categoryIndex * 10 })
         .eq('id', targetCategory.id);
         
+      // Update the current category
       await supabase
         .from('topping_categories')
         .update({ display_order: tempOrder })
@@ -491,6 +507,7 @@ const Toppings = () => {
   };
 
   const moveTopping = async (toppingId: number, direction: 'up' | 'down', categoryId: number) => {
+    // Get toppings within this category
     const categoryToppings = toppings
       .filter(t => t.category_id === categoryId)
       .sort((a, b) => (a.display_order || 0) - (b.display_order || 0));
@@ -501,21 +518,24 @@ const Toppings = () => {
       (direction === 'up' && toppingIndex === 0) || 
       (direction === 'down' && toppingIndex === categoryToppings.length - 1)
     ) {
-      return;
+      return; // Already at the end
     }
     
     const targetIndex = direction === 'up' ? toppingIndex - 1 : toppingIndex + 1;
     const targetTopping = categoryToppings[targetIndex];
     const currentTopping = categoryToppings[toppingIndex];
     
+    // Swap display orders
     const tempOrder = targetTopping.display_order || targetIndex * 10;
     
     try {
+      // Update the target topping
       await supabase
         .from('toppings')
         .update({ display_order: currentTopping.display_order || toppingIndex * 10 })
         .eq('id', targetTopping.id);
         
+      // Update the current topping
       await supabase
         .from('toppings')
         .update({ display_order: tempOrder })
@@ -556,105 +576,6 @@ const Toppings = () => {
     return orderA - orderB;
   });
 
-  const handleDragEnd = async (result: DropResult) => {
-    const { destination, source, draggableId, type } = result;
-    
-    if (!destination) return;
-    
-    if (
-      destination.droppableId === source.droppableId &&
-      destination.index === source.index
-    ) return;
-    
-    setIsDragging(true);
-    
-    try {
-      if (type === 'category') {
-        const categoryItems = [...sortedCategories];
-        const categoryId = parseInt(draggableId);
-        const movedCategory = categoryItems.find(c => c.id === categoryId);
-        
-        if (!movedCategory) {
-          setIsDragging(false);
-          return;
-        }
-        
-        const reorderedCategories = [...categoryItems];
-        reorderedCategories.splice(source.index, 1);
-        reorderedCategories.splice(destination.index, 0, movedCategory);
-        
-        const updatedCategories = reorderedCategories.map((category, index) => ({
-          ...category,
-          display_order: (index + 1) * 10
-        }));
-        
-        for (const category of updatedCategories) {
-          const { error } = await supabase
-            .from('topping_categories')
-            .update({ display_order: category.display_order })
-            .eq('id', category.id);
-            
-          if (error) throw error;
-        }
-        
-        toast({
-          title: 'Success',
-          description: 'Category order updated.',
-        });
-        
-        fetchToppingCategories();
-      } 
-      else if (type.startsWith('topping-')) {
-        const categoryId = parseInt(type.split('-')[1]);
-        const toppingId = parseInt(draggableId);
-        const categoryToppings = toppings
-          .filter(t => t.category_id === categoryId)
-          .sort((a, b) => (a.display_order || 0) - (b.display_order || 0));
-          
-        const movedTopping = categoryToppings.find(t => t.id === toppingId);
-        
-        if (!movedTopping) {
-          setIsDragging(false);
-          return;
-        }
-        
-        const reorderedToppings = [...categoryToppings];
-        reorderedToppings.splice(source.index, 1);
-        reorderedToppings.splice(destination.index, 0, movedTopping);
-        
-        const updatedToppings = reorderedToppings.map((topping, index) => ({
-          ...topping,
-          display_order: (index + 1) * 10
-        }));
-        
-        for (const topping of updatedToppings) {
-          const { error } = await supabase
-            .from('toppings')
-            .update({ display_order: topping.display_order })
-            .eq('id', topping.id);
-            
-          if (error) throw error;
-        }
-        
-        toast({
-          title: 'Success',
-          description: 'Topping order updated.',
-        });
-        
-        fetchToppings();
-      }
-    } catch (error) {
-      console.error('Error updating order:', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to update order. Please try again.',
-        variant: 'destructive',
-      });
-    } finally {
-      setIsDragging(false);
-    }
-  };
-
   return (
     <AdminLayout>
       <div className="space-y-6">
@@ -683,9 +604,7 @@ const Toppings = () => {
         {isReordering && (
           <Alert className="bg-amber-50 border-amber-200">
             <AlertDescription>
-              {isDragging 
-                ? "Saving new order..." 
-                : "You're in reordering mode. Drag and drop items to change their order, or use the arrow buttons."}
+              You're in reordering mode. Use the up and down arrows to change the order of categories and toppings.
             </AlertDescription>
           </Alert>
         )}
@@ -714,199 +633,61 @@ const Toppings = () => {
             </Button>
           </div>
         ) : (
-          <DragDropContext onDragEnd={handleDragEnd}>
-            {isReordering ? (
-              <Droppable droppableId="categories" type="category">
-                {(provided) => (
-                  <div 
-                    className="space-y-4" 
-                    ref={provided.innerRef}
-                    {...provided.droppableProps}
-                  >
-                    {sortedCategories.map((category, categoryIndex) => (
-                      <Draggable 
-                        key={category.id} 
-                        draggableId={category.id.toString()} 
-                        index={categoryIndex}
-                      >
-                        {(provided, snapshot) => (
-                          <div 
-                            ref={provided.innerRef}
-                            {...provided.draggableProps}
-                            className={`border rounded-md ${snapshot.isDragging ? 'opacity-70 bg-muted/50' : ''}`}
-                          >
-                            <div 
-                              className="flex justify-between items-center p-4 bg-muted/30"
-                            >
-                              <div className="flex items-center">
-                                <div {...provided.dragHandleProps}>
-                                  <GripVertical className="h-5 w-5 mr-2 text-muted-foreground cursor-grab" />
-                                </div>
-                                <div>
-                                  <h3 className="font-medium">{category.name}</h3>
-                                  <p className="text-sm text-muted-foreground">{category.description}</p>
-                                </div>
-                              </div>
-                              <div className="flex items-center space-x-2">
-                                <span className="text-sm text-muted-foreground">
-                                  {category.required ? "Required" : "Optional"} 
-                                  {` (${category.min_selection}-${category.max_selection} selections)`}
-                                </span>
-                                
-                                <div className="flex space-x-1">
-                                  <Button 
-                                    variant="ghost" 
-                                    size="sm" 
-                                    className="h-8 w-8 p-0"
-                                    onClick={() => moveCategory(category.id, 'up')}
-                                    disabled={categoryIndex === 0}
-                                  >
-                                    <MoveUp className="h-4 w-4" />
-                                  </Button>
-                                  <Button 
-                                    variant="ghost" 
-                                    size="sm" 
-                                    className="h-8 w-8 p-0"
-                                    onClick={() => moveCategory(category.id, 'down')}
-                                    disabled={categoryIndex === sortedCategories.length - 1}
-                                  >
-                                    <MoveDown className="h-4 w-4" />
-                                  </Button>
-                                </div>
-                              </div>
-                            </div>
-                            
-                            <div className="p-4 border-t">
-                              <Table>
-                                <TableHeader>
-                                  <TableRow>
-                                    <TableHead className="w-10"></TableHead>
-                                    <TableHead>Name</TableHead>
-                                    <TableHead>Price</TableHead>
-                                    <TableHead>Max Quantity</TableHead>
-                                    <TableHead>Status</TableHead>
-                                    <TableHead className="text-right">Actions</TableHead>
-                                  </TableRow>
-                                </TableHeader>
-                                <Droppable droppableId={`toppings-${category.id}`} type={`topping-${category.id}`}>
-                                  {(provided) => (
-                                    <TableBody
-                                      ref={provided.innerRef}
-                                      {...provided.droppableProps}
-                                      reorderable
-                                    >
-                                      {filteredToppings
-                                        .filter(topping => topping.category_id === category.id)
-                                        .sort((a, b) => (a.display_order || 0) - (b.display_order || 0))
-                                        .map((topping, toppingIndex, filteredCategoryToppings) => (
-                                          <Draggable
-                                            key={topping.id}
-                                            draggableId={topping.id.toString()}
-                                            index={toppingIndex}
-                                          >
-                                            {(provided, snapshot) => (
-                                              <TableRow 
-                                                ref={provided.innerRef}
-                                                {...provided.draggableProps}
-                                                isDragging={snapshot.isDragging}
-                                              >
-                                                <TableCell className="w-10">
-                                                  <div {...provided.dragHandleProps}>
-                                                    <GripVertical className="h-4 w-4 text-muted-foreground cursor-grab" />
-                                                  </div>
-                                                </TableCell>
-                                                <TableCell>{topping.name}</TableCell>
-                                                <TableCell>${topping.price.toFixed(2)}</TableCell>
-                                                <TableCell>{topping.max_quantity}</TableCell>
-                                                <TableCell>
-                                                  <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium ${topping.available ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}`}>
-                                                    {topping.available ? 'Available' : 'Unavailable'}
-                                                  </span>
-                                                </TableCell>
-                                                <TableCell className="text-right space-x-2">
-                                                  <div className="flex justify-end space-x-1">
-                                                    <Button 
-                                                      variant="ghost" 
-                                                      size="sm" 
-                                                      className="h-8 w-8 p-0"
-                                                      onClick={() => moveTopping(topping.id, 'up', category.id)}
-                                                      disabled={toppingIndex === 0}
-                                                    >
-                                                      <MoveUp className="h-4 w-4" />
-                                                    </Button>
-                                                    <Button 
-                                                      variant="ghost" 
-                                                      size="sm" 
-                                                      className="h-8 w-8 p-0"
-                                                      onClick={() => moveTopping(topping.id, 'down', category.id)}
-                                                      disabled={toppingIndex === filteredCategoryToppings.length - 1}
-                                                    >
-                                                      <MoveDown className="h-4 w-4" />
-                                                    </Button>
-                                                  </div>
-                                                </TableCell>
-                                              </TableRow>
-                                            )}
-                                          </Draggable>
-                                        ))}
-                                      {provided.placeholder}
-                                      {filteredToppings.filter(t => t.category_id === category.id).length === 0 && (
-                                        <TableRow>
-                                          <TableCell colSpan={6} className="text-center py-4 text-muted-foreground">
-                                            <p className="mb-2">No toppings in this category</p>
-                                            <Button variant="outline" size="sm" onClick={() => {
-                                              toppingForm.setValue('category_id', category.id);
-                                              handleAddTopping();
-                                            }}>
-                                              <Plus className="mr-2 h-4 w-4" />
-                                              Add Topping
-                                            </Button>
-                                          </TableCell>
-                                        </TableRow>
-                                      )}
-                                    </TableBody>
-                                  )}
-                                </Droppable>
-                              </Table>
-                            </div>
-                          </div>
-                        )}
-                      </Draggable>
-                    ))}
-                    {provided.placeholder}
-                    
-                    {filteredCategories.length === 0 && !isLoading && (
-                      <div className="text-center py-8 border rounded-md">
-                        <p className="text-muted-foreground">No matching categories or toppings found</p>
-                      </div>
+          <div className="space-y-4">
+            {sortedCategories.map((category, categoryIndex) => (
+              <div key={category.id} className={`border rounded-md ${draggedItem?.type === 'category' && draggedItem.id === category.id ? 'opacity-50 bg-muted' : ''}`}>
+                <div 
+                  className="flex justify-between items-center p-4 bg-muted/30 cursor-pointer"
+                  onClick={() => !isReordering && toggleCategoryExpansion(category.id)}
+                >
+                  <div className="flex items-center">
+                    {!isReordering ? (
+                      expandedCategories.includes(category.id) ? 
+                        <ChevronUp className="h-4 w-4 mr-2" /> : 
+                        <ChevronDown className="h-4 w-4 mr-2" />
+                    ) : (
+                      <GripVertical className="h-4 w-4 mr-2 text-muted-foreground" />
                     )}
+                    <div>
+                      <h3 className="font-medium">{category.name}</h3>
+                      <p className="text-sm text-muted-foreground">{category.description}</p>
+                    </div>
                   </div>
-                )}
-              </Droppable>
-            ) : (
-              <div className="space-y-4">
-                {sortedCategories.map((category, categoryIndex) => (
-                  <div key={category.id} className="border rounded-md">
-                    <div 
-                      className="flex justify-between items-center p-4 bg-muted/30 cursor-pointer"
-                      onClick={() => toggleCategoryExpansion(category.id)}
-                    >
-                      <div className="flex items-center">
-                        {expandedCategories.includes(category.id) ? 
-                          <ChevronUp className="h-4 w-4 mr-2" /> : 
-                          <ChevronDown className="h-4 w-4 mr-2" />
-                        }
-                        <div>
-                          <h3 className="font-medium">{category.name}</h3>
-                          <p className="text-sm text-muted-foreground">{category.description}</p>
-                        </div>
+                  <div className="flex items-center space-x-2">
+                    <span className="text-sm text-muted-foreground">
+                      {category.required ? "Required" : "Optional"} 
+                      {` (${category.min_selection}-${category.max_selection} selections)`}
+                    </span>
+                    
+                    {isReordering ? (
+                      <div className="flex space-x-1">
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          className="h-8 w-8 p-0"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            moveCategory(category.id, 'up');
+                          }}
+                          disabled={categoryIndex === 0}
+                        >
+                          <MoveUp className="h-4 w-4" />
+                        </Button>
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          className="h-8 w-8 p-0"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            moveCategory(category.id, 'down');
+                          }}
+                          disabled={categoryIndex === sortedCategories.length - 1}
+                        >
+                          <MoveDown className="h-4 w-4" />
+                        </Button>
                       </div>
-                      <div className="flex items-center space-x-2">
-                        <span className="text-sm text-muted-foreground">
-                          {category.required ? "Required" : "Optional"} 
-                          {` (${category.min_selection}-${category.max_selection} selections)`}
-                        </span>
-                        
+                    ) : (
+                      <>
                         <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={(e) => {
                           e.stopPropagation();
                           handleEditCategory(category);
@@ -924,36 +705,70 @@ const Toppings = () => {
                         >
                           <Trash className="h-4 w-4" />
                         </Button>
-                      </div>
-                    </div>
-                    
-                    {expandedCategories.includes(category.id) && (
-                      <div className="p-4 border-t">
-                        <Table>
-                          <TableHeader>
-                            <TableRow>
-                              <TableHead>Name</TableHead>
-                              <TableHead>Price</TableHead>
-                              <TableHead>Max Quantity</TableHead>
-                              <TableHead>Status</TableHead>
-                              <TableHead className="text-right">Actions</TableHead>
-                            </TableRow>
-                          </TableHeader>
-                          <TableBody>
-                            {filteredToppings
-                              .filter(topping => topping.category_id === category.id)
-                              .sort((a, b) => (a.display_order || 0) - (b.display_order || 0))
-                              .map((topping) => (
-                                <TableRow key={topping.id}>
-                                  <TableCell>{topping.name}</TableCell>
-                                  <TableCell>${topping.price.toFixed(2)}</TableCell>
-                                  <TableCell>{topping.max_quantity}</TableCell>
-                                  <TableCell>
-                                    <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium ${topping.available ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}`}>
-                                      {topping.available ? 'Available' : 'Unavailable'}
-                                    </span>
-                                  </TableCell>
-                                  <TableCell className="text-right space-x-2">
+                      </>
+                    )}
+                  </div>
+                </div>
+                
+                {(expandedCategories.includes(category.id) || isReordering) && (
+                  <div className="p-4 border-t">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          {isReordering && <TableHead className="w-10"></TableHead>}
+                          <TableHead>Name</TableHead>
+                          <TableHead>Price</TableHead>
+                          <TableHead>Max Quantity</TableHead>
+                          <TableHead>Status</TableHead>
+                          <TableHead className="text-right">Actions</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody reorderable={isReordering}>
+                        {filteredToppings
+                          .filter(topping => topping.category_id === category.id)
+                          .sort((a, b) => (a.display_order || 0) - (b.display_order || 0))
+                          .map((topping, toppingIndex, filteredCategoryToppings) => (
+                            <TableRow 
+                              key={topping.id}
+                              isDragging={draggedItem?.type === 'topping' && draggedItem.id === topping.id}
+                            >
+                              {isReordering && (
+                                <TableCell className="w-10">
+                                  <GripVertical className="h-4 w-4 text-muted-foreground" />
+                                </TableCell>
+                              )}
+                              <TableCell>{topping.name}</TableCell>
+                              <TableCell>${topping.price.toFixed(2)}</TableCell>
+                              <TableCell>{topping.max_quantity}</TableCell>
+                              <TableCell>
+                                <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium ${topping.available ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}`}>
+                                  {topping.available ? 'Available' : 'Unavailable'}
+                                </span>
+                              </TableCell>
+                              <TableCell className="text-right space-x-2">
+                                {isReordering ? (
+                                  <div className="flex justify-end space-x-1">
+                                    <Button 
+                                      variant="ghost" 
+                                      size="sm" 
+                                      className="h-8 w-8 p-0"
+                                      onClick={() => moveTopping(topping.id, 'up', category.id)}
+                                      disabled={toppingIndex === 0}
+                                    >
+                                      <MoveUp className="h-4 w-4" />
+                                    </Button>
+                                    <Button 
+                                      variant="ghost" 
+                                      size="sm" 
+                                      className="h-8 w-8 p-0"
+                                      onClick={() => moveTopping(topping.id, 'down', category.id)}
+                                      disabled={toppingIndex === filteredCategoryToppings.length - 1}
+                                    >
+                                      <MoveDown className="h-4 w-4" />
+                                    </Button>
+                                  </div>
+                                ) : (
+                                  <>
                                     <Button variant="outline" size="sm" className="h-8 w-8 p-0" onClick={() => handleEditTopping(topping)}>
                                       <Edit className="h-4 w-4" />
                                     </Button>
@@ -965,41 +780,42 @@ const Toppings = () => {
                                     >
                                       <Trash className="h-4 w-4" />
                                     </Button>
-                                  </TableCell>
-                                </TableRow>
-                              ))}
-                            {filteredToppings.filter(t => t.category_id === category.id).length === 0 && (
-                              <TableRow>
-                                <TableCell colSpan={5} className="text-center py-4 text-muted-foreground">
-                                  <p className="mb-2">No toppings in this category</p>
-                                  <Button variant="outline" size="sm" onClick={() => {
-                                    toppingForm.setValue('category_id', category.id);
-                                    handleAddTopping();
-                                  }}>
-                                    <Plus className="mr-2 h-4 w-4" />
-                                    Add Topping
-                                  </Button>
-                                </TableCell>
-                              </TableRow>
-                            )}
-                          </TableBody>
-                        </Table>
-                      </div>
-                    )}
-                  </div>
-                ))}
-                
-                {filteredCategories.length === 0 && !isLoading && (
-                  <div className="text-center py-8 border rounded-md">
-                    <p className="text-muted-foreground">No matching categories or toppings found</p>
+                                  </>
+                                )}
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        {filteredToppings.filter(t => t.category_id === category.id).length === 0 && (
+                          <TableRow>
+                            <TableCell colSpan={isReordering ? 6 : 5} className="text-center py-4 text-muted-foreground">
+                              <p className="mb-2">No toppings in this category</p>
+                              <Button variant="outline" size="sm" onClick={() => {
+                                toppingForm.setValue('category_id', category.id);
+                                handleAddTopping();
+                              }}>
+                                <Plus className="mr-2 h-4 w-4" />
+                                Add Topping
+                              </Button>
+                            </TableCell>
+                          </TableRow>
+                        )}
+                      </TableBody>
+                    </Table>
                   </div>
                 )}
               </div>
+            ))}
+            
+            {filteredCategories.length === 0 && !isLoading && (
+              <div className="text-center py-8 border rounded-md">
+                <p className="text-muted-foreground">No matching categories or toppings found</p>
+              </div>
             )}
-          </DragDropContext>
+          </div>
         )}
       </div>
 
+      {/* Topping Dialog */}
       <Dialog open={isAddToppingDialogOpen} onOpenChange={setIsAddToppingDialogOpen}>
         <DialogContent>
           <DialogHeader>
@@ -1110,6 +926,7 @@ const Toppings = () => {
         </DialogContent>
       </Dialog>
 
+      {/* Category Dialog */}
       <Dialog open={isAddCategoryDialogOpen} onOpenChange={setIsAddCategoryDialogOpen}>
         <DialogContent>
           <DialogHeader>
