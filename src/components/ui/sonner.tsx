@@ -4,18 +4,7 @@ import { Toaster as Sonner } from "sonner"
 type ToasterProps = React.ComponentProps<typeof Sonner>
 
 const Toaster = ({ ...props }: ToasterProps) => {
-  // Safely access theme context with fallback
-  let theme = "system";
-  
-  try {
-    const themeContext = useTheme();
-    if (themeContext && themeContext.theme) {
-      theme = themeContext.theme;
-    }
-  } catch (error) {
-    console.error('Error accessing theme context:', error);
-    // Keep default theme as system
-  }
+  const { theme = "system" } = useTheme()
 
   return (
     <Sonner

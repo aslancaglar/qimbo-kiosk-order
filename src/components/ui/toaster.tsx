@@ -10,18 +10,8 @@ import {
 } from "@/components/ui/toast"
 
 export function Toaster() {
-  // Safely access the toast context
-  let toasts = [];
-  
-  try {
-    const { toasts: toastArray } = useToast();
-    toasts = toastArray || [];
-  } catch (error) {
-    console.error('Error accessing toast context:', error);
-    // Provide fallback empty array if toast context is not available
-    toasts = [];
-  }
-  
+  const { toasts } = useToast()
+
   return (
     <ToastProvider>
       {toasts.map(function ({ id, title, description, action, ...props }) {
