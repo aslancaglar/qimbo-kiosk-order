@@ -1,10 +1,8 @@
-
-// PrintBiz integration for PrintNode API
+// This file is kept as a placeholder to avoid breaking imports but functionality is removed.
+// The PrintBiz integration has been removed from the application.
 
 export interface PrintBizConfig {
   enabled: boolean;
-  apiKey?: string;
-  defaultPrinterId?: string;
 }
 
 export interface PrintJob {
@@ -15,128 +13,26 @@ export interface PrintJob {
   metadata?: Record<string, any>;
 }
 
-// Sends a print job to PrintNode
-export const sendPrintJob = async (job: PrintJob): Promise<boolean> => {
-  try {
-    const config = getPrintBizConfig();
-    
-    if (!config.enabled || !config.apiKey) {
-      console.warn('PrintBiz is not enabled or missing API key');
-      return false;
-    }
-    
-    const printerId = job.printer_id || config.defaultPrinterId;
-    
-    if (!printerId) {
-      console.error('No printer ID specified for print job');
-      return false;
-    }
-    
-    console.log(`Sending print job to printer ${printerId}`);
-    
-    const response = await fetch('https://api.printnode.com/printjobs', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Basic ${btoa(config.apiKey + ':')}`
-      },
-      body: JSON.stringify({
-        printerId: parseInt(printerId, 10),
-        title: `Order Receipt ${job.metadata?.orderNumber || ''}`,
-        contentType: 'pdf_base64',
-        content: job.content,
-        source: 'POS System',
-        options: {
-          copies: job.copies || 1
-        }
-      })
-    });
-    
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('PrintNode API error:', response.status, errorText);
-      return false;
-    }
-    
-    const result = await response.json();
-    console.log('Print job sent successfully:', result);
-    return true;
-  } catch (error) {
-    console.error('Error sending print job:', error);
-    return false;
-  }
+/**
+ * This function is a placeholder. PrintBiz integration has been removed.
+ */
+export const sendPrintJob = async (): Promise<boolean> => {
+  console.log('PrintBiz integration has been removed');
+  return false;
 };
 
-// Get printers from PrintNode
+/**
+ * This function is a placeholder. PrintBiz integration has been removed.
+ */
 export const fetchPrinters = async (): Promise<any[]> => {
-  try {
-    const config = getPrintBizConfig();
-    
-    if (!config.enabled || !config.apiKey) {
-      console.warn('PrintBiz is not enabled or missing API key');
-      return [];
-    }
-    
-    const response = await fetch('https://api.printnode.com/printers', {
-      headers: {
-        'Authorization': `Basic ${btoa(config.apiKey + ':')}`
-      }
-    });
-    
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('PrintNode API error:', response.status, errorText);
-      return [];
-    }
-    
-    const printers = await response.json();
-    return printers;
-  } catch (error) {
-    console.error('Error fetching printers:', error);
-    return [];
-  }
+  console.log('PrintBiz integration has been removed');
+  return [];
 };
 
-// Test PrintNode connection
+/**
+ * This function is a placeholder. PrintBiz integration has been removed.
+ */
 export const testConnection = async (): Promise<boolean> => {
-  try {
-    const config = getPrintBizConfig();
-    
-    if (!config.enabled || !config.apiKey) {
-      console.warn('PrintBiz is not enabled or missing API key');
-      return false;
-    }
-    
-    const response = await fetch('https://api.printnode.com/whoami', {
-      headers: {
-        'Authorization': `Basic ${btoa(config.apiKey + ':')}`
-      }
-    });
-    
-    return response.ok;
-  } catch (error) {
-    console.error('Error testing PrintNode connection:', error);
-    return false;
-  }
-};
-
-// Get config from localStorage
-const getPrintBizConfig = (): PrintBizConfig => {
-  const configStr = localStorage.getItem('printBizConfig');
-  
-  if (!configStr) {
-    return { enabled: false };
-  }
-  
-  try {
-    return JSON.parse(configStr);
-  } catch (error) {
-    console.error('Error parsing PrintBiz config:', error);
-    return { enabled: false };
-  }
-};
-
-// Save config to localStorage
-export const savePrintBizConfig = (config: PrintBizConfig): void => {
-  localStorage.setItem('printBizConfig', JSON.stringify(config));
+  console.log('PrintBiz integration has been removed');
+  return false;
 };
