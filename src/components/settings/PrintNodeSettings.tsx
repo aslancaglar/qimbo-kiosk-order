@@ -13,6 +13,7 @@ import { getPrintNodeConfig, savePrintNodeConfig, testPrintNodeConnection, fetch
 interface PrintNodeSettingsProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  embedded?: boolean;
 }
 
 interface Printer {
@@ -23,7 +24,8 @@ interface Printer {
 
 const PrintNodeSettings: React.FC<PrintNodeSettingsProps> = ({ 
   open, 
-  onOpenChange 
+  onOpenChange,
+  embedded = false
 }) => {
   const [apiKey, setApiKey] = useState("");
   const [enabled, setEnabled] = useState(false);
@@ -34,7 +36,7 @@ const PrintNodeSettings: React.FC<PrintNodeSettingsProps> = ({
 
   // Load saved configuration on mount
   useEffect(() => {
-    if (open) {
+    if (open || embedded) {
       const config = getPrintNodeConfig();
       setApiKey(config.apiKey || "");
       setEnabled(config.enabled || false);
@@ -45,7 +47,7 @@ const PrintNodeSettings: React.FC<PrintNodeSettingsProps> = ({
         loadPrinters();
       }
     }
-  }, [open]);
+  }, [open, embedded]);
 
   const loadPrinters = async () => {
     if (!apiKey) return;
@@ -123,8 +125,99 @@ const PrintNodeSettings: React.FC<PrintNodeSettingsProps> = ({
       description: "PrintNode settings have been saved.",
     });
     
-    onOpenChange(false);
+    if (!embedded) {
+      onOpenChange(false);
+    }
   };
+
+  const renderSettingsContent = () => (
+    <div className="grid gap-4 py-4">
+      <div className="flex items-center justify-between">
+        <Label htmlFor="print-enabled" className="text-right">
+          Enable automatic printing
+        </Label>
+        <Switch 
+          id="print-enabled" 
+          checked={enabled} 
+          onCheckedChange={setEnabled} 
+        />
+      </div>
+      
+      <div className="grid grid-cols-4 items-center gap-4">
+        <Label htmlFor="api-key" className="text-right col-span-1">
+          API Key
+        </Label>
+        <div className="col-span-3 flex gap-2">
+          <Input
+            id="api-key"
+            type="password"
+            value={apiKey}
+            onChange={(e) => setApiKey(e.target.value)}
+            placeholder="Your PrintNode API key"
+            className="flex-1"
+          />
+          <Button 
+            type="button" 
+            size="sm" 
+            variant="outline"
+            onClick={handleTestConnection}
+            disabled={!apiKey || testStatus === "loading"}
+          >
+            {testStatus === "loading" && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            {testStatus === "success" && <Check className="mr-2 h-4 w-4 text-green-500" />}
+            {testStatus === "error" && <X className="mr-2 h-4 w-4 text-red-500" />}
+            Test
+          </Button>
+        </div>
+      </div>
+      
+      <div className="grid grid-cols-4 items-center gap-4">
+        <Label htmlFor="printer-select" className="text-right col-span-1">
+          Printer
+        </Label>
+        <div className="col-span-3">
+          <Select 
+            value={selectedPrinterId?.toString()} 
+            onValueChange={(value) => setSelectedPrinterId(Number(value))}
+            disabled={printers.length === 0}
+          >
+            <SelectTrigger id="printer-select">
+              <SelectValue placeholder="Select a printer" />
+            </SelectTrigger>
+            <SelectContent>
+              {printers.map((printer) => (
+                <SelectItem key={printer.id} value={printer.id.toString()}>
+                  {printer.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          {printers.length === 0 && (
+            <p className="text-sm text-gray-500 mt-1">
+              {isLoading ? "Loading printers..." : "No printers available. Check your API key."}
+            </p>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+
+  if (embedded) {
+    return (
+      <>
+        {renderSettingsContent()}
+        <div className="flex justify-end mt-4">
+          <Button 
+            type="button" 
+            onClick={handleSave}
+            disabled={!apiKey || (enabled && !selectedPrinterId)}
+          >
+            Save Changes
+          </Button>
+        </div>
+      </>
+    );
+  }
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -133,75 +226,7 @@ const PrintNodeSettings: React.FC<PrintNodeSettingsProps> = ({
           <DialogTitle>PrintNode Settings</DialogTitle>
         </DialogHeader>
         
-        <div className="grid gap-4 py-4">
-          <div className="flex items-center justify-between">
-            <Label htmlFor="print-enabled" className="text-right">
-              Enable automatic printing
-            </Label>
-            <Switch 
-              id="print-enabled" 
-              checked={enabled} 
-              onCheckedChange={setEnabled} 
-            />
-          </div>
-          
-          <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="api-key" className="text-right col-span-1">
-              API Key
-            </Label>
-            <div className="col-span-3 flex gap-2">
-              <Input
-                id="api-key"
-                type="password"
-                value={apiKey}
-                onChange={(e) => setApiKey(e.target.value)}
-                placeholder="Your PrintNode API key"
-                className="flex-1"
-              />
-              <Button 
-                type="button" 
-                size="sm" 
-                variant="outline"
-                onClick={handleTestConnection}
-                disabled={!apiKey || testStatus === "loading"}
-              >
-                {testStatus === "loading" && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                {testStatus === "success" && <Check className="mr-2 h-4 w-4 text-green-500" />}
-                {testStatus === "error" && <X className="mr-2 h-4 w-4 text-red-500" />}
-                Test
-              </Button>
-            </div>
-          </div>
-          
-          <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="printer-select" className="text-right col-span-1">
-              Printer
-            </Label>
-            <div className="col-span-3">
-              <Select 
-                value={selectedPrinterId?.toString()} 
-                onValueChange={(value) => setSelectedPrinterId(Number(value))}
-                disabled={printers.length === 0}
-              >
-                <SelectTrigger id="printer-select">
-                  <SelectValue placeholder="Select a printer" />
-                </SelectTrigger>
-                <SelectContent>
-                  {printers.map((printer) => (
-                    <SelectItem key={printer.id} value={printer.id.toString()}>
-                      {printer.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              {printers.length === 0 && (
-                <p className="text-sm text-gray-500 mt-1">
-                  {isLoading ? "Loading printers..." : "No printers available. Check your API key."}
-                </p>
-              )}
-            </div>
-          </div>
-        </div>
+        {renderSettingsContent()}
         
         <DialogFooter>
           <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
