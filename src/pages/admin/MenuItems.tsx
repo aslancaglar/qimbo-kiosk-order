@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import AdminLayout from '../../components/admin/AdminLayout';
 import { Input } from "@/components/ui/input";
@@ -587,7 +586,7 @@ const MenuItems = () => {
       </div>
       
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="max-w-4xl">
+        <DialogContent className="max-w-4xl" enableScrollArea={true}>
           <DialogHeader>
             <DialogTitle>{editItem ? 'Edit Menu Item' : 'Add New Menu Item'}</DialogTitle>
             <DialogDescription>
@@ -595,281 +594,279 @@ const MenuItems = () => {
             </DialogDescription>
           </DialogHeader>
           
-          <ScrollArea className="max-h-[70vh]">
-            <div className="p-1">
-              <Form {...form}>
-                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-                  <div className="space-y-4 mb-6">
-                    <h3 className="font-medium">Item Image</h3>
+          <div className="p-1">
+            <Form {...form}>
+              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                <div className="space-y-4 mb-6">
+                  <h3 className="font-medium">Item Image</h3>
+                  
+                  <div className="flex items-start space-x-4">
+                    <div className="flex-shrink-0">
+                      {imagePreview ? (
+                        <div className="relative h-28 w-28 rounded-md overflow-hidden border">
+                          <img 
+                            src={imagePreview} 
+                            alt="Preview" 
+                            className="h-full w-full object-cover"
+                          />
+                          <button 
+                            type="button"
+                            onClick={handleRemoveImage}
+                            className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 hover:bg-red-600"
+                          >
+                            <X className="h-4 w-4" />
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="h-28 w-28 border-2 border-dashed border-gray-300 rounded-md flex flex-col items-center justify-center bg-gray-50">
+                          <Image className="h-8 w-8 text-gray-400 mb-1" />
+                          <span className="text-xs text-gray-500">No image</span>
+                        </div>
+                      )}
+                    </div>
                     
-                    <div className="flex items-start space-x-4">
-                      <div className="flex-shrink-0">
-                        {imagePreview ? (
-                          <div className="relative h-28 w-28 rounded-md overflow-hidden border">
-                            <img 
-                              src={imagePreview} 
-                              alt="Preview" 
-                              className="h-full w-full object-cover"
-                            />
-                            <button 
-                              type="button"
-                              onClick={handleRemoveImage}
-                              className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 hover:bg-red-600"
-                            >
-                              <X className="h-4 w-4" />
-                            </button>
-                          </div>
-                        ) : (
-                          <div className="h-28 w-28 border-2 border-dashed border-gray-300 rounded-md flex flex-col items-center justify-center bg-gray-50">
-                            <Image className="h-8 w-8 text-gray-400 mb-1" />
-                            <span className="text-xs text-gray-500">No image</span>
-                          </div>
-                        )}
-                      </div>
-                      
-                      <div className="flex-1 space-y-2">
-                        <p className="text-sm text-gray-500">
-                          Upload an image for this menu item. JPEG, PNG, GIF, or WebP files only. Max size 5MB.
-                        </p>
-                        <div className="flex flex-col space-y-2">
-                          <label htmlFor="image-upload" className="sr-only">Choose file</label>
-                          <input
-                            id="image-upload"
-                            name="image"
-                            type="file"
-                            accept="image/jpeg, image/png, image/gif, image/webp"
-                            onChange={handleImageChange}
-                            ref={fileInputRef}
-                            className="block w-full text-sm text-gray-500
+                    <div className="flex-1 space-y-2">
+                      <p className="text-sm text-gray-500">
+                        Upload an image for this menu item. JPEG, PNG, GIF, or WebP files only. Max size 5MB.
+                      </p>
+                      <div className="flex flex-col space-y-2">
+                        <label htmlFor="image-upload" className="sr-only">Choose file</label>
+                        <input
+                          id="image-upload"
+                          name="image"
+                          type="file"
+                          accept="image/jpeg, image/png, image/gif, image/webp"
+                          onChange={handleImageChange}
+                          ref={fileInputRef}
+                          className="block w-full text-sm text-gray-500
                                      file:mr-4 file:py-2 file:px-4
                                      file:rounded-md file:border-0
                                      file:text-sm file:font-medium
                                      file:bg-primary file:text-white
                                      hover:file:bg-primary/90
                                      file:cursor-pointer"
-                          />
-                          {imagePreview && !imageFile && (
-                            <p className="text-xs text-gray-500">
-                              * The existing image will be kept unless you upload a new one or remove it.
-                            </p>
-                          )}
-                        </div>
+                        />
+                        {imagePreview && !imageFile && (
+                          <p className="text-xs text-gray-500">
+                            * The existing image will be kept unless you upload a new one or remove it.
+                          </p>
+                        )}
                       </div>
                     </div>
                   </div>
-                  
-                  <FormField
-                    control={form.control}
-                    name="name"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Name</FormLabel>
-                        <FormControl>
-                          <Input placeholder="Item name" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  
-                  <FormField
-                    control={form.control}
-                    name="description"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Description</FormLabel>
-                        <FormControl>
-                          <Textarea 
-                            placeholder="Enter a description of this menu item..." 
-                            className="resize-none min-h-[100px]" 
-                            {...field} 
-                          />
-                        </FormControl>
+                </div>
+                
+                <FormField
+                  control={form.control}
+                  name="name"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Name</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Item name" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={form.control}
+                  name="description"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Description</FormLabel>
+                      <FormControl>
+                        <Textarea 
+                          placeholder="Enter a description of this menu item..." 
+                          className="resize-none min-h-[100px]" 
+                          {...field} 
+                        />
+                      </FormControl>
+                      <FormDescription>
+                        Provide a brief description of the item, including key ingredients or flavors.
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={form.control}
+                  name="category"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Category</FormLabel>
+                      <FormControl>
+                        <Input placeholder="e.g., Burgers, Salads" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={form.control}
+                  name="price"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Price</FormLabel>
+                      <FormControl>
+                        <Input placeholder="e.g., 10.99" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={form.control}
+                  name="status"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Status</FormLabel>
+                      <div className="flex gap-4">
+                        <FormItem className="flex items-center space-x-2">
+                          <FormControl>
+                            <input
+                              type="radio"
+                              value="Active"
+                              checked={field.value === "Active"}
+                              onChange={() => field.onChange("Active")}
+                              className="text-primary"
+                            />
+                          </FormControl>
+                          <FormLabel className="font-normal cursor-pointer">Active</FormLabel>
+                        </FormItem>
+                        <FormItem className="flex items-center space-x-2">
+                          <FormControl>
+                            <input
+                              type="radio"
+                              value="Inactive"
+                              checked={field.value === "Inactive"}
+                              onChange={() => field.onChange("Inactive")}
+                              className="text-primary"
+                            />
+                          </FormControl>
+                          <FormLabel className="font-normal cursor-pointer">Inactive</FormLabel>
+                        </FormItem>
+                      </div>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={form.control}
+                  name="hasToppings"
+                  render={({ field }) => (
+                    <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
+                      <FormControl>
+                        <Checkbox
+                          checked={field.value}
+                          onCheckedChange={field.onChange}
+                        />
+                      </FormControl>
+                      <div className="space-y-1 leading-none">
+                        <FormLabel>Allow Toppings</FormLabel>
                         <FormDescription>
-                          Provide a brief description of the item, including key ingredients or flavors.
+                          Enable this to allow customers to add toppings to this item
                         </FormDescription>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  
+                      </div>
+                    </FormItem>
+                  )}
+                />
+                
+                {form.watch("hasToppings") && (
                   <FormField
                     control={form.control}
-                    name="category"
-                    render={({ field }) => (
+                    name="availableToppingCategories"
+                    render={() => (
                       <FormItem>
-                        <FormLabel>Category</FormLabel>
-                        <FormControl>
-                          <Input placeholder="e.g., Burgers, Salads" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  
-                  <FormField
-                    control={form.control}
-                    name="price"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Price</FormLabel>
-                        <FormControl>
-                          <Input placeholder="e.g., 10.99" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  
-                  <FormField
-                    control={form.control}
-                    name="status"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Status</FormLabel>
-                        <div className="flex gap-4">
-                          <FormItem className="flex items-center space-x-2">
-                            <FormControl>
-                              <input
-                                type="radio"
-                                value="Active"
-                                checked={field.value === "Active"}
-                                onChange={() => field.onChange("Active")}
-                                className="text-primary"
-                              />
-                            </FormControl>
-                            <FormLabel className="font-normal cursor-pointer">Active</FormLabel>
-                          </FormItem>
-                          <FormItem className="flex items-center space-x-2">
-                            <FormControl>
-                              <input
-                                type="radio"
-                                value="Inactive"
-                                checked={field.value === "Inactive"}
-                                onChange={() => field.onChange("Inactive")}
-                                className="text-primary"
-                              />
-                            </FormControl>
-                            <FormLabel className="font-normal cursor-pointer">Inactive</FormLabel>
-                          </FormItem>
-                        </div>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  
-                  <FormField
-                    control={form.control}
-                    name="hasToppings"
-                    render={({ field }) => (
-                      <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
-                        <FormControl>
-                          <Checkbox
-                            checked={field.value}
-                            onCheckedChange={field.onChange}
-                          />
-                        </FormControl>
-                        <div className="space-y-1 leading-none">
-                          <FormLabel>Allow Toppings</FormLabel>
+                        <div className="mb-4">
+                          <FormLabel className="text-base">Available Topping Categories</FormLabel>
                           <FormDescription>
-                            Enable this to allow customers to add toppings to this item
+                            Select which topping categories can be added to this item
                           </FormDescription>
                         </div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          {toppingCategories.length > 0 ? (
+                            toppingCategories.map((category) => (
+                              <FormField
+                                key={category.id}
+                                control={form.control}
+                                name="availableToppingCategories"
+                                render={({ field }) => {
+                                  return (
+                                    <FormItem
+                                      key={category.id}
+                                      className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-3"
+                                    >
+                                      <FormControl>
+                                        <Checkbox
+                                          checked={field.value?.includes(category.id)}
+                                          onCheckedChange={(checked) => {
+                                            const current = Array.isArray(field.value) ? field.value : []
+                                            return checked
+                                              ? field.onChange([...current, category.id])
+                                              : field.onChange(
+                                                  current.filter((value) => value !== category.id)
+                                                )
+                                          }}
+                                        />
+                                      </FormControl>
+                                      <div className="space-y-1 leading-none">
+                                        <FormLabel className="font-medium">
+                                          {category.name}
+                                        </FormLabel>
+                                        <FormDescription>
+                                          {category.description}
+                                          {category.required && (
+                                            <span className="text-red-500 ml-1 font-medium">
+                                              (Required)
+                                            </span>
+                                          )}
+                                        </FormDescription>
+                                        <FormDescription>
+                                          Min: {category.minSelection} / Max: {category.maxSelection} selections
+                                        </FormDescription>
+                                      </div>
+                                    </FormItem>
+                                  )
+                                }}
+                              />
+                            ))
+                          ) : (
+                            <div className="col-span-2 text-center p-4 border border-dashed rounded-md">
+                              <p className="text-gray-500">No topping categories available. You need to create topping categories first.</p>
+                            </div>
+                          )}
+                        </div>
+                        <FormMessage />
                       </FormItem>
                     )}
                   />
-                  
-                  {form.watch("hasToppings") && (
-                    <FormField
-                      control={form.control}
-                      name="availableToppingCategories"
-                      render={() => (
-                        <FormItem>
-                          <div className="mb-4">
-                            <FormLabel className="text-base">Available Topping Categories</FormLabel>
-                            <FormDescription>
-                              Select which topping categories can be added to this item
-                            </FormDescription>
-                          </div>
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            {toppingCategories.length > 0 ? (
-                              toppingCategories.map((category) => (
-                                <FormField
-                                  key={category.id}
-                                  control={form.control}
-                                  name="availableToppingCategories"
-                                  render={({ field }) => {
-                                    return (
-                                      <FormItem
-                                        key={category.id}
-                                        className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-3"
-                                      >
-                                        <FormControl>
-                                          <Checkbox
-                                            checked={field.value?.includes(category.id)}
-                                            onCheckedChange={(checked) => {
-                                              const current = Array.isArray(field.value) ? field.value : []
-                                              return checked
-                                                ? field.onChange([...current, category.id])
-                                                : field.onChange(
-                                                    current.filter((value) => value !== category.id)
-                                                  )
-                                            }}
-                                          />
-                                        </FormControl>
-                                        <div className="space-y-1 leading-none">
-                                          <FormLabel className="font-medium">
-                                            {category.name}
-                                          </FormLabel>
-                                          <FormDescription>
-                                            {category.description}
-                                            {category.required && (
-                                              <span className="text-red-500 ml-1 font-medium">
-                                                (Required)
-                                              </span>
-                                            )}
-                                          </FormDescription>
-                                          <FormDescription>
-                                            Min: {category.minSelection} / Max: {category.maxSelection} selections
-                                          </FormDescription>
-                                        </div>
-                                      </FormItem>
-                                    )
-                                  }}
-                                />
-                              ))
-                            ) : (
-                              <div className="col-span-2 text-center p-4 border border-dashed rounded-md">
-                                <p className="text-gray-500">No topping categories available. You need to create topping categories first.</p>
-                              </div>
-                            )}
-                          </div>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  )}
-                  
-                  <DialogFooter>
-                    <DialogClose asChild>
-                      <Button variant="outline" type="button">Cancel</Button>
-                    </DialogClose>
-                    <Button 
-                      type="submit"
-                      disabled={isUploading}
-                    >
-                      {isUploading && (
-                        <span className="mr-2">
-                          <span className="animate-spin inline-block h-4 w-4 border-2 border-current border-t-transparent rounded-full" aria-hidden="true"></span>
-                        </span>
-                      )}
-                      {editItem ? 'Update' : 'Add'} Menu Item
-                    </Button>
-                  </DialogFooter>
-                </form>
-              </Form>
-            </div>
-          </ScrollArea>
+                )}
+                
+                <DialogFooter>
+                  <DialogClose asChild>
+                    <Button variant="outline" type="button">Cancel</Button>
+                  </DialogClose>
+                  <Button 
+                    type="submit"
+                    disabled={isUploading}
+                  >
+                    {isUploading && (
+                      <span className="mr-2">
+                        <span className="animate-spin inline-block h-4 w-4 border-2 border-current border-t-transparent rounded-full" aria-hidden="true"></span>
+                      </span>
+                    )}
+                    {editItem ? 'Update' : 'Add'} Menu Item
+                  </Button>
+                </DialogFooter>
+              </form>
+            </Form>
+          </div>
         </DialogContent>
       </Dialog>
     </AdminLayout>
