@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
@@ -6,13 +7,14 @@ import { useLanguage } from '@/context/LanguageContext';
 import AdminLayout from '@/components/admin/AdminLayout';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Switch } from "@/components/ui/switch"
-import { Textarea } from "@/components/ui/textarea"
+import { Switch } from "@/components/ui/switch";
+import { Textarea } from "@/components/ui/textarea";
+import { Button } from "@/components/ui/button"; // Import Button from shadcn/ui
 
 interface RestaurantInfo {
-  id: string;
+  id: number;
   name: string;
-  phone_number: string;
+  phone: string; // Changed from phone_number to phone to match DB schema
   address: string;
   description: string;
 }
@@ -52,9 +54,9 @@ const Settings: React.FC = () => {
   const [isSavingSettings, setIsSavingSettings] = useState(false);
 
   // Fetch restaurant information
-  const { isLoading: isLoadingRestaurantInfo, error: errorRestaurantInfo } = useQuery(
-    'restaurantInfo',
-    async () => {
+  const { isLoading: isLoadingRestaurantInfo, error: errorRestaurantInfo } = useQuery({
+    queryKey: ['restaurantInfo'],
+    queryFn: async () => {
       const { data, error } = await supabase
         .from('restaurant_info')
         .select('*')
@@ -73,19 +75,19 @@ const Settings: React.FC = () => {
       setRestaurantInfo({
         id: data.id,
         name: data.name,
-        phone_number: data.phone_number,
+        phone: data.phone, // Changed from phone_number to phone
         address: data.address,
         description: data.description,
       });
 
       return data;
     },
-    {
+    meta: {
       onError: () => {
         toast.error(`${t.toast.failedToLoad} ${t.settings.restaurantInfo}`);
       },
     }
-  );
+  });
 
   // Fetch business hours
   useEffect(() => {
@@ -103,7 +105,8 @@ const Settings: React.FC = () => {
         }
 
         if (data && data.value) {
-          setBusinessHours(data.value as BusinessHours);
+          // Need to explicitly cast the JSON value to BusinessHours
+          setBusinessHours(data.value as unknown as BusinessHours);
         }
       } catch (error) {
         console.error('Unexpected error fetching business hours:', error);
@@ -145,15 +148,20 @@ const Settings: React.FC = () => {
   }, []);
 
   // Mutations for updating data
-  const updateRestaurantInfoMutation = useMutation(
-    async (updates: Partial<RestaurantInfo>) => {
+  const updateRestaurantInfoMutation = useMutation({
+    mutationFn: async (updates: Partial<RestaurantInfo>) => {
       if (!restaurantInfo?.id) {
         throw new Error('Restaurant info ID is missing');
       }
 
       const { data, error } = await supabase
         .from('restaurant_info')
-        .update(updates)
+        .update({
+          name: updates.name,
+          phone: updates.phone,
+          address: updates.address,
+          description: updates.description
+        })
         .eq('id', restaurantInfo.id)
         .select()
         .single();
@@ -165,25 +173,26 @@ const Settings: React.FC = () => {
 
       return data;
     },
-    {
-      onSuccess: () => {
-        toast.success(t.toast.restaurantInfoUpdated);
-        queryClient.invalidateQueries(['restaurantInfo']);
-      },
-      onError: () => {
-        toast.error(`${t.toast.failedToUpdate} ${t.settings.restaurantInfo}`);
-      },
-      onSettled: () => {
-        setIsSavingRestaurantInfo(false);
-      },
-    }
-  );
+    onSuccess: () => {
+      toast.success(t.toast.restaurantInfoUpdated);
+      queryClient.invalidateQueries({ queryKey: ['restaurantInfo'] });
+    },
+    onError: () => {
+      toast.error(`${t.toast.failedToUpdate} ${t.settings.restaurantInfo}`);
+    },
+    onSettled: () => {
+      setIsSavingRestaurantInfo(false);
+    },
+  });
 
-  const updateBusinessHoursMutation = useMutation(
-    async (newHours: BusinessHours) => {
+  const updateBusinessHoursMutation = useMutation({
+    mutationFn: async (newHours: BusinessHours) => {
       const { data, error } = await supabase
         .from('settings')
-        .upsert({ key: 'business_hours', value: newHours }, { onConflict: 'key' })
+        .upsert({ 
+          key: 'business_hours', 
+          value: newHours as unknown as Record<string, any> 
+        }, { onConflict: 'key' })
         .select()
         .single();
 
@@ -194,25 +203,26 @@ const Settings: React.FC = () => {
 
       return data;
     },
-    {
-      onSuccess: () => {
-        toast.success(t.toast.businessHoursUpdated);
-        queryClient.invalidateQueries(['businessHours']);
-      },
-      onError: () => {
-        toast.error(`${t.toast.failedToUpdate} ${t.settings.businessHours}`);
-      },
-      onSettled: () => {
-        setIsSavingBusinessHours(false);
-      },
-    }
-  );
+    onSuccess: () => {
+      toast.success(t.toast.businessHoursUpdated);
+      queryClient.invalidateQueries({ queryKey: ['businessHours'] });
+    },
+    onError: () => {
+      toast.error(`${t.toast.failedToUpdate} ${t.settings.businessHours}`);
+    },
+    onSettled: () => {
+      setIsSavingBusinessHours(false);
+    },
+  });
 
-  const updateOrderingSettingsMutation = useMutation(
-    async (newSettings: OrderingSettings) => {
+  const updateOrderingSettingsMutation = useMutation({
+    mutationFn: async (newSettings: OrderingSettings) => {
       const { data, error } = await supabase
         .from('settings')
-        .upsert({ key: 'ordering_settings', value: newSettings }, { onConflict: 'key' })
+        .upsert({ 
+          key: 'ordering_settings', 
+          value: newSettings as unknown as Record<string, any> 
+        }, { onConflict: 'key' })
         .select()
         .single();
 
@@ -223,19 +233,17 @@ const Settings: React.FC = () => {
 
       return data;
     },
-    {
-      onSuccess: () => {
-        toast.success(t.toast.settingsSaved);
-        queryClient.invalidateQueries(['orderingSettings']);
-      },
-      onError: () => {
-        toast.error(`${t.toast.failedToUpdate} ${t.settings.orderingOptions}`);
-      },
-      onSettled: () => {
-        setIsSavingSettings(false);
-      },
-    }
-  );
+    onSuccess: () => {
+      toast.success(t.toast.settingsSaved);
+      queryClient.invalidateQueries({ queryKey: ['orderingSettings'] });
+    },
+    onError: () => {
+      toast.error(`${t.toast.failedToUpdate} ${t.settings.orderingOptions}`);
+    },
+    onSettled: () => {
+      setIsSavingSettings(false);
+    },
+  });
 
   // Handlers for saving data
   const handleRestaurantInfoSave = async () => {
@@ -291,9 +299,9 @@ const Settings: React.FC = () => {
               <Input
                 type="tel"
                 id="phoneNumber"
-                value={restaurantInfo?.phone_number || ''}
+                value={restaurantInfo?.phone || ''}
                 onChange={(e) =>
-                  setRestaurantInfo({ ...restaurantInfo, phone_number: e.target.value } as RestaurantInfo)
+                  setRestaurantInfo({ ...restaurantInfo, phone: e.target.value } as RestaurantInfo)
                 }
                 className="col-span-2"
               />
