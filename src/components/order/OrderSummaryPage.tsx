@@ -8,6 +8,7 @@ import { CartItemType } from '../cart/types';
 import { useCart } from '@/hooks/use-cart';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+
 const OrderSummaryPage: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
@@ -25,6 +26,7 @@ const OrderSummaryPage: React.FC = () => {
     orderType,
     tableNumber
   });
+  
   React.useEffect(() => {
     if (!items || items.length === 0) {
       navigate('/', {
@@ -32,6 +34,7 @@ const OrderSummaryPage: React.FC = () => {
       });
     }
   }, [items, navigate]);
+  
   const subtotal = items?.reduce((sum: number, item: CartItemType) => {
     let itemTotal = item.product.price * item.quantity;
     if (item.selectedToppings && item.selectedToppings.length > 0) {
@@ -42,9 +45,11 @@ const OrderSummaryPage: React.FC = () => {
   }, 0) || 0;
   const tax = subtotal * 0.1;
   const total = subtotal + tax;
+  
   const handleGoBack = () => {
     navigate(-1);
   };
+  
   const handleConfirmOrderClick = async () => {
     try {
       await handleConfirmOrder();
@@ -63,13 +68,13 @@ const OrderSummaryPage: React.FC = () => {
       if (orderError) {
         console.error('Error creating order:', orderError);
         toast({
-          title: "Error",
-          description: "Could not process your order. Please try again.",
+          title: "Erreur",
+          description: "Impossible de traiter votre commande. Veuillez réessayer.",
           variant: "destructive"
         });
         return;
       }
-      console.log('Order created successfully:', orderResult);
+      
       for (const item of items) {
         const {
           data: orderItemResult,
@@ -101,6 +106,7 @@ const OrderSummaryPage: React.FC = () => {
           }
         }
       }
+      
       navigate('/confirmation', {
         state: {
           items,
@@ -122,6 +128,7 @@ const OrderSummaryPage: React.FC = () => {
       });
     }
   };
+  
   return <Layout>
       <div className="h-full flex flex-col">
         <header className="flex justify-between items-center p-6 border-b border-gray-100">

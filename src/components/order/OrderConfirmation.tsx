@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
@@ -12,7 +13,7 @@ interface OrderConfirmationProps {}
 const OrderConfirmation: React.FC<OrderConfirmationProps> = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  const { items, orderType, tableNumber, subtotal, tax, total, orderId } = location.state || {};
+  const { items, orderType, tableNumber, subtotal, tax, total, orderId, orderNumber } = location.state || {};
   
   const [printed, setPrinted] = useState(false);
   const [redirecting, setRedirecting] = useState(false);
@@ -42,8 +43,6 @@ const OrderConfirmation: React.FC<OrderConfirmationProps> = () => {
       return () => clearTimeout(timer);
     }
   }, [items, printed]);
-  
-  const orderNumber = orderId;
 
   const printOrder = () => {
     try {
@@ -61,7 +60,7 @@ const OrderConfirmation: React.FC<OrderConfirmationProps> = () => {
       iframe.contentDocument.write(`
         <html>
           <head>
-            <title>Order #${orderNumber}</title>
+            <title>Commande #${orderNumber}</title>
             <style>
               body {
                 font-family: Arial, sans-serif;
@@ -115,17 +114,17 @@ const OrderConfirmation: React.FC<OrderConfirmationProps> = () => {
             </style>
           </head>
           <body>
-            <h1>Order Receipt</h1>
+            <h1>Récapitulatif de commande</h1>
             <div class="order-details">
-              <p><strong>Order #:</strong> ${orderNumber}</p>
+              <p><strong>Commande #:</strong> ${orderNumber}</p>
               <p><strong>Date:</strong> ${orderDate}</p>
-              <p><strong>Order Type:</strong> ${orderType === 'eat-in' ? 'Eat In' : 'Takeaway'}</p>
+              <p><strong>Type de commande:</strong> ${orderType === 'eat-in' ? 'Sur place' : 'À emporter'}</p>
               ${orderType === 'eat-in' && tableNumber ? `<p><strong>Table #:</strong> ${tableNumber}</p>` : ''}
             </div>
             
             <div class="divider"></div>
             
-            <h2>Items</h2>
+            <h2>Articles</h2>
             ${items && items.map((item: CartItemType) => `
               <div class="order-item">
                 <div>
@@ -150,11 +149,11 @@ const OrderConfirmation: React.FC<OrderConfirmationProps> = () => {
             
             <div class="totals">
               <div class="total-row">
-                <span>Subtotal:</span>
+                <span>Sous-total:</span>
                 <span>${subtotal?.toFixed(2) || '0.00'} €</span>
               </div>
               <div class="total-row">
-                <span>Tax:</span>
+                <span>TVA:</span>
                 <span>${tax?.toFixed(2) || '0.00'} €</span>
               </div>
               <div class="total-row final-total">
@@ -164,14 +163,14 @@ const OrderConfirmation: React.FC<OrderConfirmationProps> = () => {
             </div>
             
             <div class="footer">
-              <p>Thank you for your order!</p>
+              <p>Merci pour votre commande!</p>
             </div>
             <script>
               window.onload = function() {
                 setTimeout(function() {
                   window.print();
                   setTimeout(function() {
-                    document.body.innerHTML = 'Printing complete.';
+                    document.body.innerHTML = 'Impression terminée.';
                   }, 500);
                 }, 500);
               };
@@ -188,8 +187,8 @@ const OrderConfirmation: React.FC<OrderConfirmationProps> = () => {
     } catch (error) {
       console.error('Error printing order:', error);
       toast({
-        title: "Error",
-        description: "Failed to print order receipt",
+        title: "Erreur",
+        description: "Impossible d'imprimer le reçu de commande",
         variant: "destructive",
       });
     }
@@ -212,14 +211,14 @@ const OrderConfirmation: React.FC<OrderConfirmationProps> = () => {
             <Home size={24} />
           </Button>
           
-          <h1 className="text-2xl font-semibold">Order Confirmation</h1>
+          <h1 className="text-2xl font-semibold">Confirmation de commande</h1>
           
           <Button
             variant="ghost"
             size="icon"
             onClick={printOrder}
             className="rounded-full"
-            title="Print receipt"
+            title="Imprimer le reçu"
           >
             <Printer size={24} />
           </Button>
@@ -248,7 +247,7 @@ const OrderConfirmation: React.FC<OrderConfirmationProps> = () => {
                 animate={{ y: 0, opacity: 1 }}
                 transition={{ delay: 0.3 }}
               >
-                Thank You!
+                Merci !
               </motion.h2>
               
               <motion.p 
@@ -257,7 +256,7 @@ const OrderConfirmation: React.FC<OrderConfirmationProps> = () => {
                 animate={{ y: 0, opacity: 1 }}
                 transition={{ delay: 0.4 }}
               >
-                Your order #{orderNumber} has been placed
+                Votre commande #{orderNumber || orderId} a été passée
               </motion.p>
               
               {orderType === 'eat-in' && tableNumber && (
@@ -277,7 +276,7 @@ const OrderConfirmation: React.FC<OrderConfirmationProps> = () => {
                 transition={{ delay: 0.6 }}
                 className="text-gray-500 mt-4"
               >
-                Printing your receipt...
+                Impression de votre reçu...
               </motion.p>
               
               <motion.p
@@ -286,7 +285,7 @@ const OrderConfirmation: React.FC<OrderConfirmationProps> = () => {
                 transition={{ delay: 0.7 }}
                 className="text-gray-500 mt-2"
               >
-                Redirecting to home page in a few seconds...
+                Redirection vers la page d'accueil dans quelques secondes...
               </motion.p>
             </div>
             
@@ -297,7 +296,7 @@ const OrderConfirmation: React.FC<OrderConfirmationProps> = () => {
               className="bg-white rounded-xl shadow-card overflow-hidden mb-8"
             >
               <div className="p-6 border-b border-gray-100">
-                <h3 className="font-semibold text-lg mb-4">Order Summary</h3>
+                <h3 className="font-semibold text-lg mb-4">Résumé de commande</h3>
                 
                 <div className="space-y-4">
                   {items && items.map((item: CartItemType, index: number) => (
@@ -337,11 +336,11 @@ const OrderConfirmation: React.FC<OrderConfirmationProps> = () => {
               <div className="p-6 bg-gray-50">
                 <div className="space-y-2">
                   <div className="flex justify-between text-sm">
-                    <span className="text-gray-600">Subtotal</span>
+                    <span className="text-gray-600">Sous-total</span>
                     <span>{subtotal?.toFixed(2) || '0.00'} €</span>
                   </div>
                   <div className="flex justify-between text-sm">
-                    <span className="text-gray-600">Tax</span>
+                    <span className="text-gray-600">TVA</span>
                     <span>{tax?.toFixed(2) || '0.00'} €</span>
                   </div>
                   <div className="flex justify-between font-semibold text-base pt-2 border-t border-gray-200 mt-2">
@@ -363,7 +362,7 @@ const OrderConfirmation: React.FC<OrderConfirmationProps> = () => {
                 onClick={() => navigate('/')}
                 className="min-w-[200px]"
               >
-                Place New Order
+                Passer une nouvelle commande
               </Button>
             </motion.div>
           </div>
