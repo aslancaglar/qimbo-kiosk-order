@@ -35,8 +35,8 @@ if (process.env.NODE_ENV !== 'production') {
         const perfEntries = performance.getEntriesByType('navigation');
         if (perfEntries.length > 0) {
           const timing = perfEntries[0] as PerformanceNavigationTiming;
-          console.log('Load time:', Math.round(timing.loadEventEnd - timing.navigationStart), 'ms');
-          console.log('DOM Content Loaded:', Math.round(timing.domContentLoadedEventEnd - timing.navigationStart), 'ms');
+          console.log('Load time:', Math.round(timing.loadEventEnd - timing.startTime), 'ms');
+          console.log('DOM Content Loaded:', Math.round(timing.domContentLoadedEventEnd - timing.startTime), 'ms');
         }
       }
     }, 1000);

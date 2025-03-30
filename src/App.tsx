@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -40,7 +39,7 @@ const queryClient = new QueryClient({
     queries: {
       refetchOnWindowFocus: false, // Disable refetching on window focus to save resources
       staleTime: 60000, // One minute stale time
-      cacheTime: 300000, // Five minute cache time
+      gcTime: 300000, // Five minute cache time (replaced cacheTime)
       retry: 1, // Limit retries on failure
       suspense: false, // Don't use React Suspense for data fetching
     },
