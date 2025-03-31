@@ -14,59 +14,8 @@ import { Separator } from '@/components/ui/separator';
 import { Button } from '@/components/ui/button';
 import { format, formatDistance } from 'date-fns';
 
-const NOTIFICATION_SOUND_URL = "http://guqe0132.odns.fr/simple-notification-152054.mp3";
-
-// Sound queue system
-let soundQueue = [];
-let isPlaying = false;
-
-/**
- * Play a notification sound, handling browser restrictions
- */
-const playNotificationSound = () => {
-  // Add this sound to the queue
-  soundQueue.push(1);
-  
-  // If already playing, the next sound will be handled by the queue
-  if (isPlaying) return;
-  
-  // Process the queue recursively
-  const processQueue = () => {
-    if (soundQueue.length === 0) {
-      isPlaying = false;
-      return;
-    }
-    
-    isPlaying = true;
-    soundQueue.shift(); // Remove the current item
-    
-    try {
-      const sound = new Audio(NOTIFICATION_SOUND_URL);
-      sound.volume = 1.0;
-      
-      // When this sound ends, play the next one if there is any
-      sound.onended = processQueue;
-      sound.onerror = () => {
-        console.error("Error playing sound");
-        processQueue(); // Try the next sound
-      };
-      
-      // Play and handle errors
-      sound.play().catch(err => {
-        console.error('Failed to play notification sound:', err);
-        processQueue(); // Try the next sound on error
-      });
-    } catch (err) {
-      console.error('Error creating audio:', err);
-      processQueue(); // Try the next sound on error
-    }
-  };
-  
-  // Start processing queue if not already playing
-  if (!isPlaying) {
-    processQueue();
-  }
-};
+// Sound notification for new orders
+const notificationSound = new Audio('/notification.mp3');
 
 const KitchenDisplay = () => {
   const [columns, setColumns] = useState<{
@@ -87,6 +36,7 @@ const KitchenDisplay = () => {
   const queryClient = useQueryClient();
   const prevOrdersRef = useRef<Order[]>([]);
   
+  // Fetch all orders
   const { data: orders = [], isLoading, isError, refetch } = useQuery({
     queryKey: ['kds-orders'],
     queryFn: async () => {
@@ -105,41 +55,7 @@ const KitchenDisplay = () => {
     refetchInterval: 10000,
   });
   
-  useEffect(() => {
-    const unlockAudio = () => {
-      console.log('Unlocking audio...');
-      // Create and play a silent audio element to unlock audio playback
-      const silentSound = new Audio(NOTIFICATION_SOUND_URL);
-      silentSound.volume = 0.01; // Nearly silent
-      
-      silentSound.play()
-        .then(() => console.log('Audio unlocked successfully'))
-        .catch(err => console.log('Could not unlock audio:', err));
-        
-      // Remove event listeners after first attempt
-      document.removeEventListener('click', unlockAudio);
-      document.removeEventListener('touchstart', unlockAudio);
-    };
-    
-    // Add event listeners for user interaction
-    document.addEventListener('click', unlockAudio);
-    document.addEventListener('touchstart', unlockAudio);
-    
-    // Optionally, try to play a test sound after 3 seconds (if user has already interacted)
-    const testTimer = setTimeout(() => {
-      console.log('Testing sound playback capability...');
-      const testSound = new Audio(NOTIFICATION_SOUND_URL);
-      testSound.volume = 0.01; // Nearly silent
-      testSound.play().catch(e => console.log('Audio context not yet unlocked'));
-    }, 3000);
-    
-    return () => {
-      document.removeEventListener('click', unlockAudio);
-      document.removeEventListener('touchstart', unlockAudio);
-      clearTimeout(testTimer);
-    };
-  }, []);
-  
+  // Organize orders into columns based on status
   useEffect(() => {
     if (orders) {
       const newColumns = {
@@ -161,7 +77,7 @@ const KitchenDisplay = () => {
           toast.success(`New Order #${newOrder.id} Received!`, {
             description: `${newOrder.items_count} items - $${newOrder.total_amount.toFixed(2)}`,
           });
-          playNotificationSound();
+          notificationSound.play().catch(e => console.error('Failed to play notification sound:', e));
         }
       }
       
@@ -169,11 +85,14 @@ const KitchenDisplay = () => {
     }
   }, [orders]);
   
+  // Handle drag and drop between columns
   const onDragEnd = async (result: any) => {
     const { destination, source, draggableId } = result;
     
+    // If dropped outside a droppable area
     if (!destination) return;
     
+    // If dropped in the same place
     if (destination.droppableId === source.droppableId && destination.index === source.index) {
       return;
     }
@@ -182,9 +101,11 @@ const KitchenDisplay = () => {
     const order = orders.find(o => o.id === orderId);
     if (!order) return;
     
+    // Determine new status based on destination column
     let newStatus = destination.droppableId;
     
     try {
+      // Update order status in database
       const { error } = await supabase
         .from('orders')
         .update({ status: newStatus })
@@ -192,19 +113,23 @@ const KitchenDisplay = () => {
         
       if (error) throw error;
       
+      // Optimistically update UI
       const sourceColumn = columns[source.droppableId as keyof typeof columns];
       const destColumn = columns[destination.droppableId as keyof typeof columns];
       
       const newSourceColumn = [...sourceColumn];
       const newDestColumn = [...destColumn];
       
+      // Remove from source
       const [movedOrder] = newSourceColumn.splice(source.index, 1);
       
+      // Insert at destination
       newDestColumn.splice(destination.index, 0, {
         ...movedOrder,
         status: newStatus
       });
       
+      // Update columns state
       setColumns({
         ...columns,
         [source.droppableId]: newSourceColumn,
@@ -213,6 +138,7 @@ const KitchenDisplay = () => {
       
       toast.success(`Order #${orderId} moved to ${destination.droppableId}`);
       
+      // Invalidate the query to refetch
       queryClient.invalidateQueries({ queryKey: ['kds-orders'] });
     } catch (error) {
       console.error('Failed to update order status:', error);
@@ -220,9 +146,11 @@ const KitchenDisplay = () => {
     }
   };
   
+  // Fetch order details for the modal
   const fetchOrderDetails = async (orderId: number) => {
     setIsLoadingDetails(true);
     try {
+      // Fetch order items with menu item data
       const { data: orderItems, error: itemsError } = await supabase
         .from('order_items')
         .select(`
@@ -238,6 +166,7 @@ const KitchenDisplay = () => {
       
       if (itemsError) throw itemsError;
       
+      // Format the orderItems to match our types
       const formattedItems: OrderItem[] = orderItems.map(item => ({
         id: item.id,
         order_id: item.order_id,
@@ -249,6 +178,7 @@ const KitchenDisplay = () => {
         toppings: []
       }));
       
+      // For each order item, fetch its toppings
       for (const item of formattedItems) {
         const { data: toppings, error: toppingsError } = await supabase
           .from('order_item_toppings')
@@ -266,6 +196,7 @@ const KitchenDisplay = () => {
           continue;
         }
         
+        // Map the toppings to our format
         item.toppings = toppings.map(t => ({
           id: t.id,
           order_item_id: t.order_item_id,
@@ -284,12 +215,14 @@ const KitchenDisplay = () => {
     }
   };
   
+  // Handle opening the order details modal
   const handleOpenOrderDetails = (order: Order) => {
     setSelectedOrder(order);
     setIsModalOpen(true);
     fetchOrderDetails(order.id);
   };
   
+  // Set up real-time listeners for order updates
   useEffect(() => {
     const channel = supabase
       .channel('kds-orders-channel')
@@ -300,13 +233,14 @@ const KitchenDisplay = () => {
           console.log('Order update received:', payload);
           
           if (payload.eventType === 'INSERT') {
-            playNotificationSound();
-            
+            // Play notification for new orders
+            notificationSound.play().catch(e => console.error('Failed to play notification sound:', e));
             toast.success(`New Order #${payload.new.id} Received!`, {
               description: `${payload.new.items_count} items - $${payload.new.total_amount.toFixed(2)}`,
             });
           }
           
+          // Refetch orders to update the display
           queryClient.invalidateQueries({ queryKey: ['kds-orders'] });
         }
       )
@@ -319,6 +253,7 @@ const KitchenDisplay = () => {
     };
   }, [queryClient]);
   
+  // Render the KDS columns
   const renderColumns = () => {
     return (
       <DragDropContext onDragEnd={onDragEnd}>
@@ -424,6 +359,7 @@ const KitchenDisplay = () => {
     );
   };
   
+  // Render the order details modal
   const renderOrderDetailsModal = () => {
     if (!selectedOrder) return null;
     
