@@ -195,14 +195,21 @@ export const NotificationSoundSettings = () => {
       const { data } = supabase.storage.from('menu-images').getPublicUrl(`sounds/${fileName}`);
       
       if (data?.publicUrl) {
-        setSettings({ 
+        const newSettings = { 
           ...settings, 
           customSound: true, 
           soundUrl: data.publicUrl 
-        });
+        };
+        
+        // Update local state
+        setSettings(newSettings);
+        
+        // Save settings to database immediately
+        await saveSettingsAfterUpload(newSettings);
+        
         toast({
           title: "Upload successful",
-          description: "Custom notification sound uploaded"
+          description: "Custom notification sound uploaded and saved"
         });
       }
     } catch (error) {
@@ -216,22 +223,87 @@ export const NotificationSoundSettings = () => {
     }
   };
   
+  // New function to save settings immediately after upload
+  const saveSettingsAfterUpload = async (newSettings: NotificationSound) => {
+    try {
+      const { data: existingData, error: checkError } = await supabase
+        .from('settings')
+        .select('id')
+        .eq('key', 'notification_sound_settings')
+        .maybeSingle();
+        
+      if (checkError) {
+        console.error('Error checking notification settings after upload:', checkError);
+        return false;
+      }
+      
+      if (existingData) {
+        const { error } = await supabase
+          .from('settings')
+          .update({
+            value: newSettings,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', existingData.id);
+          
+        if (error) {
+          console.error('Error saving notification settings after upload:', error);
+          return false;
+        }
+      } else {
+        const { error } = await supabase
+          .from('settings')
+          .insert({
+            key: 'notification_sound_settings',
+            value: newSettings,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+          });
+          
+        if (error) {
+          console.error('Error saving notification settings after upload:', error);
+          return false;
+        }
+      }
+      
+      return true;
+    } catch (error) {
+      console.error('Unexpected error saving settings after upload:', error);
+      return false;
+    }
+  };
+  
   // New function to handle local file upload as a fallback
-  const handleLocalFileUpload = (file: File) => {
+  const handleLocalFileUpload = async (file: File) => {
     try {
       // Create a local object URL for the file instead of uploading
       const localUrl = URL.createObjectURL(file);
       
-      setSettings({ 
+      const newSettings = { 
         ...settings, 
         customSound: true, 
         soundUrl: localUrl 
-      });
+      };
       
-      toast({
-        title: "Local sound added",
-        description: "Using sound from your device (temporary)"
-      });
+      // Update local state
+      setSettings(newSettings);
+      
+      // Try to save settings to database with the local URL
+      // Note: This is not ideal as object URLs are temporary, but it's better than nothing
+      const saved = await saveSettingsAfterUpload(newSettings);
+      
+      if (saved) {
+        toast({
+          title: "Local sound added",
+          description: "Using sound from your device (temporary)"
+        });
+      } else {
+        toast({
+          title: "Warning",
+          description: "Sound loaded but may not persist after refresh",
+          variant: "destructive"
+        });
+      }
     } catch (error) {
       console.error('Error creating local file URL:', error);
       toast({
@@ -256,16 +328,29 @@ export const NotificationSoundSettings = () => {
     }
   };
 
-  const handleResetToDefault = () => {
-    setSettings({
+  const handleResetToDefault = async () => {
+    const newSettings = {
       ...settings,
       customSound: false,
       soundUrl: DEFAULT_SOUND
-    });
-    toast({
-      title: "Reset successful",
-      description: "Using default notification sound"
-    });
+    };
+    
+    setSettings(newSettings);
+    
+    // Save settings immediately after reset
+    const saved = await saveSettingsAfterUpload(newSettings);
+    
+    if (saved) {
+      toast({
+        title: "Reset successful",
+        description: "Using default notification sound"
+      });
+    } else {
+      toast({
+        title: "Reset successful",
+        description: "Using default notification sound (save to persist)"
+      });
+    }
   };
 
   return (
