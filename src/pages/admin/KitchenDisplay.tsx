@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import AdminLayout from '../../components/admin/AdminLayout';
 import { supabase } from '@/integrations/supabase/client';
@@ -14,7 +14,6 @@ import { Separator } from '@/components/ui/separator';
 import { Button } from '@/components/ui/button';
 import { format, formatDistance } from 'date-fns';
 
-// Sound notification for new orders
 const notificationSound = new Audio('/notification.mp3');
 
 const KitchenDisplay = () => {
@@ -36,7 +35,15 @@ const KitchenDisplay = () => {
   const queryClient = useQueryClient();
   const prevOrdersRef = useRef<Order[]>([]);
   
-  // Fetch all orders
+  const [notificationSettings, setNotificationSettings] = useState({
+    enabled: true,
+    volume: 80,
+    customSound: false,
+    soundUrl: '/notification.mp3'
+  });
+  
+  const audioRef = useRef<HTMLAudioElement>(null);
+
   const { data: orders = [], isLoading, isError, refetch } = useQuery({
     queryKey: ['kds-orders'],
     queryFn: async () => {
@@ -54,8 +61,39 @@ const KitchenDisplay = () => {
     },
     refetchInterval: 10000,
   });
-  
-  // Organize orders into columns based on status
+
+  useEffect(() => {
+    const fetchNotificationSettings = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('settings')
+          .select('*')
+          .eq('key', 'notification_sound_settings')
+          .maybeSingle();
+
+        if (error) {
+          console.error('Error fetching notification settings:', error);
+          return;
+        }
+
+        if (data?.value) {
+          setNotificationSettings(data.value as any);
+        }
+      } catch (error) {
+        console.error('Unexpected error fetching notification settings:', error);
+      }
+    };
+
+    fetchNotificationSettings();
+  }, []);
+
+  const playNotificationSound = useCallback(() => {
+    if (audioRef.current && notificationSettings.enabled) {
+      audioRef.current.volume = notificationSettings.volume / 100;
+      audioRef.current.play().catch(err => console.error('Error playing notification sound:', err));
+    }
+  }, [notificationSettings]);
+
   useEffect(() => {
     if (orders) {
       const newColumns = {
@@ -68,7 +106,6 @@ const KitchenDisplay = () => {
       
       setColumns(newColumns);
       
-      // Check for new orders to play sound
       if (prevOrdersRef.current.length > 0 && orders.length > prevOrdersRef.current.length) {
         const prevIds = new Set(prevOrdersRef.current.map(order => order.id));
         const newOrder = orders.find(order => !prevIds.has(order.id));
@@ -77,22 +114,19 @@ const KitchenDisplay = () => {
           toast.success(`New Order #${newOrder.id} Received!`, {
             description: `${newOrder.items_count} items - $${newOrder.total_amount.toFixed(2)}`,
           });
-          notificationSound.play().catch(e => console.error('Failed to play notification sound:', e));
+          playNotificationSound();
         }
       }
       
       prevOrdersRef.current = [...orders];
     }
-  }, [orders]);
-  
-  // Handle drag and drop between columns
+  }, [orders, playNotificationSound]);
+
   const onDragEnd = async (result: any) => {
     const { destination, source, draggableId } = result;
     
-    // If dropped outside a droppable area
     if (!destination) return;
     
-    // If dropped in the same place
     if (destination.droppableId === source.droppableId && destination.index === source.index) {
       return;
     }
@@ -101,11 +135,9 @@ const KitchenDisplay = () => {
     const order = orders.find(o => o.id === orderId);
     if (!order) return;
     
-    // Determine new status based on destination column
     let newStatus = destination.droppableId;
     
     try {
-      // Update order status in database
       const { error } = await supabase
         .from('orders')
         .update({ status: newStatus })
@@ -113,23 +145,19 @@ const KitchenDisplay = () => {
         
       if (error) throw error;
       
-      // Optimistically update UI
       const sourceColumn = columns[source.droppableId as keyof typeof columns];
       const destColumn = columns[destination.droppableId as keyof typeof columns];
       
       const newSourceColumn = [...sourceColumn];
       const newDestColumn = [...destColumn];
       
-      // Remove from source
       const [movedOrder] = newSourceColumn.splice(source.index, 1);
       
-      // Insert at destination
       newDestColumn.splice(destination.index, 0, {
         ...movedOrder,
         status: newStatus
       });
       
-      // Update columns state
       setColumns({
         ...columns,
         [source.droppableId]: newSourceColumn,
@@ -138,19 +166,16 @@ const KitchenDisplay = () => {
       
       toast.success(`Order #${orderId} moved to ${destination.droppableId}`);
       
-      // Invalidate the query to refetch
       queryClient.invalidateQueries({ queryKey: ['kds-orders'] });
     } catch (error) {
       console.error('Failed to update order status:', error);
       toast.error('Failed to update order status');
     }
   };
-  
-  // Fetch order details for the modal
+
   const fetchOrderDetails = async (orderId: number) => {
     setIsLoadingDetails(true);
     try {
-      // Fetch order items with menu item data
       const { data: orderItems, error: itemsError } = await supabase
         .from('order_items')
         .select(`
@@ -166,7 +191,6 @@ const KitchenDisplay = () => {
       
       if (itemsError) throw itemsError;
       
-      // Format the orderItems to match our types
       const formattedItems: OrderItem[] = orderItems.map(item => ({
         id: item.id,
         order_id: item.order_id,
@@ -178,7 +202,6 @@ const KitchenDisplay = () => {
         toppings: []
       }));
       
-      // For each order item, fetch its toppings
       for (const item of formattedItems) {
         const { data: toppings, error: toppingsError } = await supabase
           .from('order_item_toppings')
@@ -196,7 +219,6 @@ const KitchenDisplay = () => {
           continue;
         }
         
-        // Map the toppings to our format
         item.toppings = toppings.map(t => ({
           id: t.id,
           order_item_id: t.order_item_id,
@@ -214,15 +236,13 @@ const KitchenDisplay = () => {
       setIsLoadingDetails(false);
     }
   };
-  
-  // Handle opening the order details modal
+
   const handleOpenOrderDetails = (order: Order) => {
     setSelectedOrder(order);
     setIsModalOpen(true);
     fetchOrderDetails(order.id);
   };
-  
-  // Set up real-time listeners for order updates
+
   useEffect(() => {
     const channel = supabase
       .channel('kds-orders-channel')
@@ -233,14 +253,12 @@ const KitchenDisplay = () => {
           console.log('Order update received:', payload);
           
           if (payload.eventType === 'INSERT') {
-            // Play notification for new orders
-            notificationSound.play().catch(e => console.error('Failed to play notification sound:', e));
+            playNotificationSound();
             toast.success(`New Order #${payload.new.id} Received!`, {
               description: `${payload.new.items_count} items - $${payload.new.total_amount.toFixed(2)}`,
             });
           }
           
-          // Refetch orders to update the display
           queryClient.invalidateQueries({ queryKey: ['kds-orders'] });
         }
       )
@@ -251,9 +269,8 @@ const KitchenDisplay = () => {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [queryClient]);
-  
-  // Render the KDS columns
+  }, [queryClient, playNotificationSound]);
+
   const renderColumns = () => {
     return (
       <DragDropContext onDragEnd={onDragEnd}>
@@ -358,8 +375,7 @@ const KitchenDisplay = () => {
       </DragDropContext>
     );
   };
-  
-  // Render the order details modal
+
   const renderOrderDetailsModal = () => {
     if (!selectedOrder) return null;
     
@@ -604,7 +620,7 @@ const KitchenDisplay = () => {
       </Dialog>
     );
   };
-  
+
   return (
     <AdminLayout>
       <div className="space-y-6 h-full flex flex-col">
@@ -638,6 +654,13 @@ const KitchenDisplay = () => {
         
         {renderOrderDetailsModal()}
       </div>
+      
+      <audio 
+        ref={audioRef} 
+        src={notificationSettings.soundUrl} 
+        preload="auto"
+        style={{ display: 'none' }}
+      />
     </AdminLayout>
   );
 };

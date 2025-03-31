@@ -9,10 +9,11 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
-import { Save, Settings2, RefreshCw } from 'lucide-react';
+import { Save, Settings2, RefreshCw, Bell } from 'lucide-react';
 import { Switch } from "@/components/ui/switch";
 import { clearAppCache } from "../../utils/serviceWorker";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import NotificationSoundSettings from "../../components/admin/settings/NotificationSoundSettings";
 
 interface OrderingSettings {
   requireTableSelection: boolean;
@@ -531,13 +532,16 @@ const Settings = () => {
           <TabsContent value="notifications" className="mt-6">
             <Card>
               <CardHeader>
-                <CardTitle>Notification Settings</CardTitle>
+                <CardTitle className="flex items-center gap-2">
+                  <Bell className="h-5 w-5" />
+                  Notification Settings
+                </CardTitle>
                 <CardDescription>
-                  Configure how you receive order notifications.
+                  Configure notification sounds and alert preferences.
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <p className="text-gray-500">Notification settings coming soon.</p>
+                <NotificationSoundSettings />
               </CardContent>
             </Card>
           </TabsContent>
