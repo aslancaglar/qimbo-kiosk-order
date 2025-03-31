@@ -9,19 +9,29 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
-import { Save, Settings2, RefreshCw } from 'lucide-react';
+import { Save, Settings2, RefreshCw, Upload, Bell, Volume2 } from 'lucide-react';
 import { Switch } from "@/components/ui/switch";
 import { clearAppCache } from "../../utils/serviceWorker";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { uploadFile } from '@/utils/fileUpload';
 
 interface OrderingSettings {
   requireTableSelection: boolean;
+}
+
+interface NotificationSettings {
+  soundEnabled: boolean;
+  soundUrl?: string;
+  soundName?: string;
+  volume: number;
 }
 
 const Settings = () => {
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const [clearingCache, setClearingCache] = useState(false);
+  const [testingSound, setTestingSound] = useState(false);
+  const [uploadingSound, setUploadingSound] = useState(false);
 
   const [restaurantInfo, setRestaurantInfo] = useState({
     id: 1,
@@ -44,11 +54,19 @@ const Settings = () => {
   const [orderingSettings, setOrderingSettings] = useState<OrderingSettings>({
     requireTableSelection: true
   });
+  
+  const [notificationSettings, setNotificationSettings] = useState<NotificationSettings>({
+    soundEnabled: true,
+    soundUrl: '/notification.mp3',
+    soundName: 'Default notification',
+    volume: 1.0
+  });
 
   useEffect(() => {
     fetchRestaurantInfo();
     fetchBusinessHours();
     fetchOrderingSettings();
+    fetchNotificationSettings();
   }, []);
 
   const fetchRestaurantInfo = async () => {
@@ -156,6 +174,46 @@ const Settings = () => {
     }
   };
 
+  const fetchNotificationSettings = async () => {
+    try {
+      setLoading(true);
+      const { data, error } = await supabase
+        .from('settings')
+        .select('*')
+        .eq('key', 'notification_settings')
+        .maybeSingle();
+        
+      if (error) {
+        console.error('Error fetching notification settings:', error);
+        toast({
+          title: "Error",
+          description: "Failed to load notification settings",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      if (data && data.value) {
+        const settings = data.value as Record<string, any>;
+        setNotificationSettings({
+          soundEnabled: settings.soundEnabled !== undefined ? !!settings.soundEnabled : true,
+          soundUrl: settings.soundUrl || '/notification.mp3',
+          soundName: settings.soundName || 'Default notification',
+          volume: settings.volume !== undefined ? Number(settings.volume) : 1.0
+        });
+      }
+    } catch (error) {
+      console.error('Unexpected error:', error);
+      toast({
+        title: "Error",
+        description: "An unexpected error occurred",
+        variant: "destructive"
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleInfoChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { id, value } = e.target;
     setRestaurantInfo(prev => ({
@@ -178,6 +236,13 @@ const Settings = () => {
     setOrderingSettings(prev => ({
       ...prev,
       [field]: checked
+    }));
+  };
+  
+  const handleNotificationSettingChange = (field: string, value: any) => {
+    setNotificationSettings(prev => ({
+      ...prev,
+      [field]: value
     }));
   };
 
@@ -337,6 +402,84 @@ const Settings = () => {
     }
   };
 
+  const saveNotificationSettings = async () => {
+    try {
+      setLoading(true);
+      
+      const { data: existingData, error: checkError } = await supabase
+        .from('settings')
+        .select('id')
+        .eq('key', 'notification_settings')
+        .maybeSingle();
+        
+      if (checkError) {
+        console.error('Error checking notification settings:', checkError);
+        toast({
+          title: "Error",
+          description: "Failed to check if settings exist",
+          variant: "destructive"
+        });
+        return;
+      }
+      
+      let saveError;
+      
+      const settingsValue = {
+        soundEnabled: notificationSettings.soundEnabled,
+        soundUrl: notificationSettings.soundUrl,
+        soundName: notificationSettings.soundName,
+        volume: notificationSettings.volume
+      } as Json;
+      
+      if (existingData) {
+        const { error } = await supabase
+          .from('settings')
+          .update({
+            value: settingsValue,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', existingData.id);
+          
+        saveError = error;
+      } else {
+        const { error } = await supabase
+          .from('settings')
+          .insert({
+            key: 'notification_settings',
+            value: settingsValue,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+          });
+          
+        saveError = error;
+      }
+
+      if (saveError) {
+        console.error('Error saving notification settings:', saveError);
+        toast({
+          title: "Error",
+          description: "Failed to save notification settings",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      toast({
+        title: "Success",
+        description: "Notification settings saved successfully"
+      });
+    } catch (error) {
+      console.error('Unexpected error:', error);
+      toast({
+        title: "Error",
+        description: "An unexpected error occurred",
+        variant: "destructive"
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleClearCache = async () => {
     try {
       setClearingCache(true);
@@ -363,6 +506,98 @@ const Settings = () => {
       });
     } finally {
       setClearingCache(false);
+    }
+  };
+
+  const handleSoundUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    try {
+      if (!e.target.files || e.target.files.length === 0) {
+        return;
+      }
+      
+      const file = e.target.files[0];
+      
+      if (!file.type.startsWith('audio/')) {
+        toast({
+          title: "Invalid file",
+          description: "Please upload an audio file (MP3, WAV, etc.)",
+          variant: "destructive"
+        });
+        return;
+      }
+      
+      if (file.size > 2 * 1024 * 1024) {
+        toast({
+          title: "File too large",
+          description: "Audio file must be less than 2MB",
+          variant: "destructive"
+        });
+        return;
+      }
+      
+      setUploadingSound(true);
+      
+      const soundUrl = await uploadFile(file, 'notification-sounds');
+      
+      if (soundUrl) {
+        setNotificationSettings(prev => ({
+          ...prev,
+          soundUrl,
+          soundName: file.name
+        }));
+        
+        toast({
+          title: "Sound uploaded",
+          description: "Notification sound uploaded successfully"
+        });
+      }
+    } catch (error) {
+      console.error('Error uploading sound:', error);
+      toast({
+        title: "Upload failed",
+        description: "Failed to upload notification sound",
+        variant: "destructive"
+      });
+    } finally {
+      setUploadingSound(false);
+      if (e.target) e.target.value = '';
+    }
+  };
+
+  const playTestSound = () => {
+    if (!notificationSettings.soundUrl) return;
+    
+    setTestingSound(true);
+    
+    try {
+      const audio = new Audio(notificationSettings.soundUrl);
+      audio.volume = notificationSettings.volume;
+      
+      audio.onended = () => {
+        setTestingSound(false);
+      };
+      
+      audio.onerror = () => {
+        setTestingSound(false);
+        toast({
+          title: "Playback error",
+          description: "Failed to play the notification sound",
+          variant: "destructive"
+        });
+      };
+      
+      audio.play().catch(err => {
+        console.error('Error playing audio:', err);
+        setTestingSound(false);
+        toast({
+          title: "Playback error",
+          description: "Failed to play the notification sound. User interaction may be needed first.",
+          variant: "destructive"
+        });
+      });
+    } catch (error) {
+      console.error('Error creating audio:', error);
+      setTestingSound(false);
     }
   };
 
@@ -531,13 +766,98 @@ const Settings = () => {
           <TabsContent value="notifications" className="mt-6">
             <Card>
               <CardHeader>
-                <CardTitle>Notification Settings</CardTitle>
+                <CardTitle className="flex items-center gap-2">
+                  <Bell className="h-5 w-5" />
+                  Notification Settings
+                </CardTitle>
                 <CardDescription>
-                  Configure how you receive order notifications.
+                  Configure how notifications are handled throughout the system.
                 </CardDescription>
               </CardHeader>
-              <CardContent>
-                <p className="text-gray-500">Notification settings coming soon.</p>
+              <CardContent className="space-y-6">
+                <div className="space-y-4">
+                  <h3 className="text-lg font-medium">Sound Notifications</h3>
+                  
+                  <div className="flex items-center space-x-2">
+                    <Switch 
+                      id="sound-enabled"
+                      checked={notificationSettings.soundEnabled}
+                      onCheckedChange={(checked) => handleNotificationSettingChange('soundEnabled', checked)}
+                    />
+                    <Label htmlFor="sound-enabled">
+                      Enable notification sounds
+                    </Label>
+                  </div>
+                  
+                  {notificationSettings.soundEnabled && (
+                    <div className="pl-7 space-y-4">
+                      <div className="space-y-2">
+                        <Label>Current notification sound</Label>
+                        <div className="flex items-center gap-2 p-3 rounded-md bg-muted text-sm">
+                          <Volume2 className="h-5 w-5 text-muted-foreground" />
+                          <span className="flex-1 truncate">
+                            {notificationSettings.soundName || 'Default notification'}
+                          </span>
+                          <Button 
+                            variant="outline" 
+                            size="sm"
+                            onClick={playTestSound}
+                            disabled={testingSound}
+                          >
+                            {testingSound ? 'Playing...' : 'Test Sound'}
+                          </Button>
+                        </div>
+                      </div>
+                      
+                      <div className="space-y-2">
+                        <Label htmlFor="notification-volume">Volume</Label>
+                        <div className="flex items-center gap-4">
+                          <input
+                            id="notification-volume"
+                            type="range"
+                            min="0"
+                            max="1"
+                            step="0.1"
+                            value={notificationSettings.volume}
+                            onChange={(e) => handleNotificationSettingChange('volume', parseFloat(e.target.value))}
+                            className="w-full"
+                          />
+                          <span className="text-sm">
+                            {Math.round(notificationSettings.volume * 100)}%
+                          </span>
+                        </div>
+                      </div>
+                      
+                      <div className="pt-2">
+                        <Label htmlFor="sound-file" className="block mb-2">Upload custom notification sound</Label>
+                        <div className="flex flex-col gap-2">
+                          <div className="flex gap-2">
+                            <Input
+                              id="sound-file"
+                              type="file"
+                              accept="audio/*"
+                              onChange={handleSoundUpload}
+                              disabled={uploadingSound}
+                              className="flex-1"
+                            />
+                          </div>
+                          <p className="text-xs text-muted-foreground">
+                            Accepted formats: MP3, WAV, OGG (max 2MB)
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+                
+                <Button 
+                  onClick={saveNotificationSettings}
+                  disabled={loading}
+                  className="mt-4"
+                >
+                  <Save className="h-4 w-4 mr-2" />
+                  {loading ? 'Saving...' : 'Save Notification Settings'}
+                </Button>
               </CardContent>
             </Card>
           </TabsContent>
