@@ -10,7 +10,7 @@ interface LayoutProps {
 const Layout: React.FC<LayoutProps> = ({ children, className = '' }) => {
   return (
     <motion.div 
-      className={`h-screen w-screen flex flex-col overflow-auto ${className}`}
+      className={`min-h-screen w-full flex flex-col overflow-auto ${className}`}
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{ duration: 0.3 }}
