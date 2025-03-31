@@ -14,8 +14,7 @@ import { Separator } from '@/components/ui/separator';
 import { Button } from '@/components/ui/button';
 import { format, formatDistance } from 'date-fns';
 import { NotificationSettingsModal } from '@/components/admin/NotificationSettingsModal';
-
-let audioContext: AudioContext | null = null;
+import { playNotificationSound, preloadAudio } from '@/utils/audioUtils';
 
 const KitchenDisplay = () => {
   const [columns, setColumns] = useState<{
@@ -38,7 +37,6 @@ const KitchenDisplay = () => {
   
   const queryClient = useQueryClient();
   const prevOrdersRef = useRef<Order[]>([]);
-  const audioBufferRef = useRef<AudioBuffer | null>(null);
   
   useEffect(() => {
     const loadNotificationSettings = async () => {
@@ -54,88 +52,37 @@ const KitchenDisplay = () => {
           setSoundEnabled(settings.enabled !== undefined ? settings.enabled : true);
           setSoundUrl(settings.soundUrl || '/notification.mp3');
           
-          if (!audioContext) {
-            audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
-            fetchAndDecodeAudio(settings.soundUrl || '/notification.mp3');
+          if (settings.enabled && settings.soundUrl) {
+            preloadAudio(settings.soundUrl || '/notification.mp3')
+              .catch(err => console.error('Error preloading notification sound:', err));
           }
         } else {
-          if (!audioContext) {
-            audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
-            fetchAndDecodeAudio('/notification.mp3');
-          }
+          preloadAudio('/notification.mp3')
+            .catch(err => console.error('Error preloading default notification sound:', err));
         }
       } catch (error) {
         console.error('Error loading notification settings:', error);
-        if (!audioContext) {
-          audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
-          fetchAndDecodeAudio('/notification.mp3');
-        }
+        preloadAudio('/notification.mp3')
+          .catch(err => console.error('Error preloading default notification sound:', err));
       }
     };
 
     loadNotificationSettings();
-    
-    return () => {
-      if (audioContext && audioContext.state !== 'closed') {
-        audioContext.close();
-        audioContext = null;
-      }
-    };
   }, []);
   
-  const fetchAndDecodeAudio = async (url: string) => {
-    if (!audioContext) return;
-    
-    try {
-      const response = await fetch(url);
-      if (!response.ok) {
-        throw new Error('Failed to fetch audio file');
-      }
-      
-      const arrayBuffer = await response.arrayBuffer();
-      audioContext.decodeAudioData(
-        arrayBuffer,
-        (buffer) => {
-          audioBufferRef.current = buffer;
-        },
-        (err) => {
-          console.error('Error decoding audio data:', err);
-        }
-      );
-    } catch (error) {
-      console.error('Error fetching audio file:', error);
-    }
-  };
-  
-  const playNotificationSound = () => {
-    if (!soundEnabled || !audioContext || !audioBufferRef.current) return;
-    
-    try {
-      if (audioContext.state === 'suspended') {
-        audioContext.resume();
-      }
-      
-      const source = audioContext.createBufferSource();
-      source.buffer = audioBufferRef.current;
-      source.connect(audioContext.destination);
-      source.start(0);
-    } catch (err) {
-      console.error('Failed to play notification sound:', err);
-      
-      try {
-        const audio = new Audio(soundUrl);
-        audio.play().catch(e => console.error('Fallback audio failed:', e));
-      } catch (fallbackErr) {
-        console.error('All audio playback methods failed:', fallbackErr);
-      }
-    }
-  };
-  
   useEffect(() => {
-    if (soundUrl && audioContext) {
-      fetchAndDecodeAudio(soundUrl);
+    if (soundUrl && soundEnabled) {
+      preloadAudio(soundUrl)
+        .catch(err => console.error('Error preloading updated notification sound:', err));
     }
-  }, [soundUrl]);
+  }, [soundUrl, soundEnabled]);
+  
+  const handlePlayNotification = () => {
+    if (!soundEnabled || !soundUrl) return;
+    
+    playNotificationSound(soundUrl)
+      .catch(err => console.error('Error playing notification sound:', err));
+  };
   
   const { data: orders = [], isLoading, isError, refetch } = useQuery({
     queryKey: ['kds-orders'],
@@ -176,7 +123,7 @@ const KitchenDisplay = () => {
             description: `${newOrder.items_count} items - $${newOrder.total_amount.toFixed(2)}`,
           });
           
-          playNotificationSound();
+          handlePlayNotification();
         }
       }
       
@@ -315,7 +262,7 @@ const KitchenDisplay = () => {
           console.log('Order update received:', payload);
           
           if (payload.eventType === 'INSERT') {
-            playNotificationSound();
+            handlePlayNotification();
             
             toast.success(`New Order #${payload.new.id} Received!`, {
               description: `${payload.new.items_count} items - $${payload.new.total_amount.toFixed(2)}`,
@@ -332,19 +279,14 @@ const KitchenDisplay = () => {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [queryClient, soundEnabled]);
+  }, [queryClient, soundEnabled, soundUrl]);
   
   const renderSoundButton = () => {
     return (
       <Button 
         variant="outline" 
         size="icon"
-        onClick={() => {
-          if (audioContext && audioContext.state === 'suspended') {
-            audioContext.resume();
-          }
-          setIsSettingsOpen(true);
-        }}
+        onClick={() => setIsSettingsOpen(true)}
         title="Notification Settings"
       >
         {soundEnabled ? (
@@ -715,12 +657,7 @@ const KitchenDisplay = () => {
             {renderSoundButton()}
             <Button 
               variant="outline" 
-              onClick={() => {
-                if (audioContext && audioContext.state === 'suspended') {
-                  audioContext.resume();
-                }
-                refetch();
-              }}
+              onClick={() => refetch()}
             >
               <RefreshCw className="h-4 w-4 mr-2" />
               Refresh
@@ -767,7 +704,8 @@ const KitchenDisplay = () => {
                   
                   if (settings.soundUrl !== soundUrl) {
                     setSoundUrl(settings.soundUrl || '/notification.mp3');
-                    fetchAndDecodeAudio(settings.soundUrl || '/notification.mp3');
+                    preloadAudio(settings.soundUrl || '/notification.mp3')
+                      .catch(err => console.error('Error preloading updated notification sound:', err));
                   }
                 }
               } catch (error) {

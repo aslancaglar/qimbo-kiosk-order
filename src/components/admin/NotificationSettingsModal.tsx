@@ -7,6 +7,7 @@ import { Switch } from '@/components/ui/switch';
 import { Volume2, VolumeX, RotateCcw } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { playNotificationSound } from '@/utils/audioUtils';
 
 interface NotificationSettingsProps {
   isOpen: boolean;
@@ -18,7 +19,6 @@ export const NotificationSettingsModal: React.FC<NotificationSettingsProps> = ({
   const [soundUrl, setSoundUrl] = useState('/notification.mp3');
   const [isLoading, setIsLoading] = useState(false);
   const [isTesting, setIsTesting] = useState(false);
-  const audioRef = useRef<HTMLAudioElement | null>(null);
 
   // Load settings from localStorage on component mount
   useEffect(() => {
@@ -43,50 +43,22 @@ export const NotificationSettingsModal: React.FC<NotificationSettingsProps> = ({
     if (isOpen) {
       loadSettings();
     }
-    
-    return () => {
-      if (audioRef.current) {
-        audioRef.current.pause();
-        audioRef.current = null;
-      }
-    };
   }, [isOpen]);
 
   const handleTestSound = () => {
     if (!enabled || !soundUrl) return;
     setIsTesting(true);
 
-    try {
-      // Create a new audio element each time to avoid caching issues
-      const audio = new Audio(soundUrl);
-      
-      // Set up event handlers
-      audio.onended = () => {
+    playNotificationSound(soundUrl)
+      .then(() => {
+        // Test successful
+      })
+      .catch((error) => {
+        toast.error(error.message || 'Failed to play sound. Please check the URL and try again.');
+      })
+      .finally(() => {
         setIsTesting(false);
-      };
-      
-      audio.onerror = (e) => {
-        console.error('Error playing sound:', e);
-        toast.error('Failed to play sound. Please check the URL and try again.');
-        setIsTesting(false);
-      };
-      
-      // Attempt to play the sound with user interaction
-      audio.play()
-        .then(() => {
-          // Keep track of the audio element
-          audioRef.current = audio;
-        })
-        .catch((error) => {
-          console.error('Error playing sound:', error);
-          toast.error('Failed to play sound. Please check the URL and try again.');
-          setIsTesting(false);
-        });
-    } catch (error) {
-      console.error('Error testing sound:', error);
-      toast.error('Invalid sound URL. Please enter a valid audio file URL.');
-      setIsTesting(false);
-    }
+      });
   };
 
   const handleResetToDefault = () => {
@@ -98,6 +70,17 @@ export const NotificationSettingsModal: React.FC<NotificationSettingsProps> = ({
   const handleSaveSettings = async () => {
     setIsLoading(true);
     try {
+      // Test the sound first if enabled and a URL is provided
+      if (enabled && soundUrl) {
+        try {
+          await playNotificationSound(soundUrl);
+        } catch (error) {
+          toast.error('Invalid sound URL. Please enter a valid audio file URL or use the default.');
+          setIsLoading(false);
+          return;
+        }
+      }
+
       const { data: existingData } = await supabase
         .from('settings')
         .select('id')
