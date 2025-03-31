@@ -234,12 +234,18 @@ const KitchenDisplay = () => {
   
   useEffect(() => {
     if (orders) {
+      const newOrders = orders.filter(order => order.status === 'New');
+      const inProgressOrders = orders.filter(order => order.status === 'In Progress');
+      
+      const completedOrders = orders
+        .filter(order => order.status === 'Completed')
+        .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+        .slice(0, 30);
+      
       const newColumns = {
-        'New': orders.filter(order => 
-          order.status === 'New'
-        ),
-        'In Progress': orders.filter(order => order.status === 'In Progress'),
-        'Completed': orders.filter(order => order.status === 'Completed'),
+        'New': newOrders,
+        'In Progress': inProgressOrders,
+        'Completed': completedOrders,
       };
       
       setColumns(newColumns);
@@ -256,7 +262,7 @@ const KitchenDisplay = () => {
         if (newOrder) {
           console.log('KDS: New order identified:', newOrder);
           toast.success(`New Order #${newOrder.id} Received!`, {
-            description: `${newOrder.items_count} items - $${newOrder.total_amount.toFixed(2)}`,
+            description: `${newOrder.items_count} items - ${newOrder.total_amount.toFixed(2)} €`,
           });
           playNotificationSound();
         }
@@ -282,7 +288,7 @@ const KitchenDisplay = () => {
             playNotificationSound();
             
             toast.success(`New Order #${payload.new.id} Received!`, {
-              description: `${payload.new.items_count} items - $${payload.new.total_amount.toFixed(2)}`,
+              description: `${payload.new.items_count} items - ${payload.new.total_amount.toFixed(2)} €`,
             });
           }
           
