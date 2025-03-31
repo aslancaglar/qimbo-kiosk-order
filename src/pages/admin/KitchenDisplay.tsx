@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import AdminLayout from '../../components/admin/AdminLayout';
@@ -17,7 +16,7 @@ import { format, formatDistance } from 'date-fns';
 import { NotificationSettingsModal } from '@/components/admin/NotificationSettingsModal';
 
 // Sound notification for new orders
-let notificationSound: HTMLAudioElement;
+let notificationSound: HTMLAudioElement | null = null;
 
 const KitchenDisplay = () => {
   const [columns, setColumns] = useState<{
@@ -56,24 +55,45 @@ const KitchenDisplay = () => {
           
           // Initialize sound with the saved URL or default
           const soundUrl = settings.soundUrl || '/notification.mp3';
-          notificationSound = new Audio(soundUrl);
+          
+          // Create and configure audio element
+          if (!notificationSound) {
+            notificationSound = new Audio(soundUrl);
+            notificationSound.preload = 'auto';
+          } else {
+            notificationSound.src = soundUrl;
+          }
           
           // Preload the sound
           notificationSound.load();
         } else {
           // Default sound if no settings are saved
-          notificationSound = new Audio('/notification.mp3');
-          notificationSound.load();
+          if (!notificationSound) {
+            notificationSound = new Audio('/notification.mp3');
+            notificationSound.preload = 'auto';
+            notificationSound.load();
+          }
         }
       } catch (error) {
         console.error('Error loading notification settings:', error);
         // Use default sound on error
-        notificationSound = new Audio('/notification.mp3');
-        notificationSound.load();
+        if (!notificationSound) {
+          notificationSound = new Audio('/notification.mp3');
+          notificationSound.preload = 'auto';
+          notificationSound.load();
+        }
       }
     };
 
     loadNotificationSettings();
+    
+    // Cleanup
+    return () => {
+      if (notificationSound) {
+        notificationSound.pause();
+        notificationSound = null;
+      }
+    };
   }, []);
   
   // Fetch all orders
@@ -120,9 +140,17 @@ const KitchenDisplay = () => {
           
           // Play notification sound if enabled
           if (soundEnabled && notificationSound) {
-            notificationSound.play().catch(e => {
-              console.error('Failed to play notification sound:', e);
-            });
+            try {
+              const playPromise = notificationSound.play();
+              
+              if (playPromise !== undefined) {
+                playPromise.catch(err => {
+                  console.error('Error playing sound:', err);
+                });
+              }
+            } catch (err) {
+              console.error('Failed to play notification sound:', err);
+            }
           }
         }
       }
@@ -281,12 +309,22 @@ const KitchenDisplay = () => {
           if (payload.eventType === 'INSERT') {
             // Play notification sound for real-time new orders
             if (soundEnabled && notificationSound) {
-              notificationSound.play().catch(e => console.error('Failed to play notification sound:', e));
+              try {
+                const playPromise = notificationSound.play();
+                
+                if (playPromise !== undefined) {
+                  playPromise.catch(err => {
+                    console.error('Error playing sound:', err);
+                  });
+                }
+              } catch (err) {
+                console.error('Failed to play notification sound:', err);
+              }
+              
+              toast.success(`New Order #${payload.new.id} Received!`, {
+                description: `${payload.new.items_count} items - $${payload.new.total_amount.toFixed(2)}`,
+              });
             }
-            
-            toast.success(`New Order #${payload.new.id} Received!`, {
-              description: `${payload.new.items_count} items - $${payload.new.total_amount.toFixed(2)}`,
-            });
           }
           
           // Refetch orders to update the display
@@ -726,7 +764,10 @@ const KitchenDisplay = () => {
                   setSoundEnabled(settings.enabled !== undefined ? settings.enabled : true);
                   
                   // Update the notification sound with the new URL if changed
-                  if (settings.soundUrl && (!notificationSound || notificationSound.src !== settings.soundUrl)) {
+                  if (notificationSound && settings.soundUrl) {
+                    notificationSound.src = settings.soundUrl;
+                    notificationSound.load();
+                  } else if (settings.soundUrl) {
                     notificationSound = new Audio(settings.soundUrl);
                     notificationSound.load();
                   }
