@@ -549,8 +549,8 @@ const KitchenDisplay = () => {
     
     return (
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-        <DialogContent className="max-w-3xl max-h-[90vh] overflow-hidden">
-          <DialogHeader>
+        <DialogContent contentScrollable={true} enableScrollArea={false} className="max-w-3xl max-h-[90vh] flex flex-col">
+          <DialogHeader className="px-6 pt-6">
             <DialogTitle className="flex justify-between items-center">
               <span>Order #{selectedOrder.id}</span>
               <Badge variant={
@@ -568,57 +568,57 @@ const KitchenDisplay = () => {
             </DialogDescription>
           </DialogHeader>
           
-          <ScrollArea className="max-h-[60vh]">
-            <div className="space-y-4 p-1">
-              <div className="grid grid-cols-2 gap-4 text-sm">
-                <Card>
-                  <CardHeader className="p-3 pb-0">
-                    <CardTitle className="text-base">Order Summary</CardTitle>
-                  </CardHeader>
-                  <CardContent className="p-3 pt-1">
-                    <div className="space-y-1">
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">Items:</span>
-                        <span>{selectedOrder.items_count}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">Total:</span>
-                        <span className="font-medium">${selectedOrder.total_amount.toFixed(2)}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">Created:</span>
-                        <span>{formatDistance(new Date(selectedOrder.created_at), new Date(), { addSuffix: true })}</span>
-                      </div>
+          <div className="grid grid-cols-2 gap-4 text-sm px-6 pt-2">
+            <Card>
+              <CardHeader className="p-3 pb-0">
+                <CardTitle className="text-base">Order Summary</CardTitle>
+              </CardHeader>
+              <CardContent className="p-3 pt-1">
+                <div className="space-y-1">
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Items:</span>
+                    <span>{selectedOrder.items_count}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Total:</span>
+                    <span className="font-medium">${selectedOrder.total_amount.toFixed(2)}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Created:</span>
+                    <span>{formatDistance(new Date(selectedOrder.created_at), new Date(), { addSuffix: true })}</span>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+            
+            <Card>
+              <CardHeader className="p-3 pb-0">
+                <CardTitle className="text-base">Customer Info</CardTitle>
+              </CardHeader>
+              <CardContent className="p-3 pt-1">
+                <div className="space-y-1">
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Type:</span>
+                    <span>{selectedOrder.customer_type}</span>
+                  </div>
+                  {selectedOrder.customer_type === 'Table' && (
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Table Number:</span>
+                      <span>{selectedOrder.table_number}</span>
                     </div>
-                  </CardContent>
-                </Card>
-                
-                <Card>
-                  <CardHeader className="p-3 pb-0">
-                    <CardTitle className="text-base">Customer Info</CardTitle>
-                  </CardHeader>
-                  <CardContent className="p-3 pt-1">
-                    <div className="space-y-1">
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">Type:</span>
-                        <span>{selectedOrder.customer_type}</span>
-                      </div>
-                      {selectedOrder.customer_type === 'Table' && (
-                        <div className="flex justify-between">
-                          <span className="text-muted-foreground">Table Number:</span>
-                          <span>{selectedOrder.table_number}</span>
-                        </div>
-                      )}
-                    </div>
-                  </CardContent>
-                </Card>
-              </div>
-              
-              <Card>
-                <CardHeader className="p-3 pb-0">
-                  <CardTitle className="text-base">Order Items</CardTitle>
-                </CardHeader>
-                <CardContent className="p-3 pt-1">
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+          
+          <div className="px-6 py-2 flex-1 overflow-hidden">
+            <Card className="h-full flex flex-col">
+              <CardHeader className="p-3 pb-0">
+                <CardTitle className="text-base">Order Items</CardTitle>
+              </CardHeader>
+              <CardContent className="p-3 pt-1 flex-1 overflow-hidden">
+                <ScrollArea className="h-full max-h-[350px]">
                   {isLoadingDetails ? (
                     <div className="flex justify-center py-8">
                       <div className="animate-spin w-6 h-6 border-2 border-primary border-t-transparent rounded-full"></div>
@@ -628,7 +628,7 @@ const KitchenDisplay = () => {
                       No items found for this order
                     </div>
                   ) : (
-                    <div className="space-y-3">
+                    <div className="space-y-3 pr-2">
                       {orderDetails.map((item) => (
                         <div key={item.id} className="border rounded-md p-3">
                           <div className="flex justify-between items-start">
@@ -667,12 +667,12 @@ const KitchenDisplay = () => {
                       ))}
                     </div>
                   )}
-                </CardContent>
-              </Card>
-            </div>
-          </ScrollArea>
+                </ScrollArea>
+              </CardContent>
+            </Card>
+          </div>
           
-          <div className="flex justify-between mt-2">
+          <div className="flex justify-between px-6 pb-6 pt-2 border-t mt-2">
             <div className="flex gap-2">
               <Button 
                 variant="outline" 
