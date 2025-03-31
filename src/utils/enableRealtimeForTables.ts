@@ -3,6 +3,12 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/components/ui/use-toast";
 import { RealtimePostgresChangesFilter } from "@supabase/supabase-js";
 
+// Create a global audio object for notification sound
+const notificationSound = new Audio("http://guqe0132.odns.fr/simple-notification-152054.mp3");
+
+// Preload the sound for faster response
+notificationSound.load();
+
 /**
  * Enables real-time functionality for specified tables through Supabase
  * This function should be called once during application initialization
@@ -22,6 +28,11 @@ export const enableRealtimeForTables = async () => {
           
           // Show toast notification for new orders
           if (payload.eventType === 'INSERT') {
+            // Play notification sound for new orders
+            notificationSound.play().catch(err => {
+              console.error('Failed to play notification sound:', err);
+            });
+            
             toast({
               title: "New Order Received",
               description: `Order #${payload.new.id} has been created with status: ${payload.new.status}`,
