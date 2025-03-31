@@ -678,17 +678,9 @@ const KitchenDisplay = () => {
                 variant="outline" 
                 onClick={() => {
                   setIsModalOpen(false);
-                  testNotificationSound();
                 }}
               >
                 Close
-              </Button>
-              <Button
-                variant="outline"
-                onClick={initializeAudio}
-                className="flex gap-2 items-center"
-              >
-                <Bell size={16} /> Test Sound
               </Button>
             </div>
             <div className="flex gap-2">
