@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import AdminLayout from '../../components/admin/AdminLayout';
@@ -198,7 +199,8 @@ const KitchenDisplay = () => {
       const { data, error } = await supabase
         .from('orders')
         .select('*')
-        .order('created_at', { ascending: false });
+        .order('created_at', { ascending: false })
+        .limit(50);
       
       if (error) {
         console.error('KDS: Error fetching orders:', error);
@@ -239,7 +241,9 @@ const KitchenDisplay = () => {
           order.status === 'New'
         ),
         'In Progress': orders.filter(order => order.status === 'In Progress'),
-        'Completed': orders.filter(order => order.status === 'Completed'),
+        'Completed': orders.filter(order => order.status === 'Completed')
+          .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+          .slice(0, 6), // Only show the 6 most recent completed orders
       };
       
       setColumns(newColumns);
