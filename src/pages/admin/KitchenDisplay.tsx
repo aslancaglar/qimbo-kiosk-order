@@ -549,7 +549,7 @@ const KitchenDisplay = () => {
     
     return (
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-        <DialogContent contentScrollable={true} enableScrollArea={false} className="max-w-3xl max-h-[90vh] flex flex-col">
+        <DialogContent contentScrollable={true} className="max-w-3xl max-h-[90vh] flex flex-col">
           <DialogHeader className="px-6 pt-6">
             <DialogTitle className="flex justify-between items-center">
               <span>Order #{selectedOrder.id}</span>
@@ -612,62 +612,60 @@ const KitchenDisplay = () => {
             </Card>
           </div>
           
-          <div className="px-6 py-2 flex-1 overflow-hidden">
+          <div className="px-6 py-2 flex-1 overflow-y-auto">
             <Card className="h-full flex flex-col">
               <CardHeader className="p-3 pb-0">
                 <CardTitle className="text-base">Order Items</CardTitle>
               </CardHeader>
-              <CardContent className="p-3 pt-1 flex-1 overflow-hidden">
-                <ScrollArea className="h-full max-h-[350px]">
-                  {isLoadingDetails ? (
-                    <div className="flex justify-center py-8">
-                      <div className="animate-spin w-6 h-6 border-2 border-primary border-t-transparent rounded-full"></div>
-                    </div>
-                  ) : orderDetails.length === 0 ? (
-                    <div className="text-center py-4 text-muted-foreground">
-                      No items found for this order
-                    </div>
-                  ) : (
-                    <div className="space-y-3 pr-2">
-                      {orderDetails.map((item) => (
-                        <div key={item.id} className="border rounded-md p-3">
-                          <div className="flex justify-between items-start">
-                            <div className="space-y-1">
-                              <p className="font-medium">
-                                {item.quantity}x {item.menu_item?.name}
-                              </p>
-                              <p className="text-sm text-muted-foreground">
-                                ${item.price.toFixed(2)} each
-                              </p>
-                              {item.notes && (
-                                <p className="text-sm italic bg-muted p-1 rounded-sm mt-1">
-                                  Note: {item.notes}
-                                </p>
-                              )}
-                            </div>
+              <CardContent className="p-3 pt-1 flex-1 overflow-y-auto">
+                {isLoadingDetails ? (
+                  <div className="flex justify-center py-8">
+                    <div className="animate-spin w-6 h-6 border-2 border-primary border-t-transparent rounded-full"></div>
+                  </div>
+                ) : orderDetails.length === 0 ? (
+                  <div className="text-center py-4 text-muted-foreground">
+                    No items found for this order
+                  </div>
+                ) : (
+                  <div className="space-y-3 pr-2">
+                    {orderDetails.map((item) => (
+                      <div key={item.id} className="border rounded-md p-3">
+                        <div className="flex justify-between items-start">
+                          <div className="space-y-1">
                             <p className="font-medium">
-                              ${(item.price * item.quantity).toFixed(2)}
+                              {item.quantity}x {item.menu_item?.name}
                             </p>
+                            <p className="text-sm text-muted-foreground">
+                              ${item.price.toFixed(2)} each
+                            </p>
+                            {item.notes && (
+                              <p className="text-sm italic bg-muted p-1 rounded-sm mt-1">
+                                Note: {item.notes}
+                              </p>
+                            )}
                           </div>
-                          
-                          {item.toppings && item.toppings.length > 0 && (
-                            <div className="mt-2 border-t pt-2">
-                              <p className="text-xs text-muted-foreground mb-1">Toppings:</p>
-                              <div className="pl-2 space-y-1">
-                                {item.toppings.map((topping) => (
-                                  <div key={topping.id} className="flex justify-between text-sm">
-                                    <span>{topping.topping?.name}</span>
-                                    <span>${topping.price.toFixed(2)}</span>
-                                  </div>
-                                ))}
-                              </div>
-                            </div>
-                          )}
+                          <p className="font-medium">
+                            ${(item.price * item.quantity).toFixed(2)}
+                          </p>
                         </div>
-                      ))}
-                    </div>
-                  )}
-                </ScrollArea>
+                        
+                        {item.toppings && item.toppings.length > 0 && (
+                          <div className="mt-2 border-t pt-2">
+                            <p className="text-xs text-muted-foreground mb-1">Toppings:</p>
+                            <div className="pl-2 space-y-1">
+                              {item.toppings.map((topping) => (
+                                <div key={topping.id} className="flex justify-between text-sm">
+                                  <span>{topping.topping?.name}</span>
+                                  <span>${topping.price.toFixed(2)}</span>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
               </CardContent>
             </Card>
           </div>
