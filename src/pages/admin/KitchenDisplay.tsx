@@ -198,8 +198,7 @@ const KitchenDisplay = () => {
       const { data, error } = await supabase
         .from('orders')
         .select('*')
-        .order('created_at', { ascending: false })
-        .limit(50);
+        .order('created_at', { ascending: false });
       
       if (error) {
         console.error('KDS: Error fetching orders:', error);
