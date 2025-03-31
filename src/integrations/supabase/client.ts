@@ -20,12 +20,12 @@ export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABL
 });
 
 /**
- * Initialize storage bucket for menu images and audio files
- * @returns {Promise<boolean>} True if buckets exist or were created, false otherwise
+ * Initialize storage bucket for menu images
+ * @returns {Promise<boolean>} True if bucket exists or was created, false otherwise
  */
 export const initializeStorage = async () => {
   try {
-    // Check if the buckets exist
+    // Check if the bucket exists
     const { data: buckets, error: bucketsError } = await supabase
       .storage
       .listBuckets();
@@ -35,21 +35,15 @@ export const initializeStorage = async () => {
       return false;
     }
     
-    const menuBucketExists = buckets.some(bucket => bucket.name === 'menu-images');
-    const audioBucketExists = buckets.some(bucket => bucket.name === 'audio-files');
+    const bucketExists = buckets.some(bucket => bucket.name === 'menu-images');
     
-    if (!menuBucketExists) {
+    if (!bucketExists) {
       console.error('The menu-images bucket does not exist in Supabase. Please create it in the dashboard or run SQL migrations.');
+      return false;
     }
     
-    if (!audioBucketExists) {
-      console.error('The audio-files bucket does not exist in Supabase. Please create it in the dashboard.');
-      
-      // We won't try to create the bucket anymore as it requires admin permissions
-      // Instead, we'll use a fallback to localStorage for audio files
-    }
-    
-    return menuBucketExists || audioBucketExists;
+    console.log('Successfully verified menu-images bucket exists');
+    return true;
   } catch (error) {
     console.error('Error initializing storage:', error);
     return false;
@@ -57,109 +51,44 @@ export const initializeStorage = async () => {
 };
 
 /**
- * Upload a file to Supabase Storage or fallback to localStorage for audio files
+ * Upload an image to Supabase Storage
  * @param {File} file - The file to upload
- * @param {string} bucketName - The bucket name to upload to
+ * @param {string} bucketName - The bucket name to upload to 
  * @returns {Promise<string|null>} The public URL if successful, null if failed
  */
 export const uploadImage = async (file: File, bucketName: string = 'menu-images'): Promise<string | null> => {
   try {
-    // First check if the bucket exists
-    await initializeStorage();
-    
     // Create a unique file name
     const fileExt = file.name.split('.').pop();
     const fileName = `${Date.now()}-${Math.random().toString(36).substring(2, 15)}.${fileExt}`;
     
     console.log(`Uploading file ${fileName} to ${bucketName} bucket...`);
     
-    // If this is an audio file and we're targeting the audio-files bucket, try using storage API
-    if (bucketName === 'audio-files') {
-      try {
-        // Try to upload to Supabase first
-        const { data, error } = await supabase.storage
-          .from(bucketName)
-          .upload(fileName, file, {
-            cacheControl: '3600',
-            upsert: false
-          });
-          
-        if (error) {
-          // If bucket doesn't exist or permission denied, use localStorage fallback
-          console.error('Upload error:', error);
-          throw error;
-        }
-        
-        console.log('File uploaded successfully to Supabase:', data);
-        
-        // Get public URL
-        const { data: { publicUrl } } = supabase.storage
-          .from(bucketName)
-          .getPublicUrl(data.path);
-          
-        console.log('Public URL from Supabase:', publicUrl);
-        
-        // Store the URL in localStorage
-        if (typeof window !== 'undefined') {
-          window.localStorage.setItem('kds_notification_sound_url', JSON.stringify(publicUrl));
-        }
-        
-        return publicUrl;
-      } catch (uploadError) {
-        // Fallback to using local storage for audio files
-        console.log('Falling back to localStorage for audio storage');
-        
-        return new Promise((resolve) => {
-          const reader = new FileReader();
-          
-          reader.onload = (event) => {
-            if (event.target && event.target.result) {
-              const dataUrl = event.target.result.toString();
-              
-              // Save to localStorage
-              if (typeof window !== 'undefined') {
-                window.localStorage.setItem('kds_notification_sound_url', JSON.stringify(dataUrl));
-                window.localStorage.setItem('kds_notification_sound_name', file.name);
-              }
-              
-              console.log('Audio file saved to localStorage');
-              resolve(dataUrl);
-            } else {
-              resolve(null);
-            }
-          };
-          
-          // Read file as data URL
-          reader.readAsDataURL(file);
-        });
-      }
-    } else {
-      // Regular image upload to menu-images bucket
-      const { data, error } = await supabase.storage
-        .from(bucketName)
-        .upload(fileName, file, {
-          cacheControl: '3600',
-          upsert: false
-        });
-        
-      if (error) {
-        console.error('Upload error:', error);
-        throw error;
-      }
+    // Upload the file
+    const { data, error } = await supabase.storage
+      .from(bucketName)
+      .upload(fileName, file, {
+        cacheControl: '3600',
+        upsert: false
+      });
       
-      console.log('File uploaded successfully:', data);
-      
-      // Get public URL
-      const { data: { publicUrl } } = supabase.storage
-        .from(bucketName)
-        .getPublicUrl(data.path);
-        
-      console.log('Public URL:', publicUrl);
-      
-      return publicUrl;
+    if (error) {
+      console.error('Upload error:', error);
+      throw error;
     }
+    
+    console.log('File uploaded successfully:', data);
+    
+    // Get public URL
+    const { data: { publicUrl } } = supabase.storage
+      .from(bucketName)
+      .getPublicUrl(data.path);
+      
+    console.log('Public URL:', publicUrl);
+    
+    return publicUrl;
   } catch (error) {
-    console.error('Error uploading file:', error);
+    console.error('Error uploading image:', error);
     return null;
   }
 };

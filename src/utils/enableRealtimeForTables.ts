@@ -2,7 +2,6 @@
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/components/ui/use-toast";
 import { RealtimePostgresChangesFilter } from "@supabase/supabase-js";
-import { playNotificationSound } from "@/utils/audioUtils";
 
 /**
  * Enables real-time functionality for specified tables through Supabase
@@ -27,27 +26,6 @@ export const enableRealtimeForTables = async () => {
               title: "New Order Received",
               description: `Order #${payload.new.id} has been created with status: ${payload.new.status}`,
             });
-            
-            // Play notification sound for new orders
-            const notificationsEnabled = localStorage.getItem('kds_notification_enabled');
-            const soundUrl = localStorage.getItem('kds_notification_sound_url');
-            
-            console.log('Notification settings:', { notificationsEnabled, soundUrl });
-            
-            if (notificationsEnabled !== 'false' && soundUrl) {
-              try {
-                // Parse the JSON string from localStorage
-                const parsedSoundUrl = JSON.parse(soundUrl);
-                console.log('Playing notification sound:', parsedSoundUrl);
-                playNotificationSound(parsedSoundUrl);
-              } catch (error) {
-                console.error('Error parsing or playing notification sound:', error);
-                // Try using the raw string if parsing fails
-                if (soundUrl) {
-                  playNotificationSound(soundUrl);
-                }
-              }
-            }
             
             // Log to verify we're receiving new orders
             console.log('New order created and detected by realtime:', payload.new);
