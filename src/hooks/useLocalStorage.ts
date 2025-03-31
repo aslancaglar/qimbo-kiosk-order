@@ -55,9 +55,7 @@ export function useLocalStorage<T>(
 
   // State to store our value
   // Pass initial state function to useState so logic is only executed once
-  const [storedValue, setStoredValue] = useState<T>(() => {
-    return readValue();
-  });
+  const [storedValue, setStoredValue] = useState<T>(readValue);
 
   // Return a wrapped version of useState's setter function that
   // persists the new value to localStorage.
@@ -93,7 +91,7 @@ export function useLocalStorage<T>(
     }
   };
 
-  // Listen for changes to this localStorage key in other tabs/windows
+  // Update the stored value if localStorage changes in another tab
   useEffect(() => {
     const handleStorageChange = (e: StorageEvent) => {
       if (e.key === key && e.newValue !== e.oldValue) {
@@ -123,6 +121,11 @@ export function useLocalStorage<T>(
     }
     return undefined;
   }, [key, initialValue]);
+
+  // Re-read from localStorage if the key changes
+  useEffect(() => {
+    setStoredValue(readValue());
+  }, [key]);
 
   return [storedValue, setValue];
 }
