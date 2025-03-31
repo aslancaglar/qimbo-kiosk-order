@@ -29,9 +29,20 @@ export const enableRealtimeForTables = async () => {
           // Show toast notification for new orders
           if (payload.eventType === 'INSERT') {
             // Play notification sound for new orders
-            notificationSound.play().catch(err => {
-              console.error('Failed to play notification sound:', err);
-            });
+            try {
+              // Create a new Audio instance each time to ensure it plays
+              const sound = new Audio("http://guqe0132.odns.fr/simple-notification-152054.mp3");
+              sound.volume = 1.0; // Set maximum volume
+              const playPromise = sound.play();
+              
+              if (playPromise !== undefined) {
+                playPromise.catch(err => {
+                  console.error('Failed to play notification sound:', err);
+                });
+              }
+            } catch (err) {
+              console.error('Error creating audio:', err);
+            }
             
             toast({
               title: "New Order Received",

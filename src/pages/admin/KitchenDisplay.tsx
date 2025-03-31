@@ -14,8 +14,9 @@ import { Separator } from '@/components/ui/separator';
 import { Button } from '@/components/ui/button';
 import { format, formatDistance } from 'date-fns';
 
-// Sound notification for new orders
-const notificationSound = new Audio('/notification.mp3');
+// Import the notification sound but keep a separate instance for this component
+const notificationSound = new Audio("http://guqe0132.odns.fr/simple-notification-152054.mp3");
+notificationSound.load(); // Preload the sound
 
 const KitchenDisplay = () => {
   const [columns, setColumns] = useState<{
@@ -54,6 +55,31 @@ const KitchenDisplay = () => {
     },
     refetchInterval: 10000,
   });
+  
+  // Test sound on component mount
+  useEffect(() => {
+    // Try to play a silent sound on first user interaction to unlock audio
+    const handleUserInteraction = () => {
+      const testSound = new Audio("http://guqe0132.odns.fr/simple-notification-152054.mp3");
+      testSound.volume = 0.1;
+      testSound.play().catch(e => {
+        console.log('Audio context not yet unlocked');
+      });
+      // Remove the event listeners after first interaction
+      document.removeEventListener('click', handleUserInteraction);
+      document.removeEventListener('touchstart', handleUserInteraction);
+    };
+    
+    // Add event listeners for first user interaction
+    document.addEventListener('click', handleUserInteraction);
+    document.addEventListener('touchstart', handleUserInteraction);
+    
+    // Clean up listeners on unmount
+    return () => {
+      document.removeEventListener('click', handleUserInteraction);
+      document.removeEventListener('touchstart', handleUserInteraction);
+    };
+  }, []);
   
   // Organize orders into columns based on status
   useEffect(() => {
@@ -234,7 +260,15 @@ const KitchenDisplay = () => {
           
           if (payload.eventType === 'INSERT') {
             // Play notification for new orders
-            notificationSound.play().catch(e => console.error('Failed to play notification sound:', e));
+            try {
+              // Create a new Audio instance each time to ensure it plays
+              const sound = new Audio("http://guqe0132.odns.fr/simple-notification-152054.mp3");
+              sound.volume = 1.0; // Maximum volume
+              sound.play().catch(e => console.error('Failed to play notification sound:', e));
+            } catch (err) {
+              console.error('Error creating audio:', err);
+            }
+            
             toast.success(`New Order #${payload.new.id} Received!`, {
               description: `${payload.new.items_count} items - $${payload.new.total_amount.toFixed(2)}`,
             });
