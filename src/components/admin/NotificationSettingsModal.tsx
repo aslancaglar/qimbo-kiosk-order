@@ -5,10 +5,11 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
-import { Bell, AlertTriangle } from 'lucide-react';
+import { Bell, AlertTriangle, Upload, ExternalLink, Volume2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useLocalStorage } from '@/hooks/useLocalStorage';
 import { testAudioPlayback } from '@/utils/audioUtils';
+import { uploadImage } from '@/integrations/supabase/client';
 
 interface NotificationSettingsModalProps {
   isOpen: boolean;
@@ -29,6 +30,7 @@ const NotificationSettingsModal = ({ isOpen, onOpenChange }: NotificationSetting
   
   const [isTestingSound, setIsTestingSound] = useState(false);
   const [testError, setTestError] = useState<string | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
 
   // Handle audio test playback with improved error handling
   const handleTestSound = async () => {
@@ -49,6 +51,47 @@ const NotificationSettingsModal = ({ isOpen, onOpenChange }: NotificationSetting
       toast.error('Failed to play test sound. Please check the URL or your browser settings.');
     } finally {
       setIsTestingSound(false);
+    }
+  };
+
+  // Handle file upload
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    if (!file.type.startsWith('audio/')) {
+      toast.error('Please select an audio file (MP3, WAV, etc.)');
+      return;
+    }
+
+    // Maximum file size (3MB)
+    const maxSize = 3 * 1024 * 1024;
+    if (file.size > maxSize) {
+      toast.error('Audio file is too large. Maximum size is 3MB.');
+      return;
+    }
+
+    setIsUploading(true);
+    setTestError(null);
+
+    try {
+      // Upload the audio file to Supabase storage
+      const uploadedUrl = await uploadImage(file, 'audio-files');
+      
+      if (uploadedUrl) {
+        setSoundUrl(uploadedUrl);
+        toast.success('Audio file uploaded successfully!');
+      } else {
+        throw new Error('Failed to upload audio file');
+      }
+    } catch (error) {
+      console.error('Error uploading audio file:', error);
+      toast.error('Failed to upload audio file. Please try again.');
+    } finally {
+      setIsUploading(false);
+      // Clear the input field so the same file can be uploaded again if needed
+      event.target.value = '';
     }
   };
 
@@ -109,12 +152,68 @@ const NotificationSettingsModal = ({ isOpen, onOpenChange }: NotificationSetting
                   <span className="flex items-center gap-1">
                     <span className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent"></span>
                     Testing
-                  </span> : 'Test'}
+                  </span> : <Volume2 className="h-4 w-4 mr-1" />}
               </Button>
             </div>
-            <p className="text-xs text-muted-foreground pt-1">
-              Enter the URL to an MP3 file. You can use external services or your own hosted files.
-            </p>
+            
+            <div className="mt-4">
+              <Label className="mb-2 block">Upload Sound File</Label>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  className="w-full justify-start"
+                  disabled={!notificationsEnabled || isUploading}
+                  onClick={() => document.getElementById('sound-file-upload')?.click()}
+                >
+                  {isUploading ? (
+                    <span className="flex items-center gap-2">
+                      <span className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent"></span>
+                      Uploading...
+                    </span>
+                  ) : (
+                    <>
+                      <Upload className="h-4 w-4 mr-2" />
+                      Upload MP3 File
+                    </>
+                  )}
+                </Button>
+                <input
+                  type="file"
+                  id="sound-file-upload"
+                  accept="audio/*"
+                  className="hidden"
+                  onChange={handleFileUpload}
+                  disabled={!notificationsEnabled || isUploading}
+                />
+                <Button 
+                  variant="ghost" 
+                  size="icon"
+                  onClick={handleTestSound}
+                  disabled={!notificationsEnabled || !soundUrl || isTestingSound || isUploading}
+                  title="Test Sound"
+                >
+                  <Volume2 className="h-4 w-4" />
+                </Button>
+              </div>
+              <p className="text-xs text-muted-foreground mt-1">
+                Upload an MP3 file (max 3MB) to use as notification sound
+              </p>
+            </div>
+            
+            {soundUrl && (
+              <div className="mt-2 text-sm flex items-center gap-1 text-muted-foreground">
+                <span>Current sound:</span>
+                <a 
+                  href={soundUrl} 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="text-primary flex items-center hover:underline truncate max-w-[200px]"
+                >
+                  {soundUrl.split('/').pop() || soundUrl}
+                  <ExternalLink className="h-3 w-3 ml-1 inline-flex" />
+                </a>
+              </div>
+            )}
             
             {testError && (
               <div className="mt-2 p-2 bg-red-50 border border-red-200 rounded-md flex items-start gap-2 text-sm text-red-700">
@@ -124,7 +223,7 @@ const NotificationSettingsModal = ({ isOpen, onOpenChange }: NotificationSetting
                   <p className="text-red-600">{testError}</p>
                   <p className="text-xs mt-1">
                     This may be due to browser restrictions on autoplay, CORS issues with external URLs, 
-                    or the file format. Try using an MP3 file from the same domain or a public CDN.
+                    or the file format. Try uploading an MP3 file instead of using an external URL.
                   </p>
                 </div>
               </div>

@@ -20,12 +20,12 @@ export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABL
 });
 
 /**
- * Initialize storage bucket for menu images
- * @returns {Promise<boolean>} True if bucket exists or was created, false otherwise
+ * Initialize storage bucket for menu images and audio files
+ * @returns {Promise<boolean>} True if buckets exist or were created, false otherwise
  */
 export const initializeStorage = async () => {
   try {
-    // Check if the bucket exists
+    // Check if the buckets exist
     const { data: buckets, error: bucketsError } = await supabase
       .storage
       .listBuckets();
@@ -35,15 +35,18 @@ export const initializeStorage = async () => {
       return false;
     }
     
-    const bucketExists = buckets.some(bucket => bucket.name === 'menu-images');
+    const menuBucketExists = buckets.some(bucket => bucket.name === 'menu-images');
+    const audioBucketExists = buckets.some(bucket => bucket.name === 'audio-files');
     
-    if (!bucketExists) {
+    if (!menuBucketExists) {
       console.error('The menu-images bucket does not exist in Supabase. Please create it in the dashboard or run SQL migrations.');
-      return false;
     }
     
-    console.log('Successfully verified menu-images bucket exists');
-    return true;
+    if (!audioBucketExists) {
+      console.error('The audio-files bucket does not exist in Supabase. Please create it in the dashboard.');
+    }
+    
+    return menuBucketExists || audioBucketExists;
   } catch (error) {
     console.error('Error initializing storage:', error);
     return false;
@@ -51,9 +54,9 @@ export const initializeStorage = async () => {
 };
 
 /**
- * Upload an image to Supabase Storage
+ * Upload a file to Supabase Storage
  * @param {File} file - The file to upload
- * @param {string} bucketName - The bucket name to upload to 
+ * @param {string} bucketName - The bucket name to upload to
  * @returns {Promise<string|null>} The public URL if successful, null if failed
  */
 export const uploadImage = async (file: File, bucketName: string = 'menu-images'): Promise<string | null> => {
@@ -88,7 +91,7 @@ export const uploadImage = async (file: File, bucketName: string = 'menu-images'
     
     return publicUrl;
   } catch (error) {
-    console.error('Error uploading image:', error);
+    console.error('Error uploading file:', error);
     return null;
   }
 };
