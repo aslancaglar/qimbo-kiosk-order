@@ -628,46 +628,44 @@ const KitchenDisplay = () => {
                       No items found for this order
                     </div>
                   ) : (
-                    <ScrollArea className="max-h-[300px]">
-                      <div className="space-y-3">
-                        {orderDetails.map((item) => (
-                          <div key={item.id} className="border rounded-md p-3">
-                            <div className="flex justify-between items-start">
-                              <div className="space-y-1">
-                                <p className="font-medium">
-                                  {item.quantity}x {item.menu_item?.name}
-                                </p>
-                                <p className="text-sm text-muted-foreground">
-                                  ${item.price.toFixed(2)} each
-                                </p>
-                                {item.notes && (
-                                  <p className="text-sm italic bg-muted p-1 rounded-sm mt-1">
-                                    Note: {item.notes}
-                                  </p>
-                                )}
-                              </div>
+                    <div className="space-y-3">
+                      {orderDetails.map((item) => (
+                        <div key={item.id} className="border rounded-md p-3">
+                          <div className="flex justify-between items-start">
+                            <div className="space-y-1">
                               <p className="font-medium">
-                                ${(item.price * item.quantity).toFixed(2)}
+                                {item.quantity}x {item.menu_item?.name}
                               </p>
+                              <p className="text-sm text-muted-foreground">
+                                ${item.price.toFixed(2)} each
+                              </p>
+                              {item.notes && (
+                                <p className="text-sm italic bg-muted p-1 rounded-sm mt-1">
+                                  Note: {item.notes}
+                                </p>
+                              )}
                             </div>
-                            
-                            {item.toppings && item.toppings.length > 0 && (
-                              <div className="mt-2 border-t pt-2">
-                                <p className="text-xs text-muted-foreground mb-1">Toppings:</p>
-                                <div className="pl-2 space-y-1">
-                                  {item.toppings.map((topping) => (
-                                    <div key={topping.id} className="flex justify-between text-sm">
-                                      <span>{topping.topping?.name}</span>
-                                      <span>${topping.price.toFixed(2)}</span>
-                                    </div>
-                                  ))}
-                                </div>
-                              </div>
-                            )}
+                            <p className="font-medium">
+                              ${(item.price * item.quantity).toFixed(2)}
+                            </p>
                           </div>
-                        ))}
-                      </div>
-                    </ScrollArea>
+                          
+                          {item.toppings && item.toppings.length > 0 && (
+                            <div className="mt-2 border-t pt-2">
+                              <p className="text-xs text-muted-foreground mb-1">Toppings:</p>
+                              <div className="pl-2 space-y-1">
+                                {item.toppings.map((topping) => (
+                                  <div key={topping.id} className="flex justify-between text-sm">
+                                    <span>{topping.topping?.name}</span>
+                                    <span>${topping.price.toFixed(2)}</span>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
                   )}
                 </CardContent>
               </Card>
