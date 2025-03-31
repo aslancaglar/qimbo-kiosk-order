@@ -3,11 +3,59 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/components/ui/use-toast";
 import { RealtimePostgresChangesFilter } from "@supabase/supabase-js";
 
-// Create a global audio object for notification sound
-const notificationSound = new Audio("http://guqe0132.odns.fr/simple-notification-152054.mp3");
+const NOTIFICATION_SOUND_URL = "http://guqe0132.odns.fr/simple-notification-152054.mp3";
 
-// Preload the sound for faster response
-notificationSound.load();
+// We'll use an array to queue sound requests
+let soundQueue = [];
+let isPlaying = false;
+
+/**
+ * Play a notification sound, handling browser restrictions
+ */
+const playNotificationSound = () => {
+  // Add this sound to the queue
+  soundQueue.push(1);
+  
+  // If already playing, the next sound will be handled by the queue
+  if (isPlaying) return;
+  
+  // Process the queue recursively
+  const processQueue = () => {
+    if (soundQueue.length === 0) {
+      isPlaying = false;
+      return;
+    }
+    
+    isPlaying = true;
+    soundQueue.shift(); // Remove the current item
+    
+    try {
+      const sound = new Audio(NOTIFICATION_SOUND_URL);
+      sound.volume = 1.0;
+      
+      // When this sound ends, play the next one if there is any
+      sound.onended = processQueue;
+      sound.onerror = () => {
+        console.error("Error playing sound");
+        processQueue(); // Try the next sound
+      };
+      
+      // Play and handle errors
+      sound.play().catch(err => {
+        console.error('Failed to play notification sound:', err);
+        processQueue(); // Try the next sound on error
+      });
+    } catch (err) {
+      console.error('Error creating audio:', err);
+      processQueue(); // Try the next sound on error
+    }
+  };
+  
+  // Start processing queue if not already playing
+  if (!isPlaying) {
+    processQueue();
+  }
+};
 
 /**
  * Enables real-time functionality for specified tables through Supabase
@@ -29,20 +77,7 @@ export const enableRealtimeForTables = async () => {
           // Show toast notification for new orders
           if (payload.eventType === 'INSERT') {
             // Play notification sound for new orders
-            try {
-              // Create a new Audio instance each time to ensure it plays
-              const sound = new Audio("http://guqe0132.odns.fr/simple-notification-152054.mp3");
-              sound.volume = 1.0; // Set maximum volume
-              const playPromise = sound.play();
-              
-              if (playPromise !== undefined) {
-                playPromise.catch(err => {
-                  console.error('Failed to play notification sound:', err);
-                });
-              }
-            } catch (err) {
-              console.error('Error creating audio:', err);
-            }
+            playNotificationSound();
             
             toast({
               title: "New Order Received",
