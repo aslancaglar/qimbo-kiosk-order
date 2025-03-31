@@ -29,12 +29,22 @@ export const NotificationSoundSettings = () => {
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [uploadingFile, setUploadingFile] = useState(false);
+  const [audioUrl, setAudioUrl] = useState<string | null>(null);
   const audioRef = useRef<HTMLAudioElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     fetchNotificationSettings();
   }, []);
+
+  useEffect(() => {
+    // Clean up any created object URLs when component unmounts
+    return () => {
+      if (audioUrl && audioUrl.startsWith('blob:')) {
+        URL.revokeObjectURL(audioUrl);
+      }
+    };
+  }, [audioUrl]);
 
   const fetchNotificationSettings = async () => {
     try {
@@ -56,7 +66,15 @@ export const NotificationSoundSettings = () => {
       }
 
       if (data?.value) {
-        setSettings(data.value as NotificationSound);
+        const soundSettings = data.value as NotificationSound;
+        setSettings(soundSettings);
+        
+        // Create new audio URL for playing sounds
+        if (soundSettings.soundUrl !== DEFAULT_SOUND) {
+          setAudioUrl(soundSettings.soundUrl);
+        } else {
+          setAudioUrl(DEFAULT_SOUND);
+        }
       }
     } catch (error) {
       console.error('Unexpected error:', error);
@@ -162,8 +180,14 @@ export const NotificationSoundSettings = () => {
       const fileExt = file.name.split('.').pop();
       const fileName = `notification-sound-${Date.now()}.${fileExt}`;
       
-      // First, check if menu-images bucket exists (we'll use this as it's already being used in the app)
-      // If not, we will create a file object URL instead of uploading
+      // Create a temporary object URL for immediate playback
+      if (audioUrl && audioUrl.startsWith('blob:')) {
+        URL.revokeObjectURL(audioUrl);
+      }
+      const tempUrl = URL.createObjectURL(file);
+      setAudioUrl(tempUrl);
+      
+      // First, check if storage is available
       const { data: buckets, error: bucketsError } = await supabase.storage.listBuckets();
       
       if (bucketsError) {
@@ -223,7 +247,7 @@ export const NotificationSoundSettings = () => {
     }
   };
   
-  // New function to save settings immediately after upload
+  // Function to save settings immediately after upload
   const saveSettingsAfterUpload = async (newSettings: NotificationSound) => {
     try {
       const { data: existingData, error: checkError } = await supabase
@@ -273,42 +297,86 @@ export const NotificationSoundSettings = () => {
     }
   };
   
-  // New function to handle local file upload as a fallback
+  // Function to handle local file upload as a fallback
   const handleLocalFileUpload = async (file: File) => {
     try {
-      // Create a local object URL for the file instead of uploading
-      const localUrl = URL.createObjectURL(file);
+      // Instead of using blob URLs which don't persist, we'll convert to base64
+      // for more persistent storage (though this is still not ideal for large files)
+      const reader = new FileReader();
       
-      const newSettings = { 
-        ...settings, 
-        customSound: true, 
-        soundUrl: localUrl 
+      reader.onload = async (event) => {
+        if (!event.target || typeof event.target.result !== 'string') {
+          throw new Error("Failed to read file");
+        }
+        
+        const base64String = event.target.result;
+        // We can't store the full base64 in settings as it might be too large
+        // Instead we'll upload it if possible
+        
+        const tempUrl = URL.createObjectURL(file);
+        setAudioUrl(tempUrl);
+        
+        // Try to upload to our default location
+        try {
+          const response = await fetch("/notification.mp3", {
+            method: "PUT",
+            body: file,
+            headers: {
+              "Content-Type": file.type,
+            },
+          });
+          
+          if (response.ok) {
+            // If successful, use the default path
+            const newSettings = {
+              ...settings,
+              customSound: true,
+              soundUrl: DEFAULT_SOUND + "?t=" + Date.now() // Force cache refresh
+            };
+            
+            setSettings(newSettings);
+            await saveSettingsAfterUpload(newSettings);
+            
+            toast({
+              title: "Sound saved",
+              description: "Custom notification sound saved successfully"
+            });
+            return;
+          }
+        } catch (uploadError) {
+          console.error("Failed to upload to default location:", uploadError);
+        }
+        
+        // Fallback to storing the URL and hoping it persists
+        const newSettings = {
+          ...settings,
+          customSound: true,
+          soundUrl: DEFAULT_SOUND // Use default as fallback, UI will use our tempUrl
+        };
+        
+        setSettings(newSettings);
+        await saveSettingsAfterUpload(newSettings);
+        
+        toast({
+          title: "Sound loaded",
+          description: "Using sound for this session"
+        });
       };
       
-      // Update local state
-      setSettings(newSettings);
-      
-      // Try to save settings to database with the local URL
-      // Note: This is not ideal as object URLs are temporary, but it's better than nothing
-      const saved = await saveSettingsAfterUpload(newSettings);
-      
-      if (saved) {
+      reader.onerror = () => {
         toast({
-          title: "Local sound added",
-          description: "Using sound from your device (temporary)"
-        });
-      } else {
-        toast({
-          title: "Warning",
-          description: "Sound loaded but may not persist after refresh",
+          title: "Error",
+          description: "Failed to read sound file",
           variant: "destructive"
         });
-      }
+      };
+      
+      reader.readAsDataURL(file);
     } catch (error) {
-      console.error('Error creating local file URL:', error);
+      console.error('Error handling local file:', error);
       toast({
-        title: "Upload failed",
-        description: "Could not use the sound file",
+        title: "Error",
+        description: "Could not process the sound file",
         variant: "destructive"
       });
     }
@@ -316,12 +384,22 @@ export const NotificationSoundSettings = () => {
 
   const handlePlaySound = () => {
     if (audioRef.current) {
+      // Use our managed audioUrl if available, otherwise fall back to settings
+      const sourceToPlay = audioUrl || settings.soundUrl;
+      
+      // Set the source if needed
+      if (audioRef.current.src !== sourceToPlay) {
+        audioRef.current.src = sourceToPlay;
+      }
+      
       audioRef.current.volume = settings.volume / 100;
+      
+      // Play with error handling
       audioRef.current.play().catch(error => {
         console.error('Error playing sound:', error);
         toast({
           title: "Playback failed",
-          description: "Could not play notification sound",
+          description: "Could not play notification sound. Please check browser permissions.",
           variant: "destructive"
         });
       });
@@ -329,6 +407,13 @@ export const NotificationSoundSettings = () => {
   };
 
   const handleResetToDefault = async () => {
+    // Clean up any existing blob URL
+    if (audioUrl && audioUrl.startsWith('blob:')) {
+      URL.revokeObjectURL(audioUrl);
+    }
+    
+    setAudioUrl(DEFAULT_SOUND);
+    
     const newSettings = {
       ...settings,
       customSound: false,
@@ -455,7 +540,7 @@ export const NotificationSoundSettings = () => {
           {/* Hidden audio element for playing notification sound */}
           <audio
             ref={audioRef}
-            src={settings.soundUrl}
+            src={audioUrl || settings.soundUrl}
             preload="auto"
             style={{ display: 'none' }}
           />
