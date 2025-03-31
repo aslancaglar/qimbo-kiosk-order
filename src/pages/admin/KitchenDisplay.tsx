@@ -5,13 +5,14 @@ import { supabase } from '@/integrations/supabase/client';
 import { Order, OrderItem } from '@/types/orders';
 import { toast } from 'sonner';
 import { DragDropContext, Droppable, Draggable } from 'react-beautiful-dnd';
-import { Bell, Clock, CheckCircle, Info, Plus } from 'lucide-react';
+import { Bell, Clock, CheckCircle, Info, Plus, ChevronDown } from 'lucide-react';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { Button } from '@/components/ui/button';
+import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from '@/components/ui/dropdown-menu';
 import { format, formatDistance } from 'date-fns';
 
 interface NotificationSettings {
@@ -438,6 +439,22 @@ const KitchenDisplay = () => {
     setIsModalOpen(true);
     fetchOrderDetails(order.id);
   };
+
+  // Add state to track expanded items
+  const [expandedItems, setExpandedItems] = useState<Set<number>>(new Set());
+
+  // Toggle item expansion
+  const toggleItemExpansion = (itemId: number) => {
+    setExpandedItems(prevExpanded => {
+      const newExpanded = new Set(prevExpanded);
+      if (newExpanded.has(itemId)) {
+        newExpanded.delete(itemId);
+      } else {
+        newExpanded.add(itemId);
+      }
+      return newExpanded;
+    });
+  };
   
   const renderColumns = () => {
     return (
@@ -644,12 +661,29 @@ const KitchenDisplay = () => {
                               </p>
                             )}
                           </div>
-                          <p className="font-medium">
-                            ${(item.price * item.quantity).toFixed(2)}
-                          </p>
+                          <div className="flex items-center gap-2">
+                            <p className="font-medium">
+                              ${(item.price * item.quantity).toFixed(2)}
+                            </p>
+                            
+                            {item.toppings && item.toppings.length > 0 && (
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8"
+                                onClick={() => toggleItemExpansion(item.id)}
+                              >
+                                <ChevronDown 
+                                  className={`h-4 w-4 transition-transform ${
+                                    expandedItems.has(item.id) ? 'rotate-180' : ''
+                                  }`}
+                                />
+                              </Button>
+                            )}
+                          </div>
                         </div>
                         
-                        {item.toppings && item.toppings.length > 0 && (
+                        {item.toppings && item.toppings.length > 0 && expandedItems.has(item.id) && (
                           <div className="mt-2 border-t pt-2">
                             <p className="text-xs text-muted-foreground mb-1">Toppings:</p>
                             <div className="pl-2 space-y-1">
