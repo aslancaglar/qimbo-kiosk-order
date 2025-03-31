@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
-import { Save, Settings2, RefreshCw, Upload, Bell, Volume2 } from 'lucide-react';
+import { Save, Settings2, RefreshCw, Upload, Bell, Volume2, Image, Images } from 'lucide-react';
 import { Switch } from "@/components/ui/switch";
 import { clearAppCache } from "../../utils/serviceWorker";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -26,12 +26,19 @@ interface NotificationSettings {
   volume: number;
 }
 
+interface AppearanceSettings {
+  logo?: string;
+  slideshowImages: string[];
+}
+
 const Settings = () => {
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const [clearingCache, setClearingCache] = useState(false);
   const [testingSound, setTestingSound] = useState(false);
   const [uploadingSound, setUploadingSound] = useState(false);
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const [uploadingLogo, setUploadingLogo] = useState(false);
 
   const [restaurantInfo, setRestaurantInfo] = useState({
     id: 1,
@@ -62,11 +69,23 @@ const Settings = () => {
     volume: 1.0
   });
 
+  const [appearanceSettings, setAppearanceSettings] = useState<AppearanceSettings>({
+    logo: '',
+    slideshowImages: [
+      "/lovable-uploads/6837434a-e5ba-495a-b295-9638c9b5c27f.png",
+      "https://images.unsplash.com/photo-1546793665-c74683f339c1?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80",
+      "https://images.unsplash.com/photo-1482938289607-e9573fc25ebb?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80",
+      "https://images.unsplash.com/photo-1465146344425-f00d5f5c8f07?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80",
+      "https://images.unsplash.com/photo-1500375592092-40eb2168fd21?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80",
+    ]
+  });
+
   useEffect(() => {
     fetchRestaurantInfo();
     fetchBusinessHours();
     fetchOrderingSettings();
     fetchNotificationSettings();
+    fetchAppearanceSettings();
   }, []);
 
   const fetchRestaurantInfo = async () => {
@@ -200,6 +219,50 @@ const Settings = () => {
           soundUrl: settings.soundUrl || '/notification.mp3',
           soundName: settings.soundName || 'Default notification',
           volume: settings.volume !== undefined ? Number(settings.volume) : 1.0
+        });
+      }
+    } catch (error) {
+      console.error('Unexpected error:', error);
+      toast({
+        title: "Error",
+        description: "An unexpected error occurred",
+        variant: "destructive"
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchAppearanceSettings = async () => {
+    try {
+      setLoading(true);
+      const { data, error } = await supabase
+        .from('settings')
+        .select('*')
+        .eq('key', 'appearance_settings')
+        .maybeSingle();
+        
+      if (error) {
+        console.error('Error fetching appearance settings:', error);
+        toast({
+          title: "Error",
+          description: "Failed to load appearance settings",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      if (data && data.value) {
+        const settings = data.value as Record<string, any>;
+        setAppearanceSettings({
+          logo: settings.logo || '',
+          slideshowImages: settings.slideshowImages || [
+            "/lovable-uploads/6837434a-e5ba-495a-b295-9638c9b5c27f.png",
+            "https://images.unsplash.com/photo-1546793665-c74683f339c1?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80",
+            "https://images.unsplash.com/photo-1482938289607-e9573fc25ebb?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80",
+            "https://images.unsplash.com/photo-1465146344425-f00d5f5c8f07?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80",
+            "https://images.unsplash.com/photo-1500375592092-40eb2168fd21?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80",
+          ]
         });
       }
     } catch (error) {
@@ -480,6 +543,82 @@ const Settings = () => {
     }
   };
 
+  const saveAppearanceSettings = async () => {
+    try {
+      setLoading(true);
+      
+      const { data: existingData, error: checkError } = await supabase
+        .from('settings')
+        .select('id')
+        .eq('key', 'appearance_settings')
+        .maybeSingle();
+        
+      if (checkError) {
+        console.error('Error checking appearance settings:', checkError);
+        toast({
+          title: "Error",
+          description: "Failed to check if settings exist",
+          variant: "destructive"
+        });
+        return;
+      }
+      
+      let saveError;
+      
+      const settingsValue = {
+        logo: appearanceSettings.logo,
+        slideshowImages: appearanceSettings.slideshowImages
+      } as Json;
+      
+      if (existingData) {
+        const { error } = await supabase
+          .from('settings')
+          .update({
+            value: settingsValue,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', existingData.id);
+          
+        saveError = error;
+      } else {
+        const { error } = await supabase
+          .from('settings')
+          .insert({
+            key: 'appearance_settings',
+            value: settingsValue,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+          });
+          
+        saveError = error;
+      }
+
+      if (saveError) {
+        console.error('Error saving appearance settings:', saveError);
+        toast({
+          title: "Error",
+          description: "Failed to save appearance settings",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      toast({
+        title: "Success",
+        description: "Appearance settings saved successfully"
+      });
+    } catch (error) {
+      console.error('Unexpected error:', error);
+      toast({
+        title: "Error",
+        description: "An unexpected error occurred",
+        variant: "destructive"
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleClearCache = async () => {
     try {
       setClearingCache(true);
@@ -574,6 +713,133 @@ const Settings = () => {
       setUploadingSound(false);
       if (e.target) e.target.value = '';
     }
+  };
+
+  const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    try {
+      if (!e.target.files || e.target.files.length === 0) {
+        return;
+      }
+      
+      const file = e.target.files[0];
+      
+      if (!file.type.startsWith('image/')) {
+        toast({
+          title: "Invalid file",
+          description: "Please upload an image file (JPG, PNG, etc.)",
+          variant: "destructive"
+        });
+        return;
+      }
+      
+      if (file.size > 5 * 1024 * 1024) {
+        toast({
+          title: "File too large",
+          description: "Image file must be less than 5MB",
+          variant: "destructive"
+        });
+        return;
+      }
+      
+      setUploadingLogo(true);
+      
+      const logoUrl = await uploadFile(file, 'menu-images');
+      
+      if (logoUrl) {
+        setAppearanceSettings(prev => ({
+          ...prev,
+          logo: logoUrl
+        }));
+        
+        toast({
+          title: "Logo uploaded",
+          description: "Logo uploaded successfully"
+        });
+      } else {
+        toast({
+          title: "Upload failed",
+          description: "Failed to upload logo",
+          variant: "destructive"
+        });
+      }
+    } catch (error) {
+      console.error('Error uploading logo:', error);
+      toast({
+        title: "Upload failed",
+        description: "Failed to upload logo",
+        variant: "destructive"
+      });
+    } finally {
+      setUploadingLogo(false);
+      if (e.target) e.target.value = '';
+    }
+  };
+
+  const handleSlideImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    try {
+      if (!e.target.files || e.target.files.length === 0) {
+        return;
+      }
+      
+      const file = e.target.files[0];
+      
+      if (!file.type.startsWith('image/')) {
+        toast({
+          title: "Invalid file",
+          description: "Please upload an image file (JPG, PNG, etc.)",
+          variant: "destructive"
+        });
+        return;
+      }
+      
+      if (file.size > 5 * 1024 * 1024) {
+        toast({
+          title: "File too large",
+          description: "Image file must be less than 5MB",
+          variant: "destructive"
+        });
+        return;
+      }
+      
+      setUploadingImage(true);
+      
+      const imageUrl = await uploadFile(file, 'menu-images');
+      
+      if (imageUrl) {
+        setAppearanceSettings(prev => ({
+          ...prev,
+          slideshowImages: [...prev.slideshowImages, imageUrl]
+        }));
+        
+        toast({
+          title: "Image uploaded",
+          description: "Slideshow image uploaded successfully"
+        });
+      } else {
+        toast({
+          title: "Upload failed",
+          description: "Failed to upload image",
+          variant: "destructive"
+        });
+      }
+    } catch (error) {
+      console.error('Error uploading image:', error);
+      toast({
+        title: "Upload failed",
+        description: "Failed to upload image",
+        variant: "destructive"
+      });
+    } finally {
+      setUploadingImage(false);
+      if (e.target) e.target.value = '';
+    }
+  };
+
+  const removeSlideImage = (index: number) => {
+    setAppearanceSettings(prev => ({
+      ...prev,
+      slideshowImages: prev.slideshowImages.filter((_, i) => i !== index)
+    }));
   };
 
   const playTestSound = () => {
@@ -765,13 +1031,103 @@ const Settings = () => {
           <TabsContent value="appearance" className="mt-6">
             <Card>
               <CardHeader>
-                <CardTitle>Appearance Settings</CardTitle>
+                <CardTitle className="flex items-center gap-2">
+                  <Images className="h-5 w-5" />
+                  Index Page Appearance
+                </CardTitle>
                 <CardDescription>
-                  Customize how your restaurant's ordering system looks.
+                  Customize the landing page logo and slideshow images.
                 </CardDescription>
               </CardHeader>
-              <CardContent>
-                <p className="text-gray-500">Appearance settings coming soon.</p>
+              <CardContent className="space-y-6">
+                <div className="space-y-4">
+                  <h3 className="text-lg font-medium">Restaurant Logo</h3>
+                  
+                  <div className="space-y-2">
+                    <Label>Current Logo</Label>
+                    <div className="flex items-center gap-4">
+                      {appearanceSettings.logo ? (
+                        <div className="w-16 h-16 rounded-full border overflow-hidden bg-white flex items-center justify-center">
+                          <img 
+                            src={appearanceSettings.logo} 
+                            alt="Restaurant Logo" 
+                            className="max-w-full max-h-full object-contain"
+                          />
+                        </div>
+                      ) : (
+                        <div className="w-16 h-16 rounded-full bg-white/80 flex items-center justify-center">
+                          <span className="text-primary font-bold text-xs text-center">DUMMY<br/>LOGO</span>
+                        </div>
+                      )}
+                      
+                      <div className="flex-1">
+                        <Input
+                          id="logo-file"
+                          type="file"
+                          accept="image/*"
+                          onChange={handleLogoUpload}
+                          disabled={uploadingLogo}
+                          className="flex-1"
+                        />
+                        <p className="text-xs text-muted-foreground mt-1">
+                          Recommended size: 128x128px, transparent background (PNG)
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="space-y-4 pt-4 border-t">
+                  <h3 className="text-lg font-medium">Slideshow Images</h3>
+                  <p className="text-sm text-muted-foreground">
+                    These images will appear in the slideshow on the landing page. Recommended ratio: 16:9, landscape orientation.
+                  </p>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {appearanceSettings.slideshowImages.map((image, index) => (
+                      <div key={index} className="relative rounded-md overflow-hidden border group">
+                        <img 
+                          src={image} 
+                          alt={`Slideshow Image ${index + 1}`}
+                          className="w-full h-48 object-cover"
+                        />
+                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                          <Button 
+                            variant="destructive"
+                            size="sm"
+                            onClick={() => removeSlideImage(index)}
+                          >
+                            Remove
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                    
+                    <div className="border border-dashed rounded-md flex flex-col items-center justify-center h-48 p-4">
+                      <Image className="h-8 w-8 text-muted-foreground mb-2" />
+                      <p className="text-sm text-center text-muted-foreground mb-3">
+                        Upload a new image for the slideshow
+                      </p>
+                      <Input
+                        id="slideshow-file"
+                        type="file"
+                        accept="image/*"
+                        onChange={handleSlideImageUpload}
+                        disabled={uploadingImage}
+                        className="max-w-[200px]"
+                      />
+                    </div>
+                  </div>
+                </div>
+                
+                <Button 
+                  onClick={saveAppearanceSettings}
+                  disabled={loading}
+                  className="mt-6"
+                >
+                  <Save className="h-4 w-4 mr-2" />
+                  {loading ? 'Saving...' : 'Save Appearance Settings'}
+                </Button>
               </CardContent>
             </Card>
           </TabsContent>
