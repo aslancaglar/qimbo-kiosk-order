@@ -82,7 +82,8 @@ const Orders = () => {
       const { data, error } = await supabase
         .from('orders')
         .select('*')
-        .order('created_at', { ascending: false });
+        .order('created_at', { ascending: false })
+        .limit(50); // Limit to 50 most recent orders
       
       if (error) {
         console.error('Error fetching orders:', error);
