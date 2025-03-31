@@ -7,7 +7,7 @@ import { Switch } from '@/components/ui/switch';
 import { Volume2, VolumeX, RotateCcw } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { playNotificationSound } from '@/utils/audioUtils';
+import { playNotificationSound, validateAudioUrl } from '@/utils/audioUtils';
 
 interface NotificationSettingsProps {
   isOpen: boolean;
@@ -49,11 +49,13 @@ export const NotificationSettingsModal: React.FC<NotificationSettingsProps> = ({
     if (!enabled || !soundUrl) return;
     setIsTesting(true);
 
+    console.log('Testing sound URL:', soundUrl);
     playNotificationSound(soundUrl)
       .then(() => {
-        // Test successful
+        toast.success('Sound test successful!');
       })
       .catch((error) => {
+        console.error('Sound test failed:', error);
         toast.error(error.message || 'Failed to play sound. Please check the URL and try again.');
       })
       .finally(() => {
@@ -73,7 +75,7 @@ export const NotificationSettingsModal: React.FC<NotificationSettingsProps> = ({
       // Test the sound first if enabled and a URL is provided
       if (enabled && soundUrl) {
         try {
-          await playNotificationSound(soundUrl);
+          await validateAudioUrl(soundUrl);
         } catch (error) {
           toast.error('Invalid sound URL. Please enter a valid audio file URL or use the default.');
           setIsLoading(false);
