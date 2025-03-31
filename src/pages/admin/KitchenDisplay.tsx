@@ -50,10 +50,16 @@ const KitchenDisplay = () => {
     if (audioInitializedRef.current) return;
     
     try {
+      console.log('KDS: Initializing audio context...');
       audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
       
       if (audioContextRef.current.state === 'suspended') {
-        audioContextRef.current.resume();
+        console.log('Audio context suspended, attempting to resume...');
+        audioContextRef.current.resume().then(() => {
+          console.log('Audio context resumed successfully');
+        }).catch(err => {
+          console.error('Failed to resume audio context:', err);
+        });
       }
       
       const silentSound = audioContextRef.current.createOscillator();
@@ -62,17 +68,50 @@ const KitchenDisplay = () => {
       silentSound.connect(gainNode);
       gainNode.connect(audioContextRef.current.destination);
       silentSound.start();
-      silentSound.stop(0.001);
+      silentSound.stop(audioContextRef.current.currentTime + 0.001);
       
       audioInitializedRef.current = true;
-      console.log('Audio context initialized');
+      console.log('KDS: Audio context initialized successfully');
+      
+      testNotificationSound();
     } catch (error) {
-      console.error('Error initializing audio context:', error);
+      console.error('KDS: Error initializing audio context:', error);
+    }
+  };
+  
+  const testNotificationSound = () => {
+    try {
+      if (!notificationSettings.soundEnabled) return;
+      
+      console.log('KDS: Testing notification sound:', notificationSettings.soundUrl);
+      const testAudio = new Audio(notificationSettings.soundUrl);
+      testAudio.volume = 0.1;
+      
+      const playPromise = testAudio.play();
+      if (playPromise !== undefined) {
+        playPromise
+          .then(() => {
+            console.log('KDS: Test sound played successfully');
+            setTimeout(() => {
+              testAudio.pause();
+              testAudio.remove();
+            }, 500);
+          })
+          .catch(error => {
+            console.error('KDS: Error playing test notification sound:', error);
+            if (error.name === 'NotAllowedError') {
+              toast.info('Click anywhere on the page to enable sound notifications');
+            }
+          });
+      }
+    } catch (error) {
+      console.error('KDS: Error testing notification sound:', error);
     }
   };
   
   const fetchNotificationSettings = async () => {
     try {
+      console.log('KDS: Fetching notification settings...');
       const { data, error } = await supabase
         .from('settings')
         .select('*')
@@ -80,38 +119,75 @@ const KitchenDisplay = () => {
         .maybeSingle();
   
       if (error) {
-        console.error('Error fetching notification settings:', error);
+        console.error('KDS: Error fetching notification settings:', error);
         return;
       }
   
       if (data && data.value) {
         const settings = data.value as Record<string, any>;
-        setNotificationSettings({
+        const newSettings = {
           soundEnabled: settings.soundEnabled !== undefined ? !!settings.soundEnabled : true,
           soundUrl: settings.soundUrl || '/notification.mp3',
           volume: settings.volume !== undefined ? Number(settings.volume) : 1.0
-        });
+        };
+        
+        console.log('KDS: Notification settings loaded:', newSettings);
+        setNotificationSettings(newSettings);
+        
+        if (newSettings.soundUrl !== notificationSettings.soundUrl) {
+          console.log('KDS: Sound URL changed, preloading new sound...');
+          const newSound = new Audio(newSettings.soundUrl);
+          newSound.preload = 'auto';
+          newSound.load();
+        }
+      } else {
+        console.log('KDS: No notification settings found, using defaults');
       }
     } catch (error) {
-      console.error('Error fetching notification settings:', error);
+      console.error('KDS: Error fetching notification settings:', error);
     }
   };
   
   const playNotificationSound = () => {
-    if (!notificationSettings.soundEnabled || !audioInitializedRef.current) return;
+    if (!notificationSettings.soundEnabled) {
+      console.log('KDS: Sound notifications disabled');
+      return;
+    }
     
     try {
+      console.log('KDS: Playing notification sound:', notificationSettings.soundUrl, 'at volume', notificationSettings.volume);
+      
+      if (!audioInitializedRef.current) {
+        console.log('KDS: Audio not initialized, attempting to initialize...');
+        initializeAudio();
+      }
+      
       const audio = new Audio(notificationSettings.soundUrl);
       audio.volume = notificationSettings.volume;
       
-      audio.play().catch(error => {
-        console.error('Error playing notification sound:', error);
-        if (audioContextRef.current && audioContextRef.current.state === 'suspended') {
-          audioContextRef.current.resume();
-        }
-      });
+      const playPromise = audio.play();
+      if (playPromise !== undefined) {
+        playPromise
+          .then(() => {
+            console.log('KDS: Sound played successfully');
+          })
+          .catch(error => {
+            console.error('KDS: Error playing notification sound:', error);
+            
+            if (error.name === 'NotAllowedError') {
+              console.log('KDS: NotAllowedError - need user interaction');
+              toast.info('Click anywhere on the page to enable sound notifications');
+              
+              if (audioContextRef.current && audioContextRef.current.state === 'suspended') {
+                audioContextRef.current.resume().catch(err => {
+                  console.error('Failed to resume audio context:', err);
+                });
+              }
+            }
+          });
+      }
     } catch (error) {
-      console.error('Error creating audio object:', error);
+      console.error('KDS: Error creating audio object:', error);
     }
   };
   
@@ -124,7 +200,7 @@ const KitchenDisplay = () => {
         .order('created_at', { ascending: false });
       
       if (error) {
-        console.error('Error fetching orders:', error);
+        console.error('KDS: Error fetching orders:', error);
         throw error;
       }
       
@@ -134,7 +210,10 @@ const KitchenDisplay = () => {
   });
   
   useEffect(() => {
+    console.log('KDS: Setting up audio initialization listeners');
+    
     const handleUserInteraction = () => {
+      console.log('KDS: User interaction detected, initializing audio');
       initializeAudio();
       
       document.removeEventListener('click', handleUserInteraction);
@@ -165,10 +244,16 @@ const KitchenDisplay = () => {
       setColumns(newColumns);
       
       if (prevOrdersRef.current.length > 0 && orders.length > prevOrdersRef.current.length) {
+        console.log('KDS: New order detected, comparing order counts', {
+          previous: prevOrdersRef.current.length,
+          current: orders.length
+        });
+        
         const prevIds = new Set(prevOrdersRef.current.map(order => order.id));
         const newOrder = orders.find(order => !prevIds.has(order.id));
         
         if (newOrder) {
+          console.log('KDS: New order identified:', newOrder);
           toast.success(`New Order #${newOrder.id} Received!`, {
             description: `${newOrder.items_count} items - $${newOrder.total_amount.toFixed(2)}`,
           });
@@ -181,16 +266,20 @@ const KitchenDisplay = () => {
   }, [orders]);
   
   useEffect(() => {
+    console.log('KDS: Setting up realtime subscription');
+    
     const channel = supabase
       .channel('kds-orders-channel')
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'orders' },
         (payload) => {
-          console.log('Order update received:', payload);
+          console.log('KDS: Order update received:', payload);
           
           if (payload.eventType === 'INSERT') {
+            console.log('KDS: New order inserted, playing notification sound');
             playNotificationSound();
+            
             toast.success(`New Order #${payload.new.id} Received!`, {
               description: `${payload.new.items_count} items - $${payload.new.total_amount.toFixed(2)}`,
             });
@@ -200,7 +289,7 @@ const KitchenDisplay = () => {
         }
       )
       .subscribe((status) => {
-        console.log('Real-time subscription status:', status);
+        console.log('KDS: Real-time subscription status:', status);
       });
       
     const settingsChannel = supabase
@@ -209,13 +298,21 @@ const KitchenDisplay = () => {
         'postgres_changes',
         { event: 'UPDATE', schema: 'public', table: 'settings', filter: 'key=eq.notification_settings' },
         () => {
-          console.log('Notification settings changed, refreshing...');
+          console.log('KDS: Notification settings changed, refreshing...');
           fetchNotificationSettings();
         }
       )
       .subscribe();
       
+    const timer = setTimeout(() => {
+      if (audioInitializedRef.current) {
+        testNotificationSound();
+      }
+    }, 2000);
+      
     return () => {
+      console.log('KDS: Cleaning up subscriptions');
+      clearTimeout(timer);
       supabase.removeChannel(channel);
       supabase.removeChannel(settingsChannel);
     };
@@ -579,9 +676,19 @@ const KitchenDisplay = () => {
             <div className="flex gap-2">
               <Button 
                 variant="outline" 
-                onClick={() => setIsModalOpen(false)}
+                onClick={() => {
+                  setIsModalOpen(false);
+                  testNotificationSound();
+                }}
               >
                 Close
+              </Button>
+              <Button
+                variant="outline"
+                onClick={initializeAudio}
+                className="flex gap-2 items-center"
+              >
+                <Bell size={16} /> Test Sound
               </Button>
             </div>
             <div className="flex gap-2">
@@ -698,6 +805,14 @@ const KitchenDisplay = () => {
         <div className="flex justify-between items-center">
           <h1 className="text-3xl font-bold">Kitchen Display System</h1>
           <div className="flex gap-2">
+            <Button variant="outline" onClick={() => {
+              initializeAudio();
+              testNotificationSound();
+              refetch();
+            }}>
+              <Bell className="mr-2 h-4 w-4" />
+              Test Sound
+            </Button>
             <Button variant="outline" onClick={() => {
               initializeAudio();
               refetch();

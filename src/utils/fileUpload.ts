@@ -28,18 +28,31 @@ export const uploadFile = async (file: File, bucketName: string = 'menu-images')
       }
     }
     
+    // Get file extension and create a proper MIME type for audio files
+    const fileExt = file.name.split('.').pop()?.toLowerCase();
+    let contentType = file.type;
+    
+    // Ensure correct content type for audio files (some browsers might not set it correctly)
+    if (fileExt === 'mp3' && (!contentType || contentType === 'audio/mp3')) {
+      contentType = 'audio/mpeg';
+    } else if (fileExt === 'wav' && !contentType) {
+      contentType = 'audio/wav';
+    } else if (fileExt === 'ogg' && !contentType) {
+      contentType = 'audio/ogg';
+    }
+    
     // Create a unique file path including original file extension
-    const fileExt = file.name.split('.').pop();
     const fileName = `notification-sounds/${Date.now()}-${Math.random().toString(36).substring(2, 15)}.${fileExt}`;
     
-    console.log(`Uploading file ${fileName} to ${bucketName} bucket...`);
+    console.log(`Uploading file ${fileName} to ${bucketName} bucket with content type ${contentType}...`);
     
-    // Upload the file
+    // Upload the file with content type
     const { data, error } = await supabase.storage
       .from(bucketName)
       .upload(fileName, file, {
         cacheControl: '3600',
-        upsert: false
+        upsert: false,
+        contentType: contentType
       });
       
     if (error) {
@@ -56,6 +69,18 @@ export const uploadFile = async (file: File, bucketName: string = 'menu-images')
       
     console.log('Public URL:', publicUrl);
     
+    // Test the URL to ensure it's accessible
+    try {
+      const response = await fetch(publicUrl, { method: 'HEAD' });
+      if (!response.ok) {
+        console.error('Warning: The uploaded file URL may not be accessible', response.status);
+      } else {
+        console.log('File URL is accessible');
+      }
+    } catch (e) {
+      console.error('Error testing file URL:', e);
+    }
+    
     return publicUrl;
   } catch (error) {
     console.error('Error uploading file:', error);
@@ -70,4 +95,3 @@ export const uploadFile = async (file: File, bucketName: string = 'menu-images')
 export const ensureBucketExists = async (bucketName: string): Promise<boolean> => {
   return true; // We're no longer creating buckets, just using existing ones
 };
-
