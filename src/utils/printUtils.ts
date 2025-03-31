@@ -89,13 +89,13 @@ export const formatOrderReceipt = (
                 `<br><small>${item.options.map((o) => o.value).join(', ')}</small>` : 
                 ''}
             </div>
-            <span>$${(item.product.price * item.quantity).toFixed(2)}</span>
+            <span>${(item.product.price * item.quantity).toFixed(2)} €</span>
           </div>
           ${item.selectedToppings && item.selectedToppings.length > 0 ? 
             item.selectedToppings.map((topping) => `
               <div class="topping-item">
                 <span>+ ${topping.name}</span>
-                <span>$${topping.price.toFixed(2)}</span>
+                <span>${topping.price.toFixed(2)} €</span>
               </div>
             `).join('') : 
             ''}
@@ -106,15 +106,15 @@ export const formatOrderReceipt = (
         <div class="totals">
           <div class="total-row">
             <span>Subtotal:</span>
-            <span>$${subtotal?.toFixed(2) || '0.00'}</span>
+            <span>${subtotal?.toFixed(2) || '0.00'} €</span>
           </div>
           <div class="total-row">
             <span>Tax:</span>
-            <span>$${tax?.toFixed(2) || '0.00'}</span>
+            <span>${tax?.toFixed(2) || '0.00'} €</span>
           </div>
           <div class="total-row final-total">
             <span>Total:</span>
-            <span>$${total?.toFixed(2) || '0.00'}</span>
+            <span>${total?.toFixed(2) || '0.00'} €</span>
           </div>
         </div>
         

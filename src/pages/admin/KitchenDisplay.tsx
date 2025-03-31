@@ -440,10 +440,8 @@ const KitchenDisplay = () => {
     fetchOrderDetails(order.id);
   };
 
-  // Add state to track expanded items
   const [expandedItems, setExpandedItems] = useState<Set<number>>(new Set());
 
-  // Toggle item expansion
   const toggleItemExpansion = (itemId: number) => {
     setExpandedItems(prevExpanded => {
       const newExpanded = new Set(prevExpanded);
@@ -533,7 +531,7 @@ const KitchenDisplay = () => {
                                     </div>
                                     <div className="flex items-center gap-1">
                                       <span className="text-muted-foreground">Total:</span>
-                                      <span className="font-medium">${order.total_amount.toFixed(2)}</span>
+                                      <span className="font-medium">{order.total_amount.toFixed(2)} €</span>
                                     </div>
                                   </div>
                                   
@@ -598,7 +596,7 @@ const KitchenDisplay = () => {
                   </div>
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Total:</span>
-                    <span className="font-medium">${selectedOrder.total_amount.toFixed(2)}</span>
+                    <span className="font-medium">{selectedOrder.total_amount.toFixed(2)} €</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Created:</span>
@@ -653,7 +651,7 @@ const KitchenDisplay = () => {
                               {item.quantity}x {item.menu_item?.name}
                             </p>
                             <p className="text-sm text-muted-foreground">
-                              ${item.price.toFixed(2)} each
+                              {item.price.toFixed(2)} € each
                             </p>
                             {item.notes && (
                               <p className="text-sm italic bg-muted p-1 rounded-sm mt-1">
@@ -663,7 +661,7 @@ const KitchenDisplay = () => {
                           </div>
                           <div className="flex items-center gap-2">
                             <p className="font-medium">
-                              ${(item.price * item.quantity).toFixed(2)}
+                              {(item.price * item.quantity).toFixed(2)} €
                             </p>
                             
                             {item.toppings && item.toppings.length > 0 && (
@@ -690,7 +688,7 @@ const KitchenDisplay = () => {
                               {item.toppings.map((topping) => (
                                 <div key={topping.id} className="flex justify-between text-sm">
                                   <span>{topping.topping?.name}</span>
-                                  <span>${topping.price.toFixed(2)}</span>
+                                  <span>{topping.price.toFixed(2)} €</span>
                                 </div>
                               ))}
                             </div>
