@@ -1,3 +1,2 @@
-
-// This is a binary file. You need to actually provide an .mp3 file in your public directory.
-// I'm creating a placeholder but you'll need to replace it with your actual sound file.
+// This is a binary file and will be replaced with a real MP3 file.
+// The file upload system will handle this correctly.

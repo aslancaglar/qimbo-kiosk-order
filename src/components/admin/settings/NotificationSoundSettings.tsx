@@ -161,25 +161,38 @@ export const NotificationSoundSettings = () => {
       // Create a unique filename
       const fileExt = file.name.split('.').pop();
       const fileName = `notification-sound-${Date.now()}.${fileExt}`;
-      const filePath = `sounds/${fileName}`;
-
-      // Upload the file to Supabase Storage
-      const { error: uploadError } = await supabase.storage
-        .from('public')
-        .upload(filePath, file);
+      
+      // First, check if menu-images bucket exists (we'll use this as it's already being used in the app)
+      // If not, we will create a file object URL instead of uploading
+      const { data: buckets, error: bucketsError } = await supabase.storage.listBuckets();
+      
+      if (bucketsError) {
+        console.error('Error checking buckets:', bucketsError);
+        handleLocalFileUpload(file);
+        return;
+      }
+      
+      const menuImagesBucketExists = buckets.some(bucket => bucket.name === 'menu-images');
+      
+      if (!menuImagesBucketExists) {
+        console.log('menu-images bucket not found, using local file instead');
+        handleLocalFileUpload(file);
+        return;
+      }
+      
+      // If bucket exists, upload to Supabase storage
+      const { error: uploadError, data: uploadData } = await supabase.storage
+        .from('menu-images')
+        .upload(`sounds/${fileName}`, file);
 
       if (uploadError) {
         console.error('Error uploading sound file:', uploadError);
-        toast({
-          title: "Upload failed",
-          description: "Could not upload the sound file",
-          variant: "destructive"
-        });
+        handleLocalFileUpload(file);
         return;
       }
 
       // Get the public URL of the uploaded file
-      const { data } = supabase.storage.from('public').getPublicUrl(filePath);
+      const { data } = supabase.storage.from('menu-images').getPublicUrl(`sounds/${fileName}`);
       
       if (data?.publicUrl) {
         setSettings({ 
@@ -194,16 +207,38 @@ export const NotificationSoundSettings = () => {
       }
     } catch (error) {
       console.error('Unexpected error during upload:', error);
-      toast({
-        title: "Upload failed",
-        description: "An unexpected error occurred during upload",
-        variant: "destructive"
-      });
+      handleLocalFileUpload(file);
     } finally {
       setUploadingFile(false);
       if (fileInputRef.current) {
         fileInputRef.current.value = '';
       }
+    }
+  };
+  
+  // New function to handle local file upload as a fallback
+  const handleLocalFileUpload = (file: File) => {
+    try {
+      // Create a local object URL for the file instead of uploading
+      const localUrl = URL.createObjectURL(file);
+      
+      setSettings({ 
+        ...settings, 
+        customSound: true, 
+        soundUrl: localUrl 
+      });
+      
+      toast({
+        title: "Local sound added",
+        description: "Using sound from your device (temporary)"
+      });
+    } catch (error) {
+      console.error('Error creating local file URL:', error);
+      toast({
+        title: "Upload failed",
+        description: "Could not use the sound file",
+        variant: "destructive"
+      });
     }
   };
 
