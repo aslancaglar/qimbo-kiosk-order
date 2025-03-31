@@ -11,6 +11,7 @@ import { startMeasure, endMeasure } from "./utils/performanceMonitor";
 
 // Eagerly load the Index page for fast initial load
 import Index from "./pages/Index";
+import WhereYouEat from "./pages/WhereYouEat";
 
 // Lazy load other pages to reduce initial bundle size
 const NotFound = lazy(() => import("./pages/NotFound"));
@@ -108,6 +109,7 @@ const App = () => {
               <Routes>
                 {/* Customer-facing routes */}
                 <Route path="/" element={<Index />} />
+                <Route path="/whereyoueat" element={<WhereYouEat />} />
                 <Route path="/menu" element={<MenuPage />} />
                 <Route path="/order-summary" element={<OrderSummaryPage />} />
                 <Route path="/confirmation" element={<OrderConfirmation />} />
