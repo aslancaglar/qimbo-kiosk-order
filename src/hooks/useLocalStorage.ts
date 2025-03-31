@@ -14,7 +14,21 @@ export function useLocalStorage<T>(
 
     try {
       const item = window.localStorage.getItem(key);
-      return item ? (JSON.parse(item) as T) : initialValue;
+      
+      // Check if the stored item is an empty string or null
+      if (!item || item === 'null' || item === 'undefined') {
+        return initialValue;
+      }
+      
+      // Parse the stored value
+      try {
+        return JSON.parse(item) as T;
+      } catch (parseError) {
+        // If parsing fails, return the raw item as it might be a string value
+        // that doesn't need parsing
+        console.warn(`Error parsing localStorage key "${key}":`, parseError);
+        return item as unknown as T;
+      }
     } catch (error) {
       console.warn(`Error reading localStorage key "${key}":`, error);
       return initialValue;
@@ -38,7 +52,19 @@ export function useLocalStorage<T>(
       
       // Save to local storage
       if (typeof window !== 'undefined') {
-        window.localStorage.setItem(key, JSON.stringify(valueToStore));
+        try {
+          window.localStorage.setItem(key, JSON.stringify(valueToStore));
+        } catch (stringifyError) {
+          // If the value can't be stringified (e.g., circular references),
+          // try to store it directly if it's a primitive type
+          if (typeof valueToStore === 'string' || 
+              typeof valueToStore === 'number' || 
+              typeof valueToStore === 'boolean') {
+            window.localStorage.setItem(key, String(valueToStore));
+          } else {
+            console.warn(`Couldn't stringify value for localStorage key "${key}":`, stringifyError);
+          }
+        }
       }
     } catch (error) {
       console.warn(`Error setting localStorage key "${key}":`, error);
@@ -48,8 +74,24 @@ export function useLocalStorage<T>(
   // Listen for changes to this localStorage key in other tabs/windows
   useEffect(() => {
     const handleStorageChange = (e: StorageEvent) => {
-      if (e.key === key && e.newValue) {
-        setStoredValue(JSON.parse(e.newValue) as T);
+      if (e.key === key) {
+        try {
+          // If the new value is null, use the initial value
+          if (e.newValue === null) {
+            setStoredValue(initialValue);
+            return;
+          }
+          
+          // Try to parse the new value as JSON
+          try {
+            setStoredValue(JSON.parse(e.newValue) as T);
+          } catch (parseError) {
+            // If parsing fails, use the raw value
+            setStoredValue(e.newValue as unknown as T);
+          }
+        } catch (error) {
+          console.warn(`Error handling storage change for key "${key}":`, error);
+        }
       }
     };
     
@@ -58,7 +100,7 @@ export function useLocalStorage<T>(
       return () => window.removeEventListener('storage', handleStorageChange);
     }
     return undefined;
-  }, [key]);
+  }, [key, initialValue]);
 
   return [storedValue, setValue];
 }
