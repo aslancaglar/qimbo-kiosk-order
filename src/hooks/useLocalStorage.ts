@@ -55,12 +55,9 @@ export function useLocalStorage<T>(
 
   // State to store our value
   // Pass initial state function to useState so logic is only executed once
-  const [storedValue, setStoredValue] = useState<T>(readValue);
-
-  // Effect to sync with localStorage whenever the key changes
-  useEffect(() => {
-    setStoredValue(readValue());
-  }, [key]);
+  const [storedValue, setStoredValue] = useState<T>(() => {
+    return readValue();
+  });
 
   // Return a wrapped version of useState's setter function that
   // persists the new value to localStorage.

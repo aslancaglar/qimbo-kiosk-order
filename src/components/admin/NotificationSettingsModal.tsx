@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
@@ -20,6 +19,7 @@ const NotificationSettingsModal = ({ isOpen, onOpenChange }: NotificationSetting
   // Local storage keys
   const NOTIFICATION_ENABLED_KEY = 'kds_notification_enabled';
   const NOTIFICATION_SOUND_URL_KEY = 'kds_notification_sound_url';
+  const NOTIFICATION_SOUND_NAME_KEY = 'kds_notification_sound_name';
   
   // State for settings
   const [notificationsEnabled, setNotificationsEnabled] = useLocalStorage(NOTIFICATION_ENABLED_KEY, true);
@@ -27,6 +27,7 @@ const NotificationSettingsModal = ({ isOpen, onOpenChange }: NotificationSetting
     NOTIFICATION_SOUND_URL_KEY, 
     'https://assets.mixkit.co/sfx/preview/mixkit-bell-notification-933.mp3'
   );
+  const [soundName, setSoundName] = useLocalStorage(NOTIFICATION_SOUND_NAME_KEY, 'Default notification sound');
   
   const [isTestingSound, setIsTestingSound] = useState(false);
   const [testError, setTestError] = useState<string | null>(null);
@@ -39,6 +40,22 @@ const NotificationSettingsModal = ({ isOpen, onOpenChange }: NotificationSetting
       setUploadProgress(0);
     }
   }, [isOpen]);
+
+  // Get the sound name from URL or localStorage
+  useEffect(() => {
+    if (isOpen && soundUrl && typeof soundUrl === 'string') {
+      // If stored sound name exists, keep it
+      if (!soundName || soundName === 'Default notification sound') {
+        // Try to extract name from URL
+        try {
+          const fileName = soundUrl.split('/').pop() || 'Uploaded sound';
+          setSoundName(fileName);
+        } catch (e) {
+          console.error('Error getting filename from URL:', e);
+        }
+      }
+    }
+  }, [isOpen, soundUrl, soundName, setSoundName]);
 
   // Handle audio test playback with improved error handling
   const handleTestSound = async () => {
@@ -62,7 +79,7 @@ const NotificationSettingsModal = ({ isOpen, onOpenChange }: NotificationSetting
     }
   };
 
-  // Handle file upload
+  // Handle file upload with localStorage fallback
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
@@ -93,22 +110,23 @@ const NotificationSettingsModal = ({ isOpen, onOpenChange }: NotificationSetting
         });
       }, 200);
       
-      // Upload the audio file to Supabase storage
+      // Use modified uploadImage function (with localStorage fallback)
       const uploadedUrl = await uploadImage(file, 'audio-files');
       
       clearInterval(progressInterval);
       setUploadProgress(100);
       
       if (uploadedUrl) {
-        // Set the uploaded URL to localStorage
+        // Update UI state with the new sound
         setSoundUrl(uploadedUrl);
-        toast.success('Audio file uploaded successfully!');
+        setSoundName(file.name);
+        toast.success('Audio file saved successfully!');
       } else {
-        throw new Error('Failed to upload audio file');
+        throw new Error('Failed to save audio file');
       }
     } catch (error) {
       console.error('Error uploading audio file:', error);
-      toast.error('Failed to upload audio file. Please try again.');
+      toast.error('Failed to save audio file. Please try again.');
     } finally {
       setIsUploading(false);
       setTimeout(() => {
@@ -126,6 +144,7 @@ const NotificationSettingsModal = ({ isOpen, onOpenChange }: NotificationSetting
     if (typeof window !== 'undefined') {
       window.localStorage.setItem(NOTIFICATION_ENABLED_KEY, JSON.stringify(notificationsEnabled));
       window.localStorage.setItem(NOTIFICATION_SOUND_URL_KEY, JSON.stringify(soundUrl));
+      window.localStorage.setItem(NOTIFICATION_SOUND_NAME_KEY, soundName);
     }
     toast.success('Notification settings saved');
     onOpenChange(false);
@@ -211,7 +230,7 @@ const NotificationSettingsModal = ({ isOpen, onOpenChange }: NotificationSetting
                     ) : (
                       <>
                         <Upload className="h-4 w-4 mr-2" />
-                        Upload MP3 File
+                        Upload Sound File
                       </>
                     )}
                   </div>
@@ -235,22 +254,29 @@ const NotificationSettingsModal = ({ isOpen, onOpenChange }: NotificationSetting
                 </Button>
               </div>
               <p className="text-xs text-muted-foreground mt-1">
-                Upload an MP3 file (max 3MB) to use as notification sound
+                Upload an audio file (max 3MB) to use as notification sound
               </p>
             </div>
             
             {soundUrl && (
               <div className="mt-2 text-sm flex items-center gap-1 text-muted-foreground">
                 <span>Current sound:</span>
-                <a 
-                  href={soundUrl} 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  className="text-primary flex items-center hover:underline truncate max-w-[200px]"
+                <span 
+                  className="text-primary flex items-center truncate max-w-[200px]"
+                  title={soundName || soundUrl}
                 >
-                  {soundUrl.split('/').pop() || soundUrl}
-                  <ExternalLink className="h-3 w-3 ml-1 inline-flex" />
-                </a>
+                  {soundName || (soundUrl.split('/').pop() || soundUrl)}
+                  {!soundUrl.startsWith('data:') && (
+                    <a 
+                      href={soundUrl} 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="ml-1 inline-flex"
+                    >
+                      <ExternalLink className="h-3 w-3" />
+                    </a>
+                  )}
+                </span>
               </div>
             )}
             
