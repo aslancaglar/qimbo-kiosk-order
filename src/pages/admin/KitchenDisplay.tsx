@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import AdminLayout from '../../components/admin/AdminLayout';
@@ -5,7 +6,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Order, OrderItem } from '@/types/orders';
 import { toast } from 'sonner';
 import { DragDropContext, Droppable, Draggable } from 'react-beautiful-dnd';
-import { Bell, Clock, CheckCircle, Info, Plus } from 'lucide-react';
+import { Bell, Clock, CheckCircle, Info, Plus, Volume2, VolumeX, RefreshCw } from 'lucide-react';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -13,9 +14,10 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { Button } from '@/components/ui/button';
 import { format, formatDistance } from 'date-fns';
+import { NotificationSettingsModal } from '@/components/admin/NotificationSettingsModal';
 
 // Sound notification for new orders
-const notificationSound = new Audio('/notification.mp3');
+let notificationSound: HTMLAudioElement;
 
 const KitchenDisplay = () => {
   const [columns, setColumns] = useState<{
@@ -32,9 +34,47 @@ const KitchenDisplay = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [orderDetails, setOrderDetails] = useState<OrderItem[]>([]);
   const [isLoadingDetails, setIsLoadingDetails] = useState(false);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [soundEnabled, setSoundEnabled] = useState(true);
   
   const queryClient = useQueryClient();
   const prevOrdersRef = useRef<Order[]>([]);
+  
+  // Initialize notification sound
+  useEffect(() => {
+    const loadNotificationSettings = async () => {
+      try {
+        const { data } = await supabase
+          .from('settings')
+          .select('*')
+          .eq('key', 'kds_notification_settings')
+          .maybeSingle();
+
+        if (data && data.value) {
+          const settings = data.value as Record<string, any>;
+          setSoundEnabled(settings.enabled !== undefined ? settings.enabled : true);
+          
+          // Initialize sound with the saved URL or default
+          const soundUrl = settings.soundUrl || '/notification.mp3';
+          notificationSound = new Audio(soundUrl);
+          
+          // Preload the sound
+          notificationSound.load();
+        } else {
+          // Default sound if no settings are saved
+          notificationSound = new Audio('/notification.mp3');
+          notificationSound.load();
+        }
+      } catch (error) {
+        console.error('Error loading notification settings:', error);
+        // Use default sound on error
+        notificationSound = new Audio('/notification.mp3');
+        notificationSound.load();
+      }
+    };
+
+    loadNotificationSettings();
+  }, []);
   
   // Fetch all orders
   const { data: orders = [], isLoading, isError, refetch } = useQuery({
@@ -77,13 +117,19 @@ const KitchenDisplay = () => {
           toast.success(`New Order #${newOrder.id} Received!`, {
             description: `${newOrder.items_count} items - $${newOrder.total_amount.toFixed(2)}`,
           });
-          notificationSound.play().catch(e => console.error('Failed to play notification sound:', e));
+          
+          // Play notification sound if enabled
+          if (soundEnabled && notificationSound) {
+            notificationSound.play().catch(e => {
+              console.error('Failed to play notification sound:', e);
+            });
+          }
         }
       }
       
       prevOrdersRef.current = [...orders];
     }
-  }, [orders]);
+  }, [orders, soundEnabled]);
   
   // Handle drag and drop between columns
   const onDragEnd = async (result: any) => {
@@ -233,8 +279,11 @@ const KitchenDisplay = () => {
           console.log('Order update received:', payload);
           
           if (payload.eventType === 'INSERT') {
-            // Play notification for new orders
-            notificationSound.play().catch(e => console.error('Failed to play notification sound:', e));
+            // Play notification sound for real-time new orders
+            if (soundEnabled && notificationSound) {
+              notificationSound.play().catch(e => console.error('Failed to play notification sound:', e));
+            }
+            
             toast.success(`New Order #${payload.new.id} Received!`, {
               description: `${payload.new.items_count} items - $${payload.new.total_amount.toFixed(2)}`,
             });
@@ -251,7 +300,25 @@ const KitchenDisplay = () => {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [queryClient]);
+  }, [queryClient, soundEnabled]);
+  
+  // Toggle notification button based on current state
+  const renderSoundButton = () => {
+    return (
+      <Button 
+        variant="outline" 
+        size="icon"
+        onClick={() => setIsSettingsOpen(true)}
+        title="Notification Settings"
+      >
+        {soundEnabled ? (
+          <Volume2 className="h-5 w-5" />
+        ) : (
+          <VolumeX className="h-5 w-5 text-muted-foreground" />
+        )}
+      </Button>
+    );
+  };
   
   // Render the KDS columns
   const renderColumns = () => {
@@ -611,7 +678,9 @@ const KitchenDisplay = () => {
         <div className="flex justify-between items-center">
           <h1 className="text-3xl font-bold">Kitchen Display System</h1>
           <div className="flex gap-2">
+            {renderSoundButton()}
             <Button variant="outline" onClick={() => refetch()}>
+              <RefreshCw className="h-4 w-4 mr-2" />
               Refresh
             </Button>
           </div>
@@ -637,6 +706,38 @@ const KitchenDisplay = () => {
         )}
         
         {renderOrderDetailsModal()}
+        
+        {/* Notification Settings Modal */}
+        <NotificationSettingsModal 
+          isOpen={isSettingsOpen} 
+          onClose={() => {
+            setIsSettingsOpen(false);
+            // Reload settings after closing the modal
+            const loadSettings = async () => {
+              try {
+                const { data } = await supabase
+                  .from('settings')
+                  .select('*')
+                  .eq('key', 'kds_notification_settings')
+                  .maybeSingle();
+
+                if (data && data.value) {
+                  const settings = data.value as Record<string, any>;
+                  setSoundEnabled(settings.enabled !== undefined ? settings.enabled : true);
+                  
+                  // Update the notification sound with the new URL if changed
+                  if (settings.soundUrl && (!notificationSound || notificationSound.src !== settings.soundUrl)) {
+                    notificationSound = new Audio(settings.soundUrl);
+                    notificationSound.load();
+                  }
+                }
+              } catch (error) {
+                console.error('Error loading updated notification settings:', error);
+              }
+            };
+            loadSettings();
+          }}
+        />
       </div>
     </AdminLayout>
   );

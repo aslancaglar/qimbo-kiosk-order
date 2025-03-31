@@ -1,3 +1,2 @@
-
-// This is a binary file, so we'll actually need to create a URL for the user to download a sound file.
-// For a real implementation, you would add an mp3 file to your public directory.
+// This is a binary file, so we'll use the default notification sound.
+// You can replace it later with your own custom sound if needed.
