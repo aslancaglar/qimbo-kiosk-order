@@ -53,11 +53,11 @@ const DialogContent = React.forwardRef<
         <>
           <div className="flex-1 overflow-y-auto">
             {enableScrollArea ? (
-              <ScrollArea className="max-h-[calc(90vh-100px)] w-full pr-4">
+              <div className="h-full overflow-y-auto pr-4">
                 <div className="pr-2 pb-6">
                   {Array.isArray(children) ? children.slice(0, -1) : children}
                 </div>
-              </ScrollArea>
+              </div>
             ) : (
               Array.isArray(children) ? children.slice(0, -1) : children
             )}

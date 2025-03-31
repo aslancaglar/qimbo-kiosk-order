@@ -549,7 +549,7 @@ const KitchenDisplay = () => {
     
     return (
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-        <DialogContent fixedFooter={true} className="max-w-3xl max-h-[90vh]">
+        <DialogContent fixedFooter={true} className="max-w-3xl">
           <DialogHeader className="px-6 pt-6">
             <DialogTitle className="flex justify-between items-center">
               <span>Order #{selectedOrder.id}</span>
@@ -612,12 +612,12 @@ const KitchenDisplay = () => {
             </Card>
           </div>
           
-          <div className="px-6 pt-2">
-            <Card className="h-full flex flex-col">
+          <div className="px-6 pt-2 overflow-hidden">
+            <Card className="h-full">
               <CardHeader className="p-3 pb-0">
                 <CardTitle className="text-base">Order Items</CardTitle>
               </CardHeader>
-              <CardContent className="p-3 pt-1 flex-1">
+              <CardContent className="p-3 pt-1 max-h-[50vh] overflow-y-auto">
                 {isLoadingDetails ? (
                   <div className="flex justify-center py-8">
                     <div className="animate-spin w-6 h-6 border-2 border-primary border-t-transparent rounded-full"></div>
