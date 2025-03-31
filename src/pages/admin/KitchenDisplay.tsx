@@ -5,7 +5,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Order, OrderItem } from '@/types/orders';
 import { toast } from 'sonner';
 import { DragDropContext, Droppable, Draggable } from 'react-beautiful-dnd';
-import { Bell, Clock, CheckCircle, Info, Plus, VolumeX } from 'lucide-react';
+import { Bell, Clock, CheckCircle, Info, Plus } from 'lucide-react';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -43,8 +43,6 @@ const KitchenDisplay = () => {
   });
   
   const audioRef = useRef<HTMLAudioElement>(null);
-  const [audioInitialized, setAudioInitialized] = useState(false);
-  const [audioError, setAudioError] = useState<string | null>(null);
 
   const { data: orders = [], isLoading, isError, refetch } = useQuery({
     queryKey: ['kds-orders'],
@@ -80,12 +78,6 @@ const KitchenDisplay = () => {
 
         if (data?.value) {
           setNotificationSettings(data.value as any);
-          
-          if (audioRef.current) {
-            audioRef.current.src = data.value.soundUrl || '/notification.mp3';
-            audioRef.current.volume = data.value.volume / 100;
-            audioRef.current.load();
-          }
         }
       } catch (error) {
         console.error('Unexpected error fetching notification settings:', error);
@@ -95,69 +87,12 @@ const KitchenDisplay = () => {
     fetchNotificationSettings();
   }, []);
 
-  const initializeAudio = useCallback(() => {
-    if (audioInitialized || !audioRef.current) return;
-    
-    try {
-      const playPromise = audioRef.current.play();
-      
-      if (playPromise !== undefined) {
-        playPromise.then(() => {
-          console.log('Audio initialized successfully');
-          audioRef.current!.pause();
-          audioRef.current!.currentTime = 0;
-          setAudioInitialized(true);
-          setAudioError(null);
-        })
-        .catch(err => {
-          console.error('Audio initialization failed:', err);
-          setAudioError('Audio playback was blocked. Please click the "Enable Sound" button to allow notifications.');
-        });
-      }
-    } catch (err) {
-      console.error('Error initializing audio:', err);
-      setAudioError('Could not initialize audio playback');
-    }
-  }, [audioInitialized]);
-
-  useEffect(() => {
-    const handleUserInteraction = () => {
-      initializeAudio();
-    };
-
-    document.addEventListener('click', handleUserInteraction, { once: true });
-    document.addEventListener('touchstart', handleUserInteraction, { once: true });
-    
-    return () => {
-      document.removeEventListener('click', handleUserInteraction);
-      document.removeEventListener('touchstart', handleUserInteraction);
-    };
-  }, [initializeAudio]);
-
   const playNotificationSound = useCallback(() => {
-    if (!audioRef.current || !notificationSettings.enabled) return;
-
-    try {
-      if (!audioInitialized) {
-        initializeAudio();
-        return;
-      }
-
+    if (audioRef.current && notificationSettings.enabled) {
       audioRef.current.volume = notificationSettings.volume / 100;
-      audioRef.current.currentTime = 0;
-      
-      const playPromise = audioRef.current.play();
-      
-      if (playPromise !== undefined) {
-        playPromise.catch(err => {
-          console.error('Error playing notification sound:', err);
-          setAudioError('Sound playback is blocked. Try interacting with the page first.');
-        });
-      }
-    } catch (err) {
-      console.error('Failed to play notification sound:', err);
+      audioRef.current.play().catch(err => console.error('Error playing notification sound:', err));
     }
-  }, [notificationSettings, audioInitialized, initializeAudio]);
+  }, [notificationSettings]);
 
   useEffect(() => {
     if (orders) {
@@ -692,28 +627,11 @@ const KitchenDisplay = () => {
         <div className="flex justify-between items-center">
           <h1 className="text-3xl font-bold">Kitchen Display System</h1>
           <div className="flex gap-2">
-            {audioError && (
-              <Button 
-                variant="outline" 
-                onClick={initializeAudio} 
-                className="flex gap-1 items-center text-amber-600"
-              >
-                <Bell size={16} />
-                Enable Sound
-              </Button>
-            )}
             <Button variant="outline" onClick={() => refetch()}>
               Refresh
             </Button>
           </div>
         </div>
-        
-        {audioError && (
-          <div className="bg-amber-50 border border-amber-200 text-amber-800 px-4 py-2 rounded-md flex items-center gap-2 text-sm">
-            <VolumeX size={16} />
-            <p>{audioError}</p>
-          </div>
-        )}
         
         {isLoading ? (
           <div className="flex-1 flex items-center justify-center">
