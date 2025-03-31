@@ -46,7 +46,6 @@ const KitchenDisplay = () => {
   const prevOrdersRef = useRef<Order[]>([]);
   const audioContextRef = useRef<AudioContext | null>(null);
   const audioInitializedRef = useRef<boolean>(false);
-  const newOrderIdsRef = useRef<Set<number>>(new Set());
   
   const initializeAudio = () => {
     if (audioInitializedRef.current) return;
@@ -199,15 +198,13 @@ const KitchenDisplay = () => {
       const { data, error } = await supabase
         .from('orders')
         .select('*')
-        .order('created_at', { ascending: false })
-        .limit(50);
+        .order('created_at', { ascending: false });
       
       if (error) {
         console.error('KDS: Error fetching orders:', error);
         throw error;
       }
       
-      console.log('KDS: Fetched', data.length, 'orders');
       return data as Order[];
     },
     refetchInterval: 10000,
@@ -236,42 +233,37 @@ const KitchenDisplay = () => {
   }, []);
   
   useEffect(() => {
-    if (!orders || orders.length === 0) return;
-
-    const newColumns = {
-      'New': orders.filter(order => order.status === 'New'),
-      'In Progress': orders.filter(order => order.status === 'In Progress'),
-      'Completed': orders.filter(order => order.status === 'Completed'),
-    };
-    
-    setColumns(newColumns);
-    
-    if (prevOrdersRef.current.length > 0) {
-      const prevIds = new Set(prevOrdersRef.current.map(order => order.id));
-      const currentOrderIds = orders.map(order => order.id);
+    if (orders) {
+      const newColumns = {
+        'New': orders.filter(order => 
+          order.status === 'New'
+        ),
+        'In Progress': orders.filter(order => order.status === 'In Progress'),
+        'Completed': orders.filter(order => order.status === 'Completed'),
+      };
       
-      const newOrders = orders.filter(order => !prevIds.has(order.id));
+      setColumns(newColumns);
       
-      const genuineNewOrders = newOrders.filter(order => !newOrderIdsRef.current.has(order.id));
-      
-      if (genuineNewOrders.length > 0) {
-        console.log('KDS: Found new orders:', genuineNewOrders.length);
-        
-        genuineNewOrders.forEach(order => {
-          newOrderIdsRef.current.add(order.id);
-          toast.success(`New Order #${order.id} Received!`, {
-            description: `${order.items_count} items - ${order.total_amount.toFixed(2)} €`,
-          });
+      if (prevOrdersRef.current.length > 0 && orders.length > prevOrdersRef.current.length) {
+        console.log('KDS: New order detected, comparing order counts', {
+          previous: prevOrdersRef.current.length,
+          current: orders.length
         });
         
-        if (genuineNewOrders.length > 0) {
-          console.log('KDS: Playing notification sound for new orders');
+        const prevIds = new Set(prevOrdersRef.current.map(order => order.id));
+        const newOrder = orders.find(order => !prevIds.has(order.id));
+        
+        if (newOrder) {
+          console.log('KDS: New order identified:', newOrder);
+          toast.success(`New Order #${newOrder.id} Received!`, {
+            description: `${newOrder.items_count} items - $${newOrder.total_amount.toFixed(2)}`,
+          });
           playNotificationSound();
         }
       }
+      
+      prevOrdersRef.current = [...orders];
     }
-    
-    prevOrdersRef.current = [...orders];
   }, [orders]);
   
   useEffect(() => {
@@ -286,15 +278,11 @@ const KitchenDisplay = () => {
           console.log('KDS: Order update received:', payload);
           
           if (payload.eventType === 'INSERT') {
-            console.log('KDS: New order inserted via realtime, playing notification sound');
+            console.log('KDS: New order inserted, playing notification sound');
             playNotificationSound();
             
-            if (payload.new && payload.new.id) {
-              newOrderIdsRef.current.add(payload.new.id);
-            }
-            
             toast.success(`New Order #${payload.new.id} Received!`, {
-              description: `${payload.new.items_count} items - ${payload.new.total_amount.toFixed(2)} €`,
+              description: `${payload.new.items_count} items - $${payload.new.total_amount.toFixed(2)}`,
             });
           }
           
