@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import AdminLayout from '../../components/admin/AdminLayout';
@@ -6,7 +5,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Order, OrderItem } from '@/types/orders';
 import { toast } from 'sonner';
 import { DragDropContext, Droppable, Draggable } from 'react-beautiful-dnd';
-import { Bell, Clock, CheckCircle, Info, Plus, Volume2, VolumeX } from 'lucide-react';
+import { Bell, Clock, CheckCircle, Info, Plus } from 'lucide-react';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -14,6 +13,8 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { Button } from '@/components/ui/button';
 import { format, formatDistance } from 'date-fns';
+
+const notificationSound = new Audio('/notification.mp3');
 
 const KitchenDisplay = () => {
   const [columns, setColumns] = useState<{
@@ -41,9 +42,7 @@ const KitchenDisplay = () => {
     soundUrl: '/notification.mp3'
   });
   
-  const audioRef = useRef<HTMLAudioElement | null>(null);
-  const [audioInitialized, setAudioInitialized] = useState(false);
-  const [audioPermissionNeeded, setAudioPermissionNeeded] = useState(false);
+  const audioRef = useRef<HTMLAudioElement>(null);
 
   const { data: orders = [], isLoading, isError, refetch } = useQuery({
     queryKey: ['kds-orders'],
@@ -78,13 +77,7 @@ const KitchenDisplay = () => {
         }
 
         if (data?.value) {
-          const settings = data.value as any;
-          setNotificationSettings({
-            enabled: settings.enabled ?? true,
-            volume: settings.volume ?? 80,
-            customSound: settings.customSound ?? false,
-            soundUrl: settings.soundUrl ?? '/notification.mp3'
-          });
+          setNotificationSettings(data.value as any);
         }
       } catch (error) {
         console.error('Unexpected error fetching notification settings:', error);
@@ -94,111 +87,12 @@ const KitchenDisplay = () => {
     fetchNotificationSettings();
   }, []);
 
-  // Initialize audio context on component mount
-  useEffect(() => {
-    // Create audio element
-    audioRef.current = new Audio(notificationSettings.soundUrl);
-    audioRef.current.preload = 'auto';
-    audioRef.current.volume = notificationSettings.volume / 100;
-    
-    // Try to load audio (this might be blocked on mobile)
-    const loadAndPlayTest = () => {
-      if (audioRef.current) {
-        audioRef.current.load();
-        
-        // Test if we can play audio
-        audioRef.current.play().then(() => {
-          console.log('Audio playback initialized successfully');
-          setAudioInitialized(true);
-          audioRef.current?.pause();
-          audioRef.current!.currentTime = 0;
-        }).catch(err => {
-          console.warn('Audio playback blocked, user interaction needed:', err);
-          setAudioPermissionNeeded(true);
-        });
-      }
-    };
-    
-    // Try to initialize audio
-    loadAndPlayTest();
-    
-    // Cleanup function
-    return () => {
-      if (audioRef.current) {
-        audioRef.current.pause();
-        audioRef.current.src = '';
-      }
-    };
-  }, [notificationSettings.soundUrl, notificationSettings.volume]);
-
-  // Initialize audio on first user interaction with the page
-  useEffect(() => {
-    const initializeAudioOnInteraction = () => {
-      if (audioRef.current && !audioInitialized) {
-        audioRef.current.play().then(() => {
-          console.log('Audio initialized on user interaction');
-          setAudioInitialized(true);
-          setAudioPermissionNeeded(false);
-          audioRef.current?.pause();
-          audioRef.current!.currentTime = 0;
-        }).catch(err => {
-          console.error('Still unable to play audio:', err);
-        });
-      }
-    };
-
-    // Add event listeners for user interaction
-    const events = ['click', 'touchstart', 'keydown'];
-    events.forEach(event => {
-      document.addEventListener(event, initializeAudioOnInteraction, { once: true });
-    });
-
-    return () => {
-      events.forEach(event => {
-        document.removeEventListener(event, initializeAudioOnInteraction);
-      });
-    };
-  }, [audioInitialized]);
-
   const playNotificationSound = useCallback(() => {
-    if (!audioRef.current || !notificationSettings.enabled || !audioInitialized) {
-      return;
+    if (audioRef.current && notificationSettings.enabled) {
+      audioRef.current.volume = notificationSettings.volume / 100;
+      audioRef.current.play().catch(err => console.error('Error playing notification sound:', err));
     }
-    
-    // Reset audio to beginning if it's already playing
-    audioRef.current.currentTime = 0;
-    audioRef.current.volume = notificationSettings.volume / 100;
-    
-    // Play the notification sound
-    audioRef.current.play().catch(err => {
-      console.error('Error playing notification sound:', err);
-      setAudioPermissionNeeded(true);
-    });
-  }, [notificationSettings.enabled, notificationSettings.volume, audioInitialized]);
-
-  // Handle manual enabling of sound
-  const handleEnableSound = () => {
-    if (audioRef.current) {
-      audioRef.current.play().then(() => {
-        console.log('Audio enabled by user');
-        setAudioInitialized(true);
-        setAudioPermissionNeeded(false);
-        
-        // Play a test sound to confirm it's working
-        setTimeout(() => {
-          if (audioRef.current) {
-            audioRef.current.currentTime = 0;
-            audioRef.current.play().catch(console.error);
-          }
-        }, 300);
-        
-        toast.success('Notification sounds enabled');
-      }).catch(err => {
-        console.error('Failed to enable audio:', err);
-        toast.error('Failed to enable sounds. Please try again.');
-      });
-    }
-  };
+  }, [notificationSettings]);
 
   useEffect(() => {
     if (orders) {
@@ -733,36 +627,6 @@ const KitchenDisplay = () => {
         <div className="flex justify-between items-center">
           <h1 className="text-3xl font-bold">Kitchen Display System</h1>
           <div className="flex gap-2">
-            {audioPermissionNeeded && (
-              <Button 
-                onClick={handleEnableSound} 
-                className="flex items-center gap-2"
-                variant="outline"
-              >
-                <Volume2 size={18} />
-                Enable Sound
-              </Button>
-            )}
-            {audioInitialized && notificationSettings.enabled && (
-              <Button 
-                onClick={() => {
-                  // Play a test notification sound
-                  if (audioRef.current) {
-                    audioRef.current.currentTime = 0;
-                    audioRef.current.play().catch(err => {
-                      console.error('Error playing test sound:', err);
-                      setAudioPermissionNeeded(true);
-                    });
-                  }
-                }}
-                variant="outline"
-                className="flex items-center gap-2"
-                title="Test notification sound"
-              >
-                <Volume2 size={18} />
-                Test Sound
-              </Button>
-            )}
             <Button variant="outline" onClick={() => refetch()}>
               Refresh
             </Button>
@@ -791,7 +655,12 @@ const KitchenDisplay = () => {
         {renderOrderDetailsModal()}
       </div>
       
-      {/* Audio element is not needed anymore as we're using the Audio API */}
+      <audio 
+        ref={audioRef} 
+        src={notificationSettings.soundUrl} 
+        preload="auto"
+        style={{ display: 'none' }}
+      />
     </AdminLayout>
   );
 };
