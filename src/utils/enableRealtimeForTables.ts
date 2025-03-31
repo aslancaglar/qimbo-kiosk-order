@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/components/ui/use-toast";
 import { RealtimePostgresChangesFilter } from "@supabase/supabase-js";
@@ -9,6 +8,9 @@ let notificationSettings = {
   soundUrl: '/notification.mp3',
   volume: 1.0
 };
+
+// Keep track of audio instance for cleanup
+let notificationAudio: HTMLAudioElement | null = null;
 
 /**
  * Fetches notification settings from the database
@@ -33,9 +35,33 @@ const fetchNotificationSettings = async () => {
         soundUrl: settings.soundUrl || '/notification.mp3',
         volume: settings.volume !== undefined ? Number(settings.volume) : 1.0
       };
+      console.log('Notification settings loaded:', notificationSettings);
     }
   } catch (error) {
     console.error('Error fetching notification settings:', error);
+  }
+};
+
+/**
+ * Preloads the notification sound to improve playback reliability
+ */
+const preloadNotificationSound = () => {
+  if (notificationAudio) {
+    notificationAudio.pause();
+    notificationAudio.remove();
+  }
+  
+  try {
+    notificationAudio = new Audio(notificationSettings.soundUrl);
+    notificationAudio.preload = 'auto';
+    notificationAudio.volume = notificationSettings.volume;
+    
+    // Force a load attempt
+    notificationAudio.load();
+    
+    console.log('Notification sound preloaded:', notificationSettings.soundUrl);
+  } catch (error) {
+    console.error('Error preloading notification sound:', error);
   }
 };
 
@@ -46,12 +72,26 @@ const playNotificationSound = () => {
   if (!notificationSettings.soundEnabled) return;
   
   try {
+    // Always create a new Audio instance for more reliable playback
     const audio = new Audio(notificationSettings.soundUrl);
     audio.volume = notificationSettings.volume;
     
-    audio.play().catch(error => {
-      console.error('Error playing notification sound:', error);
-    });
+    console.log('Playing notification sound:', notificationSettings.soundUrl, 'at volume', notificationSettings.volume);
+    
+    // Play the sound with better error handling
+    audio.play()
+      .then(() => console.log('Sound played successfully'))
+      .catch(error => {
+        console.error('Error playing notification sound:', error);
+        
+        // If error is about needing user interaction, show a toast
+        if (error.name === 'NotAllowedError') {
+          toast({
+            title: "Sound requires interaction",
+            description: "Please click anywhere on the page to enable sound notifications",
+          });
+        }
+      });
   } catch (error) {
     console.error('Error creating audio object:', error);
   }
@@ -67,6 +107,9 @@ export const enableRealtimeForTables = async () => {
     
     // Fetch notification settings first
     await fetchNotificationSettings();
+    
+    // Preload the notification sound
+    preloadNotificationSound();
     
     // Enable real-time for orders table by listening to the relevant channel
     const ordersChannel = supabase
@@ -135,11 +178,24 @@ export const enableRealtimeForTables = async () => {
         async () => {
           console.log('Notification settings changed, refreshing...');
           await fetchNotificationSettings();
+          preloadNotificationSound();
         }
       )
       .subscribe();
     
     console.log('Successfully enabled real-time for tables');
+    
+    // Add global click event listener to enable audio (only if in browser environment)
+    if (typeof window !== 'undefined') {
+      const unlockAudio = () => {
+        // Try to play a silent audio to unlock audio playback
+        const silentAudio = new Audio();
+        silentAudio.play().catch(() => {});
+        document.removeEventListener('click', unlockAudio);
+      };
+      
+      document.addEventListener('click', unlockAudio);
+    }
     
     return { ordersChannel, menuItemsChannel, settingsChannel }; // Return the channels so they can be unsubscribed if needed
   } catch (error) {

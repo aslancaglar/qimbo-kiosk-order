@@ -145,7 +145,7 @@ const Settings = () => {
         .select('*')
         .eq('key', 'ordering_settings')
         .maybeSingle();
-
+        
       if (error) {
         console.error('Error fetching ordering settings:', error);
         toast({
@@ -537,7 +537,7 @@ const Settings = () => {
       
       setUploadingSound(true);
       
-      const soundUrl = await uploadFile(file, 'notification-sounds');
+      const soundUrl = await uploadFile(file, 'menu-images');
       
       if (soundUrl) {
         setNotificationSettings(prev => ({
@@ -549,6 +549,18 @@ const Settings = () => {
         toast({
           title: "Sound uploaded",
           description: "Notification sound uploaded successfully"
+        });
+        
+        const audio = new Audio(soundUrl);
+        audio.volume = notificationSettings.volume;
+        audio.play().catch(error => {
+          console.error('Error playing test sound:', error);
+        });
+      } else {
+        toast({
+          title: "Upload failed",
+          description: "Failed to upload notification sound",
+          variant: "destructive"
         });
       }
     } catch (error) {
@@ -577,7 +589,8 @@ const Settings = () => {
         setTestingSound(false);
       };
       
-      audio.onerror = () => {
+      audio.onerror = (e) => {
+        console.error('Audio error:', e);
         setTestingSound(false);
         toast({
           title: "Playback error",
@@ -591,7 +604,7 @@ const Settings = () => {
         setTestingSound(false);
         toast({
           title: "Playback error",
-          description: "Failed to play the notification sound. User interaction may be needed first.",
+          description: "Please click anywhere on the page first to enable sound playback",
           variant: "destructive"
         });
       });

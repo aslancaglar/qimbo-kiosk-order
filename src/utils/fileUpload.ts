@@ -7,14 +7,30 @@ import { supabase } from "@/integrations/supabase/client";
  * @param {string} bucketName - The bucket name to upload to 
  * @returns {Promise<string|null>} The public URL if successful, null if failed
  */
-export const uploadFile = async (file: File, bucketName: string = 'notification-sounds'): Promise<string | null> => {
+export const uploadFile = async (file: File, bucketName: string = 'menu-images'): Promise<string | null> => {
   try {
-    // Check if bucket exists or create it
-    await ensureBucketExists(bucketName);
+    console.log(`Attempting to upload file to ${bucketName} bucket...`);
     
-    // Create a unique file name
+    // Check if we have permission to access this bucket (use menu-images as fallback)
+    const { data: buckets, error: listError } = await supabase.storage.listBuckets();
+    
+    if (listError) {
+      console.error('Error listing buckets:', listError);
+      // Fall back to menu-images bucket which should exist
+      bucketName = 'menu-images';
+    } else {
+      const bucketExists = buckets.some(bucket => bucket.name === bucketName);
+      
+      if (!bucketExists) {
+        console.log(`Bucket ${bucketName} not found. Using menu-images bucket instead.`);
+        // Fall back to menu-images bucket
+        bucketName = 'menu-images';
+      }
+    }
+    
+    // Create a unique file path including original file extension
     const fileExt = file.name.split('.').pop();
-    const fileName = `${Date.now()}-${Math.random().toString(36).substring(2, 15)}.${fileExt}`;
+    const fileName = `notification-sounds/${Date.now()}-${Math.random().toString(36).substring(2, 15)}.${fileExt}`;
     
     console.log(`Uploading file ${fileName} to ${bucketName} bucket...`);
     
@@ -48,47 +64,10 @@ export const uploadFile = async (file: File, bucketName: string = 'notification-
 };
 
 /**
- * Ensure a storage bucket exists, create it if it doesn't
- * @param {string} bucketName - The name of the bucket to check/create
+ * This function is kept for compatibility but now we use the 
+ * menu-images bucket with a notification-sounds/ prefix
  */
 export const ensureBucketExists = async (bucketName: string): Promise<boolean> => {
-  try {
-    // Check if bucket exists
-    const { data: buckets, error: listError } = await supabase.storage.listBuckets();
-    
-    if (listError) {
-      console.error('Error listing buckets:', listError);
-      return false;
-    }
-    
-    const bucketExists = buckets.some(bucket => bucket.name === bucketName);
-    
-    // Create bucket if it doesn't exist
-    if (!bucketExists) {
-      const { error: createError } = await supabase.storage.createBucket(bucketName, {
-        public: false // Set to true to make bucket contents publicly accessible
-      });
-      
-      if (createError) {
-        console.error(`Error creating bucket ${bucketName}:`, createError);
-        return false;
-      }
-      
-      console.log(`Bucket ${bucketName} created successfully`);
-      
-      // Set public bucket policy
-      const { error: policyError } = await supabase.storage.updateBucket(bucketName, {
-        public: true
-      });
-      
-      if (policyError) {
-        console.error(`Error setting bucket ${bucketName} policy:`, policyError);
-      }
-    }
-    
-    return true;
-  } catch (error) {
-    console.error('Error ensuring bucket exists:', error);
-    return false;
-  }
+  return true; // We're no longer creating buckets, just using existing ones
 };
+
