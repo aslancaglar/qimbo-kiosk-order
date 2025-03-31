@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import AdminLayout from '../../components/admin/AdminLayout';
@@ -5,7 +6,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Order, OrderItem } from '@/types/orders';
 import { toast } from 'sonner';
 import { DragDropContext, Droppable, Draggable } from 'react-beautiful-dnd';
-import { Bell, Clock, CheckCircle, Info, Plus } from 'lucide-react';
+import { Bell, Clock, CheckCircle, Info, Plus, Settings } from 'lucide-react';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -13,9 +14,9 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { Button } from '@/components/ui/button';
 import { format, formatDistance } from 'date-fns';
-
-// Sound notification for new orders
-const notificationSound = new Audio('/notification.mp3');
+import NotificationSettingsModal from '@/components/admin/NotificationSettingsModal';
+import { playNotificationSound, preloadAudio } from '@/utils/audioUtils';
+import { useLocalStorage } from '@/hooks/useLocalStorage';
 
 const KitchenDisplay = () => {
   const [columns, setColumns] = useState<{
@@ -33,8 +34,22 @@ const KitchenDisplay = () => {
   const [orderDetails, setOrderDetails] = useState<OrderItem[]>([]);
   const [isLoadingDetails, setIsLoadingDetails] = useState(false);
   
+  // Notification settings
+  const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
+  const [notificationsEnabled] = useLocalStorage('kds_notification_enabled', true);
+  const [notificationSoundUrl] = useLocalStorage('kds_notification_sound_url', 'https://assets.mixkit.co/sfx/preview/mixkit-bell-notification-933.mp3');
+  
   const queryClient = useQueryClient();
   const prevOrdersRef = useRef<Order[]>([]);
+  
+  // Preload notification sound
+  useEffect(() => {
+    if (notificationsEnabled && notificationSoundUrl) {
+      preloadAudio(notificationSoundUrl).catch(error => {
+        console.error('Failed to preload notification sound:', error);
+      });
+    }
+  }, [notificationsEnabled, notificationSoundUrl]);
   
   // Fetch all orders
   const { data: orders = [], isLoading, isError, refetch } = useQuery({
@@ -54,6 +69,17 @@ const KitchenDisplay = () => {
     },
     refetchInterval: 10000,
   });
+  
+  // Play notification sound
+  const handlePlayNotification = async () => {
+    try {
+      if (notificationsEnabled && notificationSoundUrl) {
+        await playNotificationSound(notificationSoundUrl);
+      }
+    } catch (error) {
+      console.error('Failed to play notification sound:', error);
+    }
+  };
   
   // Organize orders into columns based on status
   useEffect(() => {
@@ -77,7 +103,9 @@ const KitchenDisplay = () => {
           toast.success(`New Order #${newOrder.id} Received!`, {
             description: `${newOrder.items_count} items - $${newOrder.total_amount.toFixed(2)}`,
           });
-          notificationSound.play().catch(e => console.error('Failed to play notification sound:', e));
+          
+          // Play notification sound for new orders
+          handlePlayNotification();
         }
       }
       
@@ -234,7 +262,10 @@ const KitchenDisplay = () => {
           
           if (payload.eventType === 'INSERT') {
             // Play notification for new orders
-            notificationSound.play().catch(e => console.error('Failed to play notification sound:', e));
+            if (notificationsEnabled && notificationSoundUrl) {
+              handlePlayNotification();
+            }
+            
             toast.success(`New Order #${payload.new.id} Received!`, {
               description: `${payload.new.items_count} items - $${payload.new.total_amount.toFixed(2)}`,
             });
@@ -251,7 +282,7 @@ const KitchenDisplay = () => {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [queryClient]);
+  }, [queryClient, notificationsEnabled, notificationSoundUrl]);
   
   // Render the KDS columns
   const renderColumns = () => {
@@ -611,6 +642,15 @@ const KitchenDisplay = () => {
         <div className="flex justify-between items-center">
           <h1 className="text-3xl font-bold">Kitchen Display System</h1>
           <div className="flex gap-2">
+            <Button 
+              variant="outline" 
+              size="icon"
+              onClick={() => setIsSettingsModalOpen(true)}
+              title="Notification Settings"
+              className={notificationsEnabled ? "bg-green-50" : ""}
+            >
+              <Bell className={notificationsEnabled ? "text-green-600" : ""} size={20} />
+            </Button>
             <Button variant="outline" onClick={() => refetch()}>
               Refresh
             </Button>
@@ -637,6 +677,12 @@ const KitchenDisplay = () => {
         )}
         
         {renderOrderDetailsModal()}
+        
+        {/* Notification Settings Modal */}
+        <NotificationSettingsModal 
+          isOpen={isSettingsModalOpen}
+          onOpenChange={setIsSettingsModalOpen}
+        />
       </div>
     </AdminLayout>
   );
