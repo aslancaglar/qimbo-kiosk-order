@@ -1,3 +1,4 @@
+
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -67,21 +68,6 @@ const RouteChangeTracker = () => {
 const App = () => {
   // Initialize performance monitoring
   useEffect(() => {
-    // Add detection for tablet/mobile device
-    const checkDeviceType = () => {
-      const userAgent = navigator.userAgent.toLowerCase();
-      const isTablet = /(ipad|tablet|(android(?!.*mobile))|(windows(?!.*phone)(.*touch))|silk)/.test(userAgent);
-      
-      if (isTablet) {
-        document.documentElement.classList.add('tablet-device');
-        // Apply any tablet-specific styles or configurations
-        console.log('Running on tablet device');
-      }
-    };
-    
-    checkDeviceType();
-    
-    // Original initialization code
     startMeasure('App initialization');
     
     console.log('Initializing app with performance monitoring...');
