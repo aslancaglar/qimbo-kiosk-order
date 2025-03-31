@@ -15,8 +15,7 @@ import { Button } from '@/components/ui/button';
 import { format, formatDistance } from 'date-fns';
 import { NotificationSettingsModal } from '@/components/admin/NotificationSettingsModal';
 
-// Sound notification for new orders
-let notificationSound: HTMLAudioElement | null = null;
+let audioContext: AudioContext | null = null;
 
 const KitchenDisplay = () => {
   const [columns, setColumns] = useState<{
@@ -35,11 +34,12 @@ const KitchenDisplay = () => {
   const [isLoadingDetails, setIsLoadingDetails] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [soundEnabled, setSoundEnabled] = useState(true);
+  const [soundUrl, setSoundUrl] = useState('/notification.mp3');
   
   const queryClient = useQueryClient();
   const prevOrdersRef = useRef<Order[]>([]);
+  const audioBufferRef = useRef<AudioBuffer | null>(null);
   
-  // Initialize notification sound
   useEffect(() => {
     const loadNotificationSettings = async () => {
       try {
@@ -52,51 +52,91 @@ const KitchenDisplay = () => {
         if (data && data.value) {
           const settings = data.value as Record<string, any>;
           setSoundEnabled(settings.enabled !== undefined ? settings.enabled : true);
+          setSoundUrl(settings.soundUrl || '/notification.mp3');
           
-          // Initialize sound with the saved URL or default
-          const soundUrl = settings.soundUrl || '/notification.mp3';
-          
-          // Create and configure audio element
-          if (!notificationSound) {
-            notificationSound = new Audio(soundUrl);
-            notificationSound.preload = 'auto';
-          } else {
-            notificationSound.src = soundUrl;
+          if (!audioContext) {
+            audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+            fetchAndDecodeAudio(settings.soundUrl || '/notification.mp3');
           }
-          
-          // Preload the sound
-          notificationSound.load();
         } else {
-          // Default sound if no settings are saved
-          if (!notificationSound) {
-            notificationSound = new Audio('/notification.mp3');
-            notificationSound.preload = 'auto';
-            notificationSound.load();
+          if (!audioContext) {
+            audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+            fetchAndDecodeAudio('/notification.mp3');
           }
         }
       } catch (error) {
         console.error('Error loading notification settings:', error);
-        // Use default sound on error
-        if (!notificationSound) {
-          notificationSound = new Audio('/notification.mp3');
-          notificationSound.preload = 'auto';
-          notificationSound.load();
+        if (!audioContext) {
+          audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+          fetchAndDecodeAudio('/notification.mp3');
         }
       }
     };
 
     loadNotificationSettings();
     
-    // Cleanup
     return () => {
-      if (notificationSound) {
-        notificationSound.pause();
-        notificationSound = null;
+      if (audioContext && audioContext.state !== 'closed') {
+        audioContext.close();
+        audioContext = null;
       }
     };
   }, []);
   
-  // Fetch all orders
+  const fetchAndDecodeAudio = async (url: string) => {
+    if (!audioContext) return;
+    
+    try {
+      const response = await fetch(url);
+      if (!response.ok) {
+        throw new Error('Failed to fetch audio file');
+      }
+      
+      const arrayBuffer = await response.arrayBuffer();
+      audioContext.decodeAudioData(
+        arrayBuffer,
+        (buffer) => {
+          audioBufferRef.current = buffer;
+        },
+        (err) => {
+          console.error('Error decoding audio data:', err);
+        }
+      );
+    } catch (error) {
+      console.error('Error fetching audio file:', error);
+    }
+  };
+  
+  const playNotificationSound = () => {
+    if (!soundEnabled || !audioContext || !audioBufferRef.current) return;
+    
+    try {
+      if (audioContext.state === 'suspended') {
+        audioContext.resume();
+      }
+      
+      const source = audioContext.createBufferSource();
+      source.buffer = audioBufferRef.current;
+      source.connect(audioContext.destination);
+      source.start(0);
+    } catch (err) {
+      console.error('Failed to play notification sound:', err);
+      
+      try {
+        const audio = new Audio(soundUrl);
+        audio.play().catch(e => console.error('Fallback audio failed:', e));
+      } catch (fallbackErr) {
+        console.error('All audio playback methods failed:', fallbackErr);
+      }
+    }
+  };
+  
+  useEffect(() => {
+    if (soundUrl && audioContext) {
+      fetchAndDecodeAudio(soundUrl);
+    }
+  }, [soundUrl]);
+  
   const { data: orders = [], isLoading, isError, refetch } = useQuery({
     queryKey: ['kds-orders'],
     queryFn: async () => {
@@ -115,7 +155,6 @@ const KitchenDisplay = () => {
     refetchInterval: 10000,
   });
   
-  // Organize orders into columns based on status
   useEffect(() => {
     if (orders) {
       const newColumns = {
@@ -128,7 +167,6 @@ const KitchenDisplay = () => {
       
       setColumns(newColumns);
       
-      // Check for new orders to play sound
       if (prevOrdersRef.current.length > 0 && orders.length > prevOrdersRef.current.length) {
         const prevIds = new Set(prevOrdersRef.current.map(order => order.id));
         const newOrder = orders.find(order => !prevIds.has(order.id));
@@ -138,20 +176,7 @@ const KitchenDisplay = () => {
             description: `${newOrder.items_count} items - $${newOrder.total_amount.toFixed(2)}`,
           });
           
-          // Play notification sound if enabled
-          if (soundEnabled && notificationSound) {
-            try {
-              const playPromise = notificationSound.play();
-              
-              if (playPromise !== undefined) {
-                playPromise.catch(err => {
-                  console.error('Error playing sound:', err);
-                });
-              }
-            } catch (err) {
-              console.error('Failed to play notification sound:', err);
-            }
-          }
+          playNotificationSound();
         }
       }
       
@@ -159,14 +184,11 @@ const KitchenDisplay = () => {
     }
   }, [orders, soundEnabled]);
   
-  // Handle drag and drop between columns
   const onDragEnd = async (result: any) => {
     const { destination, source, draggableId } = result;
     
-    // If dropped outside a droppable area
     if (!destination) return;
     
-    // If dropped in the same place
     if (destination.droppableId === source.droppableId && destination.index === source.index) {
       return;
     }
@@ -175,11 +197,9 @@ const KitchenDisplay = () => {
     const order = orders.find(o => o.id === orderId);
     if (!order) return;
     
-    // Determine new status based on destination column
     let newStatus = destination.droppableId;
     
     try {
-      // Update order status in database
       const { error } = await supabase
         .from('orders')
         .update({ status: newStatus })
@@ -187,23 +207,19 @@ const KitchenDisplay = () => {
         
       if (error) throw error;
       
-      // Optimistically update UI
       const sourceColumn = columns[source.droppableId as keyof typeof columns];
       const destColumn = columns[destination.droppableId as keyof typeof columns];
       
       const newSourceColumn = [...sourceColumn];
       const newDestColumn = [...destColumn];
       
-      // Remove from source
       const [movedOrder] = newSourceColumn.splice(source.index, 1);
       
-      // Insert at destination
       newDestColumn.splice(destination.index, 0, {
         ...movedOrder,
         status: newStatus
       });
       
-      // Update columns state
       setColumns({
         ...columns,
         [source.droppableId]: newSourceColumn,
@@ -212,7 +228,6 @@ const KitchenDisplay = () => {
       
       toast.success(`Order #${orderId} moved to ${destination.droppableId}`);
       
-      // Invalidate the query to refetch
       queryClient.invalidateQueries({ queryKey: ['kds-orders'] });
     } catch (error) {
       console.error('Failed to update order status:', error);
@@ -220,11 +235,9 @@ const KitchenDisplay = () => {
     }
   };
   
-  // Fetch order details for the modal
   const fetchOrderDetails = async (orderId: number) => {
     setIsLoadingDetails(true);
     try {
-      // Fetch order items with menu item data
       const { data: orderItems, error: itemsError } = await supabase
         .from('order_items')
         .select(`
@@ -240,7 +253,6 @@ const KitchenDisplay = () => {
       
       if (itemsError) throw itemsError;
       
-      // Format the orderItems to match our types
       const formattedItems: OrderItem[] = orderItems.map(item => ({
         id: item.id,
         order_id: item.order_id,
@@ -252,7 +264,6 @@ const KitchenDisplay = () => {
         toppings: []
       }));
       
-      // For each order item, fetch its toppings
       for (const item of formattedItems) {
         const { data: toppings, error: toppingsError } = await supabase
           .from('order_item_toppings')
@@ -270,7 +281,6 @@ const KitchenDisplay = () => {
           continue;
         }
         
-        // Map the toppings to our format
         item.toppings = toppings.map(t => ({
           id: t.id,
           order_item_id: t.order_item_id,
@@ -289,14 +299,12 @@ const KitchenDisplay = () => {
     }
   };
   
-  // Handle opening the order details modal
   const handleOpenOrderDetails = (order: Order) => {
     setSelectedOrder(order);
     setIsModalOpen(true);
     fetchOrderDetails(order.id);
   };
   
-  // Set up real-time listeners for order updates
   useEffect(() => {
     const channel = supabase
       .channel('kds-orders-channel')
@@ -307,27 +315,13 @@ const KitchenDisplay = () => {
           console.log('Order update received:', payload);
           
           if (payload.eventType === 'INSERT') {
-            // Play notification sound for real-time new orders
-            if (soundEnabled && notificationSound) {
-              try {
-                const playPromise = notificationSound.play();
-                
-                if (playPromise !== undefined) {
-                  playPromise.catch(err => {
-                    console.error('Error playing sound:', err);
-                  });
-                }
-              } catch (err) {
-                console.error('Failed to play notification sound:', err);
-              }
-              
-              toast.success(`New Order #${payload.new.id} Received!`, {
-                description: `${payload.new.items_count} items - $${payload.new.total_amount.toFixed(2)}`,
-              });
-            }
+            playNotificationSound();
+            
+            toast.success(`New Order #${payload.new.id} Received!`, {
+              description: `${payload.new.items_count} items - $${payload.new.total_amount.toFixed(2)}`,
+            });
           }
           
-          // Refetch orders to update the display
           queryClient.invalidateQueries({ queryKey: ['kds-orders'] });
         }
       )
@@ -340,13 +334,17 @@ const KitchenDisplay = () => {
     };
   }, [queryClient, soundEnabled]);
   
-  // Toggle notification button based on current state
   const renderSoundButton = () => {
     return (
       <Button 
         variant="outline" 
         size="icon"
-        onClick={() => setIsSettingsOpen(true)}
+        onClick={() => {
+          if (audioContext && audioContext.state === 'suspended') {
+            audioContext.resume();
+          }
+          setIsSettingsOpen(true);
+        }}
         title="Notification Settings"
       >
         {soundEnabled ? (
@@ -358,7 +356,6 @@ const KitchenDisplay = () => {
     );
   };
   
-  // Render the KDS columns
   const renderColumns = () => {
     return (
       <DragDropContext onDragEnd={onDragEnd}>
@@ -464,7 +461,6 @@ const KitchenDisplay = () => {
     );
   };
   
-  // Render the order details modal
   const renderOrderDetailsModal = () => {
     if (!selectedOrder) return null;
     
@@ -717,7 +713,15 @@ const KitchenDisplay = () => {
           <h1 className="text-3xl font-bold">Kitchen Display System</h1>
           <div className="flex gap-2">
             {renderSoundButton()}
-            <Button variant="outline" onClick={() => refetch()}>
+            <Button 
+              variant="outline" 
+              onClick={() => {
+                if (audioContext && audioContext.state === 'suspended') {
+                  audioContext.resume();
+                }
+                refetch();
+              }}
+            >
               <RefreshCw className="h-4 w-4 mr-2" />
               Refresh
             </Button>
@@ -745,12 +749,10 @@ const KitchenDisplay = () => {
         
         {renderOrderDetailsModal()}
         
-        {/* Notification Settings Modal */}
         <NotificationSettingsModal 
           isOpen={isSettingsOpen} 
           onClose={() => {
             setIsSettingsOpen(false);
-            // Reload settings after closing the modal
             const loadSettings = async () => {
               try {
                 const { data } = await supabase
@@ -763,13 +765,9 @@ const KitchenDisplay = () => {
                   const settings = data.value as Record<string, any>;
                   setSoundEnabled(settings.enabled !== undefined ? settings.enabled : true);
                   
-                  // Update the notification sound with the new URL if changed
-                  if (notificationSound && settings.soundUrl) {
-                    notificationSound.src = settings.soundUrl;
-                    notificationSound.load();
-                  } else if (settings.soundUrl) {
-                    notificationSound = new Audio(settings.soundUrl);
-                    notificationSound.load();
+                  if (settings.soundUrl !== soundUrl) {
+                    setSoundUrl(settings.soundUrl || '/notification.mp3');
+                    fetchAndDecodeAudio(settings.soundUrl || '/notification.mp3');
                   }
                 }
               } catch (error) {

@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
@@ -18,6 +17,7 @@ export const NotificationSettingsModal: React.FC<NotificationSettingsProps> = ({
   const [enabled, setEnabled] = useState(true);
   const [soundUrl, setSoundUrl] = useState('/notification.mp3');
   const [isLoading, setIsLoading] = useState(false);
+  const [isTesting, setIsTesting] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
   // Load settings from localStorage on component mount
@@ -34,12 +34,6 @@ export const NotificationSettingsModal: React.FC<NotificationSettingsProps> = ({
           const settings = data.value as Record<string, any>;
           setEnabled(settings.enabled !== undefined ? settings.enabled : true);
           setSoundUrl(settings.soundUrl || '/notification.mp3');
-          
-          // Initialize audio element
-          if (!audioRef.current) {
-            audioRef.current = new Audio(settings.soundUrl || '/notification.mp3');
-            audioRef.current.preload = 'auto';
-          }
         }
       } catch (error) {
         console.error('Error loading notification settings:', error);
@@ -50,7 +44,6 @@ export const NotificationSettingsModal: React.FC<NotificationSettingsProps> = ({
       loadSettings();
     }
     
-    // Cleanup audio element on unmount
     return () => {
       if (audioRef.current) {
         audioRef.current.pause();
@@ -59,54 +52,46 @@ export const NotificationSettingsModal: React.FC<NotificationSettingsProps> = ({
     };
   }, [isOpen]);
 
-  useEffect(() => {
-    // Update audio source when soundUrl changes
-    if (audioRef.current && soundUrl) {
-      audioRef.current.src = soundUrl;
-      audioRef.current.load();
-    }
-  }, [soundUrl]);
-
   const handleTestSound = () => {
     if (!enabled || !soundUrl) return;
+    setIsTesting(true);
 
     try {
-      // Use the audio element from ref or create a new one
-      if (!audioRef.current) {
-        audioRef.current = new Audio(soundUrl);
-      }
+      // Create a new audio element each time to avoid caching issues
+      const audio = new Audio(soundUrl);
       
-      // Make sure the audio source is up to date
-      if (audioRef.current.src !== soundUrl) {
-        audioRef.current.src = soundUrl;
-        audioRef.current.load();
-      }
+      // Set up event handlers
+      audio.onended = () => {
+        setIsTesting(false);
+      };
       
-      // Play the sound
-      const playPromise = audioRef.current.play();
+      audio.onerror = (e) => {
+        console.error('Error playing sound:', e);
+        toast.error('Failed to play sound. Please check the URL and try again.');
+        setIsTesting(false);
+      };
       
-      if (playPromise !== undefined) {
-        playPromise.catch(error => {
+      // Attempt to play the sound with user interaction
+      audio.play()
+        .then(() => {
+          // Keep track of the audio element
+          audioRef.current = audio;
+        })
+        .catch((error) => {
           console.error('Error playing sound:', error);
           toast.error('Failed to play sound. Please check the URL and try again.');
+          setIsTesting(false);
         });
-      }
     } catch (error) {
       console.error('Error testing sound:', error);
       toast.error('Invalid sound URL. Please enter a valid audio file URL.');
+      setIsTesting(false);
     }
   };
 
   const handleResetToDefault = () => {
     const defaultSoundUrl = '/notification.mp3';
     setSoundUrl(defaultSoundUrl);
-    
-    // Update audio element
-    if (audioRef.current) {
-      audioRef.current.src = defaultSoundUrl;
-      audioRef.current.load();
-    }
-    
     toast.info('Reset to default notification sound');
   };
 
@@ -200,9 +185,9 @@ export const NotificationSettingsModal: React.FC<NotificationSettingsProps> = ({
                 size="sm"
                 type="button"
                 onClick={handleTestSound}
-                disabled={!enabled || !soundUrl}
+                disabled={!enabled || !soundUrl || isTesting}
               >
-                Test
+                {isTesting ? "Playing..." : "Test"}
               </Button>
             </div>
             <div className="flex justify-between items-center">
