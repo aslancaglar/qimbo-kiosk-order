@@ -549,7 +549,7 @@ const KitchenDisplay = () => {
     
     return (
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-        <DialogContent contentScrollable={true} className="max-w-3xl max-h-[90vh] flex flex-col">
+        <DialogContent fixedFooter={true} className="max-w-3xl max-h-[90vh]">
           <DialogHeader className="px-6 pt-6">
             <DialogTitle className="flex justify-between items-center">
               <span>Order #{selectedOrder.id}</span>
@@ -612,12 +612,12 @@ const KitchenDisplay = () => {
             </Card>
           </div>
           
-          <div className="px-6 py-2 flex-1 overflow-y-auto">
+          <div className="px-6 pt-2">
             <Card className="h-full flex flex-col">
               <CardHeader className="p-3 pb-0">
                 <CardTitle className="text-base">Order Items</CardTitle>
               </CardHeader>
-              <CardContent className="p-3 pt-1 flex-1 overflow-y-auto">
+              <CardContent className="p-3 pt-1 flex-1">
                 {isLoadingDetails ? (
                   <div className="flex justify-center py-8">
                     <div className="animate-spin w-6 h-6 border-2 border-primary border-t-transparent rounded-full"></div>
@@ -670,7 +670,7 @@ const KitchenDisplay = () => {
             </Card>
           </div>
           
-          <div className="flex justify-between px-6 pb-6 pt-2 border-t mt-2">
+          <div className="flex justify-between px-6 pb-6 pt-2">
             <div className="flex gap-2">
               <Button 
                 variant="outline" 
