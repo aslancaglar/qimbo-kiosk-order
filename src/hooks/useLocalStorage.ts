@@ -22,7 +22,25 @@ export function useLocalStorage<T>(
       
       // Parse the stored value
       try {
-        return JSON.parse(item) as T;
+        // Some JSON values might be wrapped in quotes (especially URLs)
+        // Try to detect if this is a JSON string wrapped in another JSON string
+        let parsedItem = JSON.parse(item);
+        
+        // If the parsed item is a string that looks like a JSON structure,
+        // try to parse it again (happens sometimes with URLs)
+        if (typeof parsedItem === 'string' && 
+           (parsedItem.startsWith('{') || parsedItem.startsWith('[') || 
+            parsedItem.startsWith('"'))) {
+          try {
+            const doubleParseResult = JSON.parse(parsedItem);
+            return doubleParseResult as T;
+          } catch {
+            // If second parse fails, just use the first result
+            return parsedItem as T;
+          }
+        }
+        
+        return parsedItem as T;
       } catch (parseError) {
         // If parsing fails, return the raw item as it might be a string value
         // that doesn't need parsing
@@ -39,6 +57,11 @@ export function useLocalStorage<T>(
   // Pass initial state function to useState so logic is only executed once
   const [storedValue, setStoredValue] = useState<T>(readValue);
 
+  // Effect to sync with localStorage whenever the key changes
+  useEffect(() => {
+    setStoredValue(readValue());
+  }, [key]);
+
   // Return a wrapped version of useState's setter function that
   // persists the new value to localStorage.
   const setValue = (value: T | ((val: T) => T)) => {
@@ -54,6 +77,7 @@ export function useLocalStorage<T>(
       if (typeof window !== 'undefined') {
         try {
           window.localStorage.setItem(key, JSON.stringify(valueToStore));
+          console.log(`Saved to localStorage: ${key} =`, valueToStore);
         } catch (stringifyError) {
           // If the value can't be stringified (e.g., circular references),
           // try to store it directly if it's a primitive type
@@ -61,6 +85,7 @@ export function useLocalStorage<T>(
               typeof valueToStore === 'number' || 
               typeof valueToStore === 'boolean') {
             window.localStorage.setItem(key, String(valueToStore));
+            console.log(`Saved primitive to localStorage: ${key} =`, valueToStore);
           } else {
             console.warn(`Couldn't stringify value for localStorage key "${key}":`, stringifyError);
           }
@@ -74,7 +99,7 @@ export function useLocalStorage<T>(
   // Listen for changes to this localStorage key in other tabs/windows
   useEffect(() => {
     const handleStorageChange = (e: StorageEvent) => {
-      if (e.key === key) {
+      if (e.key === key && e.newValue !== e.oldValue) {
         try {
           // If the new value is null, use the initial value
           if (e.newValue === null) {

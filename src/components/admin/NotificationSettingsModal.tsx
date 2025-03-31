@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
@@ -31,6 +31,14 @@ const NotificationSettingsModal = ({ isOpen, onOpenChange }: NotificationSetting
   const [isTestingSound, setIsTestingSound] = useState(false);
   const [testError, setTestError] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
+
+  // Effect to reset upload progress when modal closes
+  useEffect(() => {
+    if (!isOpen) {
+      setUploadProgress(0);
+    }
+  }, [isOpen]);
 
   // Handle audio test playback with improved error handling
   const handleTestSound = async () => {
@@ -74,12 +82,25 @@ const NotificationSettingsModal = ({ isOpen, onOpenChange }: NotificationSetting
 
     setIsUploading(true);
     setTestError(null);
+    setUploadProgress(10); // Start progress
 
     try {
+      // Simulate progress during upload
+      const progressInterval = setInterval(() => {
+        setUploadProgress(prev => {
+          const newProgress = Math.min(prev + 10, 90);
+          return newProgress;
+        });
+      }, 200);
+      
       // Upload the audio file to Supabase storage
       const uploadedUrl = await uploadImage(file, 'audio-files');
       
+      clearInterval(progressInterval);
+      setUploadProgress(100);
+      
       if (uploadedUrl) {
+        // Set the uploaded URL to localStorage
         setSoundUrl(uploadedUrl);
         toast.success('Audio file uploaded successfully!');
       } else {
@@ -90,6 +111,10 @@ const NotificationSettingsModal = ({ isOpen, onOpenChange }: NotificationSetting
       toast.error('Failed to upload audio file. Please try again.');
     } finally {
       setIsUploading(false);
+      setTimeout(() => {
+        setUploadProgress(0);
+      }, 1000);
+      
       // Clear the input field so the same file can be uploaded again if needed
       event.target.value = '';
     }
@@ -97,6 +122,11 @@ const NotificationSettingsModal = ({ isOpen, onOpenChange }: NotificationSetting
 
   // Handle saving settings
   const handleSaveSettings = () => {
+    // Explicitly save to localStorage to ensure persistence
+    if (typeof window !== 'undefined') {
+      window.localStorage.setItem(NOTIFICATION_ENABLED_KEY, JSON.stringify(notificationsEnabled));
+      window.localStorage.setItem(NOTIFICATION_SOUND_URL_KEY, JSON.stringify(soundUrl));
+    }
     toast.success('Notification settings saved');
     onOpenChange(false);
   };
@@ -161,21 +191,30 @@ const NotificationSettingsModal = ({ isOpen, onOpenChange }: NotificationSetting
               <div className="flex items-center gap-2">
                 <Button
                   variant="outline"
-                  className="w-full justify-start"
+                  className="w-full justify-start relative overflow-hidden"
                   disabled={!notificationsEnabled || isUploading}
                   onClick={() => document.getElementById('sound-file-upload')?.click()}
                 >
-                  {isUploading ? (
-                    <span className="flex items-center gap-2">
-                      <span className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent"></span>
-                      Uploading...
-                    </span>
-                  ) : (
-                    <>
-                      <Upload className="h-4 w-4 mr-2" />
-                      Upload MP3 File
-                    </>
+                  {uploadProgress > 0 && uploadProgress < 100 && (
+                    <div 
+                      className="absolute left-0 top-0 h-full bg-primary/20" 
+                      style={{ width: `${uploadProgress}%` }}
+                    ></div>
                   )}
+                  
+                  <div className="relative z-10 flex items-center">
+                    {isUploading ? (
+                      <span className="flex items-center gap-2">
+                        <span className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent"></span>
+                        Uploading... {uploadProgress}%
+                      </span>
+                    ) : (
+                      <>
+                        <Upload className="h-4 w-4 mr-2" />
+                        Upload MP3 File
+                      </>
+                    )}
+                  </div>
                 </Button>
                 <input
                   type="file"

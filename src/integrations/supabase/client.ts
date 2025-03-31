@@ -44,6 +44,24 @@ export const initializeStorage = async () => {
     
     if (!audioBucketExists) {
       console.error('The audio-files bucket does not exist in Supabase. Please create it in the dashboard.');
+      
+      // Try to create the audio-files bucket if it doesn't exist
+      try {
+        const { error: createBucketError } = await supabase
+          .storage
+          .createBucket('audio-files', { 
+            public: true,
+            fileSizeLimit: 3 * 1024 * 1024 // 3MB limit
+          });
+          
+        if (createBucketError) {
+          console.error('Error creating audio-files bucket:', createBucketError);
+        } else {
+          console.log('Successfully created audio-files bucket');
+        }
+      } catch (createError) {
+        console.error('Error attempting to create audio-files bucket:', createError);
+      }
     }
     
     return menuBucketExists || audioBucketExists;
@@ -61,6 +79,9 @@ export const initializeStorage = async () => {
  */
 export const uploadImage = async (file: File, bucketName: string = 'menu-images'): Promise<string | null> => {
   try {
+    // First check if the bucket exists, and try to create it if it doesn't
+    await initializeStorage();
+    
     // Create a unique file name
     const fileExt = file.name.split('.').pop();
     const fileName = `${Date.now()}-${Math.random().toString(36).substring(2, 15)}.${fileExt}`;
@@ -88,6 +109,13 @@ export const uploadImage = async (file: File, bucketName: string = 'menu-images'
       .getPublicUrl(data.path);
       
     console.log('Public URL:', publicUrl);
+    
+    // Store the URL in localStorage as well for redundancy
+    if (bucketName === 'audio-files') {
+      if (typeof window !== 'undefined') {
+        window.localStorage.setItem('kds_notification_sound_url', JSON.stringify(publicUrl));
+      }
+    }
     
     return publicUrl;
   } catch (error) {
