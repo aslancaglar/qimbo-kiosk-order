@@ -157,48 +157,49 @@ export const NotificationSoundSettings = () => {
 
     try {
       setUploadingFile(true);
-      
+
       // Create a unique filename
       const fileExt = file.name.split('.').pop();
       const fileName = `notification-sound-${Date.now()}.${fileExt}`;
       
-      // Upload sound to Supabase storage
-      const { error: uploadError, data } = await supabase.storage
+      // First, check if menu-images bucket exists (we'll use this as it's already being used in the app)
+      // If not, we will create a file object URL instead of uploading
+      const { data: buckets, error: bucketsError } = await supabase.storage.listBuckets();
+      
+      if (bucketsError) {
+        console.error('Error checking buckets:', bucketsError);
+        handleLocalFileUpload(file);
+        return;
+      }
+      
+      const menuImagesBucketExists = buckets.some(bucket => bucket.name === 'menu-images');
+      
+      if (!menuImagesBucketExists) {
+        console.log('menu-images bucket not found, using local file instead');
+        handleLocalFileUpload(file);
+        return;
+      }
+      
+      // If bucket exists, upload to Supabase storage
+      const { error: uploadError, data: uploadData } = await supabase.storage
         .from('menu-images')
         .upload(`sounds/${fileName}`, file);
 
       if (uploadError) {
         console.error('Error uploading sound file:', uploadError);
-        toast({
-          title: "Upload failed",
-          description: "Could not upload the sound file. Using default sound instead.",
-          variant: "destructive"
-        });
-        
-        // Reset to default sound
-        setSettings({ 
-          ...settings, 
-          customSound: false, 
-          soundUrl: DEFAULT_SOUND 
-        });
+        handleLocalFileUpload(file);
         return;
       }
 
       // Get the public URL of the uploaded file
-      const { data: urlData } = supabase.storage.from('menu-images').getPublicUrl(`sounds/${fileName}`);
+      const { data } = supabase.storage.from('menu-images').getPublicUrl(`sounds/${fileName}`);
       
-      if (urlData?.publicUrl) {
+      if (data?.publicUrl) {
         setSettings({ 
           ...settings, 
           customSound: true, 
-          soundUrl: urlData.publicUrl 
+          soundUrl: data.publicUrl 
         });
-        
-        // Save the settings immediately after successful upload to persist changes
-        setTimeout(() => {
-          handleSaveSettings();
-        }, 500);
-        
         toast({
           title: "Upload successful",
           description: "Custom notification sound uploaded"
@@ -206,18 +207,7 @@ export const NotificationSoundSettings = () => {
       }
     } catch (error) {
       console.error('Unexpected error during upload:', error);
-      toast({
-        title: "Upload failed",
-        description: "An unexpected error occurred",
-        variant: "destructive"
-      });
-      
-      // Reset to default sound
-      setSettings({ 
-        ...settings, 
-        customSound: false, 
-        soundUrl: DEFAULT_SOUND 
-      });
+      handleLocalFileUpload(file);
     } finally {
       setUploadingFile(false);
       if (fileInputRef.current) {
@@ -225,20 +215,41 @@ export const NotificationSoundSettings = () => {
       }
     }
   };
+  
+  // New function to handle local file upload as a fallback
+  const handleLocalFileUpload = (file: File) => {
+    try {
+      // Create a local object URL for the file instead of uploading
+      const localUrl = URL.createObjectURL(file);
+      
+      setSettings({ 
+        ...settings, 
+        customSound: true, 
+        soundUrl: localUrl 
+      });
+      
+      toast({
+        title: "Local sound added",
+        description: "Using sound from your device (temporary)"
+      });
+    } catch (error) {
+      console.error('Error creating local file URL:', error);
+      toast({
+        title: "Upload failed",
+        description: "Could not use the sound file",
+        variant: "destructive"
+      });
+    }
+  };
 
   const handlePlaySound = () => {
     if (audioRef.current) {
       audioRef.current.volume = settings.volume / 100;
-      
-      // Reset the audio to ensure it plays even if it's the same file
-      audioRef.current.pause();
-      audioRef.current.currentTime = 0;
-      
       audioRef.current.play().catch(error => {
         console.error('Error playing sound:', error);
         toast({
           title: "Playback failed",
-          description: "Could not play notification sound. Try clicking the button again.",
+          description: "Could not play notification sound",
           variant: "destructive"
         });
       });
@@ -251,12 +262,6 @@ export const NotificationSoundSettings = () => {
       customSound: false,
       soundUrl: DEFAULT_SOUND
     });
-    
-    // Save the settings immediately after reset to persist changes
-    setTimeout(() => {
-      handleSaveSettings();
-    }, 500);
-    
     toast({
       title: "Reset successful",
       description: "Using default notification sound"
