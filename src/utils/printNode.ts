@@ -57,7 +57,7 @@ export const convertHtmlToPdf = async (htmlContent: string): Promise<Buffer> => 
   try {
     // Launch a headless browser
     const browser = await puppeteer.launch({
-      headless: 'new',
+      headless: true,
       args: ['--no-sandbox', '--disable-setuid-sandbox']
     });
     
@@ -83,7 +83,7 @@ export const convertHtmlToPdf = async (htmlContent: string): Promise<Buffer> => 
     await browser.close();
     
     console.log('PDF conversion successful');
-    return pdfBuffer;
+    return Buffer.from(pdfBuffer);
   } catch (error) {
     console.error('Error converting HTML to PDF:', error);
     throw error;
