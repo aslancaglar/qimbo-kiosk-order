@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { CartItemType } from "../components/cart/types";
 
@@ -105,7 +104,8 @@ export const sendToPrintNode = async (
 };
 
 /**
- * Formats order details for text receipt
+ * Formats order details for text receipt - DEPRECATED, keeping for backward compatibility
+ * Now we use the HTML format for both PrintNode and browser
  */
 export const formatTextReceipt = (
   orderNumber: string | number,
@@ -116,55 +116,11 @@ export const formatTextReceipt = (
   tax: number,
   total: number
 ): string => {
-  const orderDate = new Date().toLocaleString();
-  const lineWidth = 42; // Characters per line on most thermal printers
-  const separator = '-'.repeat(lineWidth);
+  const { formatOrderReceipt } = require('./printUtils');
+  const htmlReceipt = formatOrderReceipt(orderNumber, items, orderType, tableNumber, subtotal, tax, total);
   
-  // Use the Euro symbol with appropriate encoding for thermal printers
-  // Most thermal printers use code page 858 or similar where Euro is represented
-  const currencySymbol = "€";
-  
-  let receipt = '\n';
-  receipt += centerText('ORDER RECEIPT', lineWidth) + '\n\n';
-  receipt += `Order #: ${orderNumber}\n`;
-  receipt += `Date: ${orderDate}\n`;
-  receipt += `Type: ${orderType === 'eat-in' ? 'Eat In' : 'Takeaway'}\n`;
-  if (orderType === 'eat-in' && tableNumber) {
-    receipt += `Table #: ${tableNumber}\n`;
-  }
-  receipt += separator + '\n\n';
-  
-  receipt += centerText('ITEMS', lineWidth) + '\n\n';
-  
-  items.forEach(item => {
-    receipt += `${item.quantity}x ${item.product.name}\n`;
-    receipt += `${' '.repeat(4)}${(item.product.price * item.quantity).toFixed(2)} ${currencySymbol}\n`;
-    
-    if (item.options && item.options.length > 0) {
-      receipt += `${' '.repeat(2)}${item.options.map(o => o.value).join(', ')}\n`;
-    }
-    
-    if (item.selectedToppings && item.selectedToppings.length > 0) {
-      item.selectedToppings.forEach(topping => {
-        receipt += `${' '.repeat(2)}+ ${topping.name} ${topping.price.toFixed(2)} ${currencySymbol}\n`;
-      });
-    }
-    receipt += '\n';
-  });
-  
-  receipt += separator + '\n\n';
-  
-  receipt += `Subtotal:${' '.repeat(lineWidth - 10 - subtotal.toFixed(2).length - currencySymbol.length - 1)}${subtotal.toFixed(2)} ${currencySymbol}\n`;
-  receipt += `Tax:${' '.repeat(lineWidth - 5 - tax.toFixed(2).length - currencySymbol.length - 1)}${tax.toFixed(2)} ${currencySymbol}\n`;
-  receipt += `TOTAL:${' '.repeat(lineWidth - 7 - total.toFixed(2).length - currencySymbol.length - 1)}${total.toFixed(2)} ${currencySymbol}\n\n`;
-  
-  receipt += centerText('Thank you for your order!', lineWidth) + '\n';
-  receipt += centerText('All prices include 10% tax', lineWidth) + '\n\n\n\n';
-  
-  // Add cut command for thermal printers
-  receipt += '\x1D\x56\x41\x03'; // GS V A - Paper cut
-  
-  return receipt;
+  // Add printer cut command at the end
+  return htmlReceipt + '\x1D\x56\x41\x03'; // GS V A - Paper cut
 };
 
 /**
