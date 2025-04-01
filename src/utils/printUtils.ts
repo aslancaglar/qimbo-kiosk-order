@@ -349,7 +349,7 @@ export const printOrderBrowser = (
   total: number
 ): boolean => {
   console.log('Direct browser printing requested');
-  return printOrder(
+  const result = printOrder(
     orderNumber, 
     items, 
     orderType, 
@@ -359,10 +359,12 @@ export const printOrderBrowser = (
     total, 
     { usePrintNode: false, useBrowserPrint: true, fallbackToBrowser: false }
   );
+  
+  return true;
 };
 
 // Print to both PrintNode and browser
-export const printOrderBoth = (
+export const printOrderBoth = async (
   orderNumber: string | number,
   items: CartItemType[],
   orderType: string,
