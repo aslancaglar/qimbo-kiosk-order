@@ -1,6 +1,8 @@
 
 import { supabase } from "@/integrations/supabase/client";
 import { CartItemType } from "../components/cart/types";
+import jsPDF from 'jspdf';
+import html2canvas from 'html2canvas';
 
 interface PrintNodeCredentials {
   apiKey: string;
@@ -50,17 +52,47 @@ const safeBase64Encode = (str: string): string => {
 
 /**
  * Converts HTML to PDF using browser-compatible approach
- * Instead of Puppeteer (which is Node.js only), we'll use the PrintNode API directly with HTML content
  */
-export const convertHtmlToPdf = async (htmlContent: string): Promise<string> => {
-  console.log('Converting HTML for PrintNode...');
+export const convertHtmlToPdf = async (htmlContent: string): Promise<Uint8Array> => {
+  console.log('Converting HTML to PDF for PrintNode...');
   
   try {
-    // For PrintNode, we need to specify the content type as 'html_base64' when sending
-    // This tells PrintNode to interpret the base64 content as HTML
-    return safeBase64Encode(htmlContent);
+    // Create a temporary container for the HTML content
+    const container = document.createElement('div');
+    container.innerHTML = htmlContent;
+    container.style.position = 'absolute';
+    container.style.left = '-9999px';
+    container.style.top = '-9999px';
+    document.body.appendChild(container);
+    
+    // Generate a canvas from the HTML
+    const canvas = await html2canvas(container, {
+      scale: 2, // Higher quality
+      useCORS: true,
+      logging: false
+    });
+    
+    document.body.removeChild(container);
+    
+    // Convert canvas to PDF
+    const pdf = new jsPDF({
+      orientation: 'portrait',
+      unit: 'mm',
+      format: 'a4'
+    });
+    
+    const imgData = canvas.toDataURL('image/png');
+    const imgProps = pdf.getImageProperties(imgData);
+    const pdfWidth = pdf.internal.pageSize.getWidth();
+    const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
+    
+    pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+    
+    // Get PDF as Uint8Array
+    const pdfBytes = pdf.output('arraybuffer');
+    return new Uint8Array(pdfBytes);
   } catch (error) {
-    console.error('Error preparing HTML for PrintNode:', error);
+    console.error('Error converting HTML to PDF:', error);
     throw error;
   }
 };
@@ -94,6 +126,7 @@ export const sendToPrintNode = async (
         .join(''));
       contentPreview = 'PDF Document';
       contentType = 'pdf_base64';
+      console.log('Sending PDF content to PrintNode');
     } else {
       // For HTML content, make sure we're using the correct content type
       // Check if the content is HTML and set the appropriate content type

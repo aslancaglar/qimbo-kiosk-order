@@ -1,3 +1,4 @@
+
 import { CartItemType } from "../components/cart/types";
 import { getPrintNodeCredentials, sendToPrintNode, convertHtmlToPdf } from "./printNode";
 
@@ -165,9 +166,13 @@ export const printToThermalPrinter = async (
       total
     );
     
-    console.log('Using PrintNode with HTML content directly...');
-    // We're sending HTML directly to PrintNode with the correct content type
-    const result = await sendToPrintNode(htmlReceipt, credentials.apiKey, credentials.printerId, 'html_base64');
+    console.log('Converting HTML to PDF for PrintNode...');
+    // Convert the HTML content to PDF
+    const pdfData = await convertHtmlToPdf(htmlReceipt);
+    
+    console.log('Sending PDF to PrintNode...');
+    // Send the PDF to PrintNode
+    const result = await sendToPrintNode(pdfData, credentials.apiKey, credentials.printerId);
     console.log('PrintNode send result:', result);
     return result;
   } catch (error) {
