@@ -1,6 +1,5 @@
 import { CartItemType } from "../components/cart/types";
 import { getPrintNodeCredentials, sendToPrintNode, formatTextReceipt } from "./printNode";
-import { supabase } from "@/integrations/supabase/client";
 
 // Format order for printing
 export const formatOrderReceipt = (
@@ -236,59 +235,7 @@ export const printToBrowser = (
   }
 };
 
-/**
- * Check if browser printing is enabled
- */
-export const isBrowserPrintingEnabled = async (): Promise<boolean> => {
-  try {
-    const { data, error } = await supabase
-      .from('settings')
-      .select('value')
-      .eq('key', 'browser_print_settings')
-      .maybeSingle();
-
-    if (error) {
-      console.error('Error fetching browser print settings:', error);
-      return true; // Default to enabled if there's an error
-    }
-
-    if (data?.value && typeof data.value === 'object' && data.value !== null) {
-      const settings = data.value as Record<string, any>;
-      return settings.enabled ?? true;
-    }
-
-    return true; // Default to enabled if value is not an object
-  } catch (error) {
-    console.error('Error checking browser print settings:', error);
-    return true; // Default to enabled if there's an exception
-  }
-};
-
-/**
- * Save browser printing settings
- */
-export const saveBrowserPrintSettings = async (enabled: boolean): Promise<boolean> => {
-  try {
-    const { error } = await supabase
-      .from('settings')
-      .upsert({
-        key: 'browser_print_settings',
-        value: { enabled } as any
-      });
-
-    if (error) {
-      console.error('Error saving browser print settings:', error);
-      return false;
-    }
-
-    return true;
-  } catch (error) {
-    console.error('Error during browser print settings save:', error);
-    return false;
-  }
-};
-
-// Print order - Updated to use browser printing settings
+// Print order - Updated to allow multiple print targets
 export const printOrder = async (
   orderNumber: string | number,
   items: CartItemType[],
@@ -307,24 +254,6 @@ export const printOrder = async (
   let printSuccess = false;
   
   try {
-    // Check if browser printing is disabled when it's explicitly requested
-    if (options.useBrowserPrint) {
-      const browserPrintingEnabled = await isBrowserPrintingEnabled();
-      if (!browserPrintingEnabled) {
-        console.log('Browser printing is disabled in settings');
-        options.useBrowserPrint = false;
-      }
-    }
-
-    // Check if fallback to browser is enabled
-    if (options.fallbackToBrowser) {
-      const browserPrintingEnabled = await isBrowserPrintingEnabled();
-      if (!browserPrintingEnabled) {
-        console.log('Browser printing fallback is disabled in settings');
-        options.fallbackToBrowser = false;
-      }
-    }
-    
     // Use PrintNode if requested
     if (options.usePrintNode) {
       const printNodeSuccess = await printToThermalPrinter(
@@ -409,8 +338,8 @@ export const printOrder = async (
   }
 };
 
-// For direct browser printing - now checks settings
-export const printOrderBrowser = async (
+// For direct browser printing
+export const printOrderBrowser = (
   orderNumber: string | number,
   items: CartItemType[],
   orderType: string,
@@ -418,16 +347,9 @@ export const printOrderBrowser = async (
   subtotal: number,
   tax: number,
   total: number
-): Promise<boolean> => {
+): boolean => {
   console.log('Direct browser printing requested');
-  const browserPrintingEnabled = await isBrowserPrintingEnabled();
-  
-  if (!browserPrintingEnabled) {
-    console.log('Browser printing is disabled in settings');
-    return false;
-  }
-  
-  return printOrder(
+  const result = printOrder(
     orderNumber, 
     items, 
     orderType, 
@@ -437,9 +359,11 @@ export const printOrderBrowser = async (
     total, 
     { usePrintNode: false, useBrowserPrint: true, fallbackToBrowser: false }
   );
+  
+  return true;
 };
 
-// Print to both PrintNode and browser - now checks settings
+// Print to both PrintNode and browser
 export const printOrderBoth = async (
   orderNumber: string | number,
   items: CartItemType[],
@@ -450,9 +374,6 @@ export const printOrderBoth = async (
   total: number
 ): Promise<boolean> => {
   console.log('Printing to both PrintNode and browser');
-  
-  const browserPrintingEnabled = await isBrowserPrintingEnabled();
-  
   return printOrder(
     orderNumber, 
     items, 
@@ -461,10 +382,6 @@ export const printOrderBoth = async (
     subtotal, 
     tax, 
     total, 
-    { 
-      usePrintNode: true, 
-      useBrowserPrint: browserPrintingEnabled, 
-      fallbackToBrowser: browserPrintingEnabled 
-    }
+    { usePrintNode: true, useBrowserPrint: true, fallbackToBrowser: false }
   );
 };
