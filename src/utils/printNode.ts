@@ -4,8 +4,14 @@ import { CartItemType } from "../components/cart/types";
 
 interface PrintNodeCredentials {
   apiKey: string;
-  printerId: string | number;
+  printers: PrinterConfig[];
   enabled: boolean;
+}
+
+interface PrinterConfig {
+  id: string | number;
+  name: string;
+  description?: string;
 }
 
 /**
@@ -20,15 +26,29 @@ export const getPrintNodeCredentials = async (): Promise<PrintNodeCredentials> =
 
   if (error || !data) {
     console.error('Error fetching PrintNode credentials:', error);
-    return { apiKey: '', printerId: '', enabled: false };
+    return { apiKey: '', printers: [], enabled: false };
   }
 
   // Fix type issue by safely accessing properties
   const settings = data.value as Record<string, any>;
   
+  // Handle both old format (single printer) and new format (multiple printers)
+  let printers: PrinterConfig[] = [];
+  
+  if (settings?.printers && Array.isArray(settings.printers)) {
+    // New format with multiple printers
+    printers = settings.printers;
+  } else if (settings?.printerId) {
+    // Old format with single printer - convert to array format
+    printers = [{
+      id: settings.printerId,
+      name: settings.printerName || `Printer ${settings.printerId}`
+    }];
+  }
+  
   return {
     apiKey: settings?.apiKey || '',
-    printerId: settings?.printerId || '',
+    printers: printers,
     enabled: !!settings?.enabled
   };
 };
@@ -49,7 +69,7 @@ const safeBase64Encode = (str: string): string => {
 };
 
 /**
- * Sends a text receipt to PrintNode printer
+ * Sends a text receipt to a PrintNode printer
  */
 export const sendToPrintNode = async (
   content: string,
@@ -67,7 +87,7 @@ export const sendToPrintNode = async (
     
     // Use our safe encoding method instead of direct btoa
     const encodedContent = safeBase64Encode(content);
-    console.log('Content encoded successfully');
+    console.log(`Content encoded successfully for printer ID: ${printerId}`);
     
     const response = await fetch('https://api.printnode.com/printjobs', {
       method: 'POST',
@@ -86,20 +106,55 @@ export const sendToPrintNode = async (
 
     if (!response.ok) {
       const errorData = await response.json();
-      console.error('PrintNode API error:', errorData);
+      console.error(`PrintNode API error for printer ${printerId}:`, errorData);
       return false;
     }
 
     const result = await response.json();
-    console.log('PrintNode print job submitted successfully:', result);
+    console.log(`PrintNode print job submitted successfully to printer ${printerId}:`, result);
     
     // Log the print job to our database
     await logPrintJob(printerId.toString(), result.id || 0, content, true);
     
     return true;
   } catch (error) {
-    console.error('Error sending to PrintNode:', error);
+    console.error(`Error sending to PrintNode printer ${printerId}:`, error);
     await logPrintJob(printerId.toString(), 0, content, false);
+    return false;
+  }
+};
+
+/**
+ * Sends a text receipt to multiple PrintNode printers
+ */
+export const sendToPrintNodeMultiple = async (
+  content: string,
+  apiKey: string,
+  printers: Array<string | number>
+): Promise<boolean> => {
+  if (!apiKey || !printers.length) {
+    console.error('PrintNode API key or printer IDs are missing');
+    return false;
+  }
+
+  try {
+    console.log(`Sending print job to ${printers.length} printers:`, printers);
+    
+    const results = await Promise.all(
+      printers.map(printerId => sendToPrintNode(content, apiKey, printerId))
+    );
+    
+    // Return true if at least one printer succeeded
+    const anySuccess = results.some(result => result);
+    if (!anySuccess) {
+      console.error('All print jobs failed');
+    } else {
+      console.log(`Print jobs completed. Success: ${results.filter(Boolean).length}/${printers.length}`);
+    }
+    
+    return anySuccess;
+  } catch (error) {
+    console.error('Error sending to multiple PrintNode printers:', error);
     return false;
   }
 };
@@ -320,4 +375,32 @@ ${centerText('End of test', 42)}
 `;
 
   return await sendToPrintNode(testContent, apiKey, printerId);
+};
+
+/**
+ * Sends a test print job to multiple configured printers
+ */
+export const sendTestPrintMultiple = async (apiKey: string, printerIds: Array<string | number>): Promise<boolean> => {
+  const testContent = `
+${centerText('TEST RECEIPT (MULTI-PRINTER)', 42)}
+${centerText('----------------', 42)}
+
+This is a test receipt from your
+Point of Sale system.
+
+Printers: ${printerIds.join(', ')}
+Time: ${new Date().toLocaleString()}
+
+Sample price: 10.00 €
+
+${centerText('If you can read this, your', 42)}
+${centerText('multi-printer setup works!', 42)}
+
+${centerText('----------------', 42)}
+${centerText('End of test', 42)}
+
+\x1D\x56\x41\x03
+`;
+
+  return await sendToPrintNodeMultiple(testContent, apiKey, printerIds);
 };

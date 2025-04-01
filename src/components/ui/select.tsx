@@ -1,3 +1,4 @@
+
 import * as React from "react"
 import * as SelectPrimitive from "@radix-ui/react-select"
 import { Check, ChevronDown, ChevronUp } from "lucide-react"
@@ -144,6 +145,92 @@ const SelectSeparator = React.forwardRef<
 ))
 SelectSeparator.displayName = SelectPrimitive.Separator.displayName
 
+// Add new MultiSelect component
+interface MultiSelectProps {
+  values: string[];
+  onChange: (values: string[]) => void;
+  options: { value: string; label: string }[];
+  placeholder?: string;
+  className?: string;
+  disabled?: boolean;
+}
+
+const MultiSelect: React.FC<MultiSelectProps> = ({
+  values,
+  onChange,
+  options,
+  placeholder = "Select options",
+  className,
+  disabled = false
+}) => {
+  const [isOpen, setIsOpen] = React.useState(false);
+
+  const toggleValue = (value: string) => {
+    if (values.includes(value)) {
+      onChange(values.filter(v => v !== value));
+    } else {
+      onChange([...values, value]);
+    }
+  };
+
+  const selectedLabels = values
+    .map(value => options.find(option => option.value === value)?.label || value)
+    .join(", ");
+
+  return (
+    <div className={cn("relative w-full", className)}>
+      <div
+        className={cn(
+          "flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 cursor-pointer disabled:cursor-not-allowed disabled:opacity-50",
+          {
+            "opacity-50 cursor-not-allowed": disabled
+          }
+        )}
+        onClick={() => !disabled && setIsOpen(!isOpen)}
+      >
+        <div className="line-clamp-1">
+          {values.length > 0 ? selectedLabels : placeholder}
+        </div>
+        <ChevronDown className="h-4 w-4 opacity-50" />
+      </div>
+      
+      {isOpen && !disabled && (
+        <div className="absolute z-50 w-full mt-1 bg-popover text-popover-foreground rounded-md shadow-md border overflow-hidden">
+          <div className="p-1 max-h-60 overflow-auto">
+            {options.map(option => (
+              <div
+                key={option.value}
+                className={cn(
+                  "relative flex cursor-pointer select-none items-center rounded-sm py-1.5 pl-8 pr-2 text-sm outline-none hover:bg-accent hover:text-accent-foreground",
+                  values.includes(option.value) ? "bg-accent/50" : ""
+                )}
+                onClick={e => {
+                  e.stopPropagation();
+                  toggleValue(option.value);
+                }}
+              >
+                <span className="absolute left-2 flex h-3.5 w-3.5 items-center justify-center">
+                  {values.includes(option.value) && (
+                    <Check className="h-4 w-4" />
+                  )}
+                </span>
+                <span>{option.label}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+      
+      {isOpen && (
+        <div 
+          className="fixed inset-0 z-40" 
+          onClick={() => setIsOpen(false)}
+        />
+      )}
+    </div>
+  );
+};
+
 export {
   Select,
   SelectGroup,
@@ -155,4 +242,5 @@ export {
   SelectSeparator,
   SelectScrollUpButton,
   SelectScrollDownButton,
+  MultiSelect
 }

@@ -17,9 +17,10 @@ import { uploadFile } from '@/utils/fileUpload';
 import { 
   testPrintNodeConnection, 
   fetchPrintNodePrinters, 
-  sendTestPrint 
+  sendTestPrint,
+  sendTestPrintMultiple
 } from '@/utils/printNode';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, MultiSelect } from '@/components/ui/select';
 
 interface OrderingSettings {
   requireTableSelection: boolean;
@@ -40,8 +41,7 @@ interface AppearanceSettings {
 interface PrintSettings {
   enabled: boolean;
   apiKey: string;
-  printerId: string;
-  printerName?: string;
+  printers: PrinterOption[];
 }
 
 interface PrinterOption {
@@ -108,10 +108,9 @@ const Settings = () => {
   const [printSettings, setPrintSettings] = useState<PrintSettings>({
     enabled: false,
     apiKey: '',
-    printerId: '',
-    printerName: ''
+    printers: []
   });
-
+  
   useEffect(() => {
     fetchRestaurantInfo();
     fetchBusinessHours();
@@ -331,11 +330,25 @@ const Settings = () => {
 
       if (data && data.value) {
         const settings = data.value as Record<string, any>;
+        
+        // Handle both old format (single printer) and new format (multiple printers)
+        let printers: PrinterOption[] = [];
+        
+        if (settings.printers && Array.isArray(settings.printers)) {
+          // New format with array of printers
+          printers = settings.printers;
+        } else if (settings.printerId) {
+          // Old format with single printer - convert to array format
+          printers = [{
+            id: settings.printerId,
+            name: settings.printerName || `Printer ${settings.printerId}`
+          }];
+        }
+        
         const newSettings = {
           enabled: settings.enabled !== undefined ? !!settings.enabled : false,
           apiKey: settings.apiKey || '',
-          printerId: settings.printerId || '',
-          printerName: settings.printerName || ''
+          printers: printers
         };
         
         setPrintSettings(newSettings);
@@ -352,8 +365,8 @@ const Settings = () => {
               const printers = await fetchPrintNodePrinters(newSettings.apiKey);
               setAvailablePrinters(printers);
               
-              if (printers.length === 0 && newSettings.printerId) {
-                console.log('No printers found but printerId exists in settings, trying again...');
+              if (printers.length === 0 && newSettings.printers.length > 0) {
+                console.log('No printers found but printer IDs exist in settings, trying again...');
                 // Try once more after a short delay
                 setTimeout(async () => {
                   const retryPrinters = await fetchPrintNodePrinters(newSettings.apiKey);
@@ -751,20 +764,12 @@ const Settings = () => {
         return;
       }
       
-      // Make sure we're saving both printerId and printerName
-      const selectedPrinter = availablePrinters.find(
-        printer => printer.id.toString() === printSettings.printerId.toString()
-      );
-      
-      const printerName = selectedPrinter?.name || printSettings.printerName;
-      
       let saveError;
       
       const settingsValue = {
         enabled: printSettings.enabled,
         apiKey: printSettings.apiKey,
-        printerId: printSettings.printerId,
-        printerName: printerName
+        printers: printSettings.printers
       } as Json;
       
       if (existingData) {
@@ -1045,716 +1050,4 @@ const Settings = () => {
     setTestingSound(true);
     
     try {
-      const audio = new Audio(notificationSettings.soundUrl);
-      audio.volume = notificationSettings.volume;
-      
-      audio.onended = () => {
-        setTestingSound(false);
-      };
-      
-      audio.onerror = (e) => {
-        console.error('Audio error:', e);
-        setTestingSound(false);
-        toast({
-          title: "Playback error",
-          description: "Failed to play the notification sound",
-          variant: "destructive"
-        });
-      };
-      
-      audio.play().catch(err => {
-        console.error('Error playing audio:', err);
-        setTestingSound(false);
-        toast({
-          title: "Playback error",
-          description: "Please click anywhere on the page first to enable sound playback",
-          variant: "destructive"
-        });
-      });
-    } catch (error) {
-      console.error('Error creating audio:', error);
-      setTestingSound(false);
-    }
-  };
-
-  const handleTestConnection = async () => {
-    setTestingConnection(true);
-    try {
-      console.log('Testing PrintNode connection with API key:', 
-        printSettings.apiKey ? `${printSettings.apiKey.substring(0, 5)}...` : 'missing');
-      
-      if (!printSettings.apiKey) {
-        toast({
-          title: "Missing API Key",
-          description: "Please enter your PrintNode API key",
-          variant: "destructive"
-        });
-        setTestingConnection(false);
-        return;
-      }
-      
-      const success = await testPrintNodeConnection(printSettings.apiKey, printSettings.printerId);
-      
-      if (success) {
-        toast({
-          title: "Connection Successful",
-          description: "Successfully connected to PrintNode API"
-        });
-      } else {
-        toast({
-          title: "Connection Failed",
-          description: "Could not connect to PrintNode. Please verify your API key is correct and try again.",
-          variant: "destructive"
-        });
-      }
-    } catch (error) {
-      console.error('Error testing connection:', error);
-      toast({
-        title: "Error",
-        description: "An error occurred while testing the connection: " + (error instanceof Error ? error.message : String(error)),
-        variant: "destructive"
-      });
-    } finally {
-      setTestingConnection(false);
-    }
-  };
-
-  const handleFetchPrinters = async () => {
-    setFetchingPrinters(true);
-    try {
-      const printers = await fetchPrintNodePrinters(printSettings.apiKey);
-      
-      setAvailablePrinters(printers);
-      
-      if (printers.length === 0) {
-        toast({
-          title: "No Printers Found",
-          description: "No printers were found on your PrintNode account.",
-          variant: "destructive"
-        });
-      } else {
-        toast({
-          title: "Printers Found",
-          description: `Found ${printers.length} printer(s) on your account.`
-        });
-        
-        // If we have a saved printer ID but no printer selected yet, auto-select it
-        if (printSettings.printerId && !printSettings.printerName) {
-          const savedPrinter = printers.find(
-            printer => printer.id.toString() === printSettings.printerId.toString()
-          );
-          
-          if (savedPrinter) {
-            setPrintSettings(prev => ({
-              ...prev,
-              printerName: savedPrinter.name
-            }));
-          }
-        }
-      }
-    } catch (error) {
-      console.error('Error fetching printers:', error);
-      toast({
-        title: "Error",
-        description: "An error occurred while fetching printers",
-        variant: "destructive"
-      });
-    } finally {
-      setFetchingPrinters(false);
-    }
-  };
-
-  const handleTestPrint = async () => {
-    setTestingPrinter(true);
-    try {
-      const success = await sendTestPrint(printSettings.apiKey, printSettings.printerId);
-      
-      if (success) {
-        toast({
-          title: "Test Print Sent",
-          description: "A test receipt has been sent to your printer."
-        });
-      } else {
-        toast({
-          title: "Print Failed",
-          description: "The test print could not be sent. Please check your printer configuration.",
-          variant: "destructive"
-        });
-      }
-    } catch (error) {
-      console.error('Error sending test print:', error);
-      toast({
-        title: "Error",
-        description: "An error occurred while sending the test print",
-        variant: "destructive"
-      });
-    } finally {
-      setTestingPrinter(false);
-    }
-  };
-
-  const handlePrinterSelect = (printerId: string) => {
-    const selectedPrinter = availablePrinters.find(
-      printer => printer.id.toString() === printerId
-    );
-    
-    if (selectedPrinter) {
-      setPrintSettings(prev => ({
-        ...prev,
-        printerId: printerId,
-        printerName: selectedPrinter.name
-      }));
-    }
-  };
-
-  // Render the printer selection with the proper printer selection
-  const renderPrinterSelection = () => {
-    if (fetchingPrinters) {
-      return (
-        <div className="p-4 border rounded-md bg-muted/50 text-center">
-          <p className="text-sm text-muted-foreground">
-            Searching for printers...
-          </p>
-        </div>
-      );
-    }
-    
-    if (availablePrinters.length > 0) {
-      return (
-        <Select
-          value={printSettings.printerId.toString()}
-          onValueChange={handlePrinterSelect}
-        >
-          <SelectTrigger className="w-full">
-            <SelectValue placeholder="Select a printer">
-              {printSettings.printerName || "Select a printer"}
-            </SelectValue>
-          </SelectTrigger>
-          <SelectContent>
-            {availablePrinters.map((printer) => (
-              <SelectItem key={printer.id} value={printer.id.toString()}>
-                {printer.name} {printer.state ? `(${printer.state})` : ''}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      );
-    }
-    
-    return (
-      <div className="p-4 border rounded-md bg-muted/50 text-center">
-        <p className="text-sm text-muted-foreground">
-          No printers found. Click "Refresh Printers" to fetch available printers.
-        </p>
-      </div>
-    );
-  };
-
-  return (
-    <AdminLayout>
-      <div className="space-y-6">
-        <Tabs defaultValue="general">
-          <TabsList>
-            <TabsTrigger value="general">General</TabsTrigger>
-            <TabsTrigger value="ordering">Ordering</TabsTrigger>
-            <TabsTrigger value="appearance">Appearance</TabsTrigger>
-            <TabsTrigger value="notifications">Notifications</TabsTrigger>
-            <TabsTrigger value="printing">Printing</TabsTrigger>
-            <TabsTrigger value="system">System</TabsTrigger>
-          </TabsList>
-          
-          <TabsContent value="general" className="mt-6 space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Restaurant Information</CardTitle>
-                <CardDescription>
-                  Update your restaurant's basic information.
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                  <div className="space-y-2">
-                    <Label htmlFor="restaurant-name">Restaurant Name</Label>
-                    <Input 
-                      id="restaurant-name" 
-                      value={restaurantInfo.name} 
-                      onChange={handleInfoChange}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="restaurant-phone">Phone Number</Label>
-                    <Input 
-                      id="restaurant-phone" 
-                      value={restaurantInfo.phone} 
-                      onChange={handleInfoChange}
-                    />
-                  </div>
-                </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="restaurant-address">Address</Label>
-                  <Input 
-                    id="restaurant-address" 
-                    value={restaurantInfo.address} 
-                    onChange={handleInfoChange}
-                  />
-                </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="restaurant-description">Description</Label>
-                  <Textarea 
-                    id="restaurant-description" 
-                    value={restaurantInfo.description || ''} 
-                    onChange={handleInfoChange}
-                    rows={3}
-                  />
-                </div>
-                
-                <Button 
-                  className="mt-4" 
-                  onClick={saveRestaurantInfo} 
-                  disabled={loading}
-                >
-                  {loading ? 'Saving...' : 'Save Changes'}
-                </Button>
-              </CardContent>
-            </Card>
-            
-            <Card>
-              <CardHeader>
-                <CardTitle>Business Hours</CardTitle>
-                <CardDescription>
-                  Set your restaurant's opening hours.
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {businessHours.map((day, i) => (
-                    <div key={i} className="flex items-center justify-between pb-2 border-b">
-                      <span className="font-medium">{day.day_of_week}</span>
-                      <div className="flex gap-2 items-center">
-                        <Input
-                          type="time"
-                          value={day.open_time}
-                          onChange={(e) => handleHoursChange(day.day_of_week, 'open_time', e.target.value)}
-                          className="w-24"
-                        />
-                        <span>to</span>
-                        <Input
-                          type="time"
-                          value={day.close_time}
-                          onChange={(e) => handleHoursChange(day.day_of_week, 'close_time', e.target.value)}
-                          className="w-24"
-                        />
-                      </div>
-                    </div>
-                  ))}
-                  <Button 
-                    className="mt-4"
-                    onClick={saveBusinessHours}
-                    disabled={loading}
-                  >
-                    {loading ? 'Saving...' : 'Save Hours'}
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-          
-          <TabsContent value="ordering" className="mt-6">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Settings2 className="h-5 w-5" />
-                  Ordering Options
-                </CardTitle>
-                <CardDescription>
-                  Configure ordering options and customer experience settings.
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex items-center space-x-2">
-                  <Switch 
-                    id="require-table-selection"
-                    checked={orderingSettings.requireTableSelection}
-                    onCheckedChange={(checked) => handleOrderingSettingChange('requireTableSelection', checked)}
-                  />
-                  <Label htmlFor="require-table-selection">
-                    Require table selection for dine-in orders
-                  </Label>
-                </div>
-                <p className="text-sm text-muted-foreground pl-7">
-                  When disabled, customers can place dine-in orders without selecting a table number.
-                </p>
-                
-                <Button 
-                  onClick={saveOrderingSettings}
-                  disabled={loading}
-                  className="mt-4"
-                >
-                  <Save className="h-4 w-4 mr-2" />
-                  {loading ? 'Saving...' : 'Save Settings'}
-                </Button>
-              </CardContent>
-            </Card>
-          </TabsContent>
-          
-          <TabsContent value="appearance" className="mt-6">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Images className="h-5 w-5" />
-                  Index Page Appearance
-                </CardTitle>
-                <CardDescription>
-                  Customize the landing page logo and slideshow images.
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="space-y-4">
-                  <h3 className="text-lg font-medium">Restaurant Logo</h3>
-                  
-                  <div className="space-y-2">
-                    <Label>Current Logo</Label>
-                    <div className="flex items-center gap-4">
-                      {appearanceSettings.logo ? (
-                        <div className="w-16 h-16 rounded-full border overflow-hidden bg-white flex items-center justify-center">
-                          <img 
-                            src={appearanceSettings.logo} 
-                            alt="Restaurant Logo" 
-                            className="max-w-full max-h-full object-contain"
-                          />
-                        </div>
-                      ) : (
-                        <div className="w-16 h-16 rounded-full bg-white/80 flex items-center justify-center">
-                          <span className="text-primary font-bold text-xs text-center">DUMMY<br/>LOGO</span>
-                        </div>
-                      )}
-                      
-                      <div className="flex-1">
-                        <Input
-                          id="logo-file"
-                          type="file"
-                          accept="image/*"
-                          onChange={handleLogoUpload}
-                          disabled={uploadingLogo}
-                          className="flex-1"
-                        />
-                        <p className="text-xs text-muted-foreground mt-1">
-                          Recommended size: 128x128px, transparent background (PNG)
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-                
-                <div className="space-y-4 pt-4 border-t">
-                  <h3 className="text-lg font-medium">Slideshow Images</h3>
-                  <p className="text-sm text-muted-foreground">
-                    These images will appear in the slideshow on the landing page. Recommended ratio: 16:9, landscape orientation.
-                  </p>
-                  
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {appearanceSettings.slideshowImages.map((image, index) => (
-                      <div key={index} className="relative rounded-md overflow-hidden border group">
-                        <img 
-                          src={image} 
-                          alt={`Slideshow Image ${index + 1}`}
-                          className="w-full h-48 object-cover"
-                        />
-                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                          <Button 
-                            variant="destructive"
-                            size="sm"
-                            onClick={() => removeSlideImage(index)}
-                          >
-                            Remove
-                          </Button>
-                        </div>
-                      </div>
-                    ))}
-                    
-                    <div className="border border-dashed rounded-md flex flex-col items-center justify-center h-48 p-4">
-                      <Image className="h-8 w-8 text-muted-foreground mb-2" />
-                      <p className="text-sm text-center text-muted-foreground mb-3">
-                        Upload a new image for the slideshow
-                      </p>
-                      <Input
-                        id="slideshow-file"
-                        type="file"
-                        accept="image/*"
-                        onChange={handleSlideImageUpload}
-                        disabled={uploadingImage}
-                        className="max-w-[200px]"
-                      />
-                    </div>
-                  </div>
-                </div>
-                
-                <Button 
-                  onClick={saveAppearanceSettings}
-                  disabled={loading}
-                  className="mt-6"
-                >
-                  <Save className="h-4 w-4 mr-2" />
-                  {loading ? 'Saving...' : 'Save Appearance Settings'}
-                </Button>
-              </CardContent>
-            </Card>
-          </TabsContent>
-          
-          <TabsContent value="notifications" className="mt-6">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Bell className="h-5 w-5" />
-                  Notification Settings
-                </CardTitle>
-                <CardDescription>
-                  Configure how notifications are handled throughout the system.
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="space-y-4">
-                  <h3 className="text-lg font-medium">Sound Notifications</h3>
-                  
-                  <div className="flex items-center space-x-2">
-                    <Switch 
-                      id="sound-enabled"
-                      checked={notificationSettings.soundEnabled}
-                      onCheckedChange={(checked) => handleNotificationSettingChange('soundEnabled', checked)}
-                    />
-                    <Label htmlFor="sound-enabled">
-                      Enable notification sounds
-                    </Label>
-                  </div>
-                  
-                  {notificationSettings.soundEnabled && (
-                    <div className="pl-7 space-y-4">
-                      <div className="space-y-2">
-                        <Label>Current notification sound</Label>
-                        <div className="flex items-center gap-2 p-3 rounded-md bg-muted text-sm">
-                          <Volume2 className="h-5 w-5 text-muted-foreground" />
-                          <span className="flex-1 truncate">
-                            {notificationSettings.soundName || 'Default notification'}
-                          </span>
-                          <Button 
-                            variant="outline" 
-                            size="sm"
-                            onClick={playTestSound}
-                            disabled={testingSound}
-                          >
-                            {testingSound ? 'Playing...' : 'Test Sound'}
-                          </Button>
-                        </div>
-                      </div>
-                      
-                      <div className="space-y-2">
-                        <Label htmlFor="notification-volume">Volume</Label>
-                        <div className="flex items-center gap-4">
-                          <input
-                            id="notification-volume"
-                            type="range"
-                            min="0"
-                            max="1"
-                            step="0.1"
-                            value={notificationSettings.volume}
-                            onChange={(e) => handleNotificationSettingChange('volume', parseFloat(e.target.value))}
-                            className="w-full"
-                          />
-                          <span className="text-sm">
-                            {Math.round(notificationSettings.volume * 100)}%
-                          </span>
-                        </div>
-                      </div>
-                      
-                      <div className="pt-2">
-                        <Label htmlFor="sound-file" className="block mb-2">Upload custom notification sound</Label>
-                        <div className="flex flex-col gap-2">
-                          <div className="flex gap-2">
-                            <Input
-                              id="sound-file"
-                              type="file"
-                              accept="audio/*"
-                              onChange={handleSoundUpload}
-                              disabled={uploadingSound}
-                              className="flex-1"
-                            />
-                          </div>
-                          <p className="text-xs text-muted-foreground">
-                            Accepted formats: MP3, WAV, OGG (max 2MB)
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                </div>
-                
-                <Button 
-                  onClick={saveNotificationSettings}
-                  disabled={loading}
-                  className="mt-4"
-                >
-                  <Save className="h-4 w-4 mr-2" />
-                  {loading ? 'Saving...' : 'Save Notification Settings'}
-                </Button>
-              </CardContent>
-            </Card>
-          </TabsContent>
-          
-          <TabsContent value="printing" className="mt-6">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Printer className="h-5 w-5" />
-                  Thermal Printer Configuration
-                </CardTitle>
-                <CardDescription>
-                  Configure your PrintNode thermal printer integration for order receipts.
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="space-y-4">
-                  <div className="flex items-center space-x-2">
-                    <Switch 
-                      id="enable-thermal-printing"
-                      checked={printSettings.enabled}
-                      onCheckedChange={(checked) => handlePrintSettingChange('enabled', checked)}
-                    />
-                    <Label htmlFor="enable-thermal-printing">
-                      Enable thermal receipt printing
-                    </Label>
-                  </div>
-                  <p className="text-sm text-muted-foreground pl-7">
-                    When enabled, order receipts will be sent to your thermal printer via PrintNode.
-                    When disabled, receipts will use browser printing.
-                  </p>
-                </div>
-                
-                {printSettings.enabled && (
-                  <div className="space-y-6 border-t pt-6">
-                    <h3 className="text-lg font-medium">PrintNode API Configuration</h3>
-                    
-                    <div className="space-y-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="printnode-api-key">PrintNode API Key</Label>
-                        <div className="flex gap-2">
-                          <Input
-                            id="printnode-api-key"
-                            type="password"
-                            value={printSettings.apiKey}
-                            onChange={(e) => handlePrintSettingChange('apiKey', e.target.value)}
-                            className="flex-1"
-                            placeholder="Enter your PrintNode API key"
-                          />
-                          <Button
-                            variant="outline"
-                            onClick={handleTestConnection}
-                            disabled={!printSettings.apiKey || testingConnection}
-                          >
-                            {testingConnection ? 'Testing...' : 'Test Connection'}
-                          </Button>
-                        </div>
-                        <p className="text-xs text-muted-foreground mt-1">
-                          You can find your API key in your PrintNode account dashboard.
-                        </p>
-                      </div>
-                      
-                      <div className="space-y-2">
-                        <div className="flex justify-between items-end">
-                          <Label>Printer Selection</Label>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={handleFetchPrinters}
-                            disabled={!printSettings.apiKey || fetchingPrinters}
-                          >
-                            {fetchingPrinters ? 'Loading...' : 'Refresh Printers'}
-                          </Button>
-                        </div>
-                        
-                        {renderPrinterSelection()}
-                        
-                        {printSettings.printerId && (
-                          <div className="mt-4">
-                            <Button
-                              variant="outline"
-                              onClick={handleTestPrint}
-                              disabled={!printSettings.apiKey || !printSettings.printerId || testingPrinter}
-                              className="w-full"
-                            >
-                              <Printer className="mr-2 h-4 w-4" />
-                              {testingPrinter ? 'Sending...' : 'Send Test Receipt'}
-                            </Button>
-                            <p className="text-xs text-muted-foreground mt-1 text-center">
-                              This will print a test receipt to verify your printer is working correctly.
-                            </p>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                    
-                    <Alert className="mt-6">
-                      <AlertDescription>
-                        <p>Make sure your thermal printer (ITPP047) is:</p>
-                        <ul className="list-disc pl-5 mt-2 space-y-1">
-                          <li>Connected and turned on</li>
-                          <li>Properly configured in PrintNode</li>
-                          <li>Has sufficient paper</li>
-                        </ul>
-                      </AlertDescription>
-                    </Alert>
-                  </div>
-                )}
-                
-                <Button 
-                  onClick={savePrintSettings}
-                  disabled={loading}
-                  className="mt-4"
-                >
-                  <Save className="h-4 w-4 mr-2" />
-                  {loading ? 'Saving...' : 'Save Print Settings'}
-                </Button>
-              </CardContent>
-            </Card>
-          </TabsContent>
-          
-          <TabsContent value="system" className="mt-6">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <RefreshCw className="h-5 w-5" />
-                  System Maintenance
-                </CardTitle>
-                <CardDescription>
-                  Manage cache and system maintenance options.
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-4">
-                  <Alert>
-                    <AlertDescription>
-                      Clearing the application cache will remove stored data and reload the latest content.
-                      This can help fix issues with outdated content or unexpected behavior.
-                    </AlertDescription>
-                  </Alert>
-                  
-                  <Button 
-                    onClick={handleClearCache}
-                    disabled={clearingCache}
-                    className="mt-4"
-                  >
-                    <RefreshCw className={`h-4 w-4 mr-2 ${clearingCache ? 'animate-spin' : ''}`} />
-                    {clearingCache ? 'Clearing Cache...' : 'Clear Application Cache'}
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-        </Tabs>
-      </div>
-    </AdminLayout>
-  );
-};
-
-export default Settings;
+      const audio = new Audio(notificationSettings
