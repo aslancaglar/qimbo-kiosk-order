@@ -1,5 +1,5 @@
-
 import { CartItemType } from "../components/cart/types";
+import { formatThermalReceipt, sendToPrintNode, PrintNodeSettings } from "./printNode";
 
 // Format order for printing
 export const formatOrderReceipt = (
@@ -172,16 +172,72 @@ export const printOrderBrowser = (
   }
 };
 
-// Print order - this is now just a wrapper around browser printing 
-// since PrintBiz integration is removed
-export const printOrder = (
+// Print order using PrintNode thermal printer if enabled, otherwise fallback to browser printing
+export const printOrder = async (
   orderNumber: string | number,
   items: CartItemType[],
   orderType: string,
   tableNumber: string | number | undefined,
   subtotal: number,
   tax: number,
-  total: number
-): void => {
-  printOrderBrowser(orderNumber, items, orderType, tableNumber, subtotal, tax, total);
+  total: number,
+  printNodeSettings?: PrintNodeSettings
+): Promise<{success: boolean, method: 'printnode' | 'browser', jobId?: string, error?: string}> => {
+  // Check if PrintNode is enabled and configured
+  if (printNodeSettings && printNodeSettings.enabled && 
+      printNodeSettings.apiKey && printNodeSettings.defaultPrinterId) {
+    // Format receipt for thermal printer
+    const thermalReceipt = formatThermalReceipt(
+      orderNumber,
+      items,
+      orderType,
+      tableNumber,
+      subtotal,
+      tax,
+      total
+    );
+    
+    // Send to PrintNode
+    try {
+      const result = await sendToPrintNode(
+        printNodeSettings.apiKey,
+        printNodeSettings.defaultPrinterId,
+        thermalReceipt,
+        `Order #${orderNumber}`
+      );
+      
+      if (result.success) {
+        return {
+          success: true,
+          method: 'printnode',
+          jobId: result.jobId
+        };
+      } else {
+        console.error('Failed to print with PrintNode:', result.error);
+        // Fallback to browser printing
+        printOrderBrowser(orderNumber, items, orderType, tableNumber, subtotal, tax, total);
+        return {
+          success: false,
+          method: 'browser',
+          error: result.error
+        };
+      }
+    } catch (error) {
+      console.error('Error with PrintNode printing:', error);
+      // Fallback to browser printing
+      printOrderBrowser(orderNumber, items, orderType, tableNumber, subtotal, tax, total);
+      return {
+        success: false,
+        method: 'browser',
+        error: error instanceof Error ? error.message : 'Unknown error'
+      };
+    }
+  } else {
+    // Fallback to browser printing
+    printOrderBrowser(orderNumber, items, orderType, tableNumber, subtotal, tax, total);
+    return {
+      success: true,
+      method: 'browser'
+    };
+  }
 };
