@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
@@ -21,8 +20,7 @@ const OrderConfirmation: React.FC<OrderConfirmationProps> = () => {
     subtotal: providedSubtotal, 
     taxAmount: providedTax, 
     total: providedTotal, 
-    orderId,
-    orderNumber: providedOrderNumber
+    orderId
   } = location.state || {};
   
   const [printed, setPrinted] = useState(false);
@@ -40,7 +38,7 @@ const OrderConfirmation: React.FC<OrderConfirmationProps> = () => {
   const taxRate = 0.1; // 10% tax
   const taxAmount = providedTax || total - (total / (1 + taxRate));
   const subtotal = providedSubtotal || total - taxAmount;
-  const orderNumber = providedOrderNumber || orderId;
+  const orderNumber = orderId; // Use order ID as order number
   
   // Ensure we have order items before proceeding
   useEffect(() => {

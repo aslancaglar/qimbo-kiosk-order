@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
@@ -43,7 +42,6 @@ const OrderSummaryPage: React.FC = () => {
   const handleConfirmOrderClick = async () => {
     try {
       await handleConfirmOrder();
-      const orderNumber = Math.floor(10000 + Math.random() * 90000).toString();
       const {
         data: orderResult,
         error: orderError
@@ -53,8 +51,8 @@ const OrderSummaryPage: React.FC = () => {
         items_count: items.reduce((sum: number, item: CartItemType) => sum + item.quantity, 0),
         total_amount: total,
         status: 'New',
-        order_number: orderNumber
-      }).select('id, order_number').single();
+        order_number: ''
+      }).select('id').single();
       if (orderError) {
         console.error('Error creating order:', orderError);
         toast({
@@ -102,10 +100,10 @@ const OrderSummaryPage: React.FC = () => {
           orderType,
           tableNumber,
           subtotal,
-          taxAmount, // Changed from 'tax' to 'taxAmount' to match the variable name
+          taxAmount,
           total,
           orderId: orderResult.id,
-          orderNumber: orderResult.order_number
+          orderNumber: orderResult.id
         }
       });
     } catch (error) {
@@ -220,4 +218,3 @@ const OrderSummaryPage: React.FC = () => {
 };
 
 export default OrderSummaryPage;
-
