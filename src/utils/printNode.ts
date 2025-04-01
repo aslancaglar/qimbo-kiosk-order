@@ -1,8 +1,6 @@
 
 import { supabase } from "@/integrations/supabase/client";
 import { CartItemType } from "../components/cart/types";
-import jsPDF from 'jspdf';
-import html2canvas from 'html2canvas';
 
 interface PrintNodeCredentials {
   apiKey: string;
@@ -51,60 +49,12 @@ const safeBase64Encode = (str: string): string => {
 };
 
 /**
- * Converts HTML to PDF using browser-compatible approach
- */
-export const convertHtmlToPdf = async (htmlContent: string): Promise<Uint8Array> => {
-  console.log('Converting HTML to PDF for PrintNode...');
-  
-  try {
-    // Create a temporary container for the HTML content
-    const container = document.createElement('div');
-    container.innerHTML = htmlContent;
-    container.style.position = 'absolute';
-    container.style.left = '-9999px';
-    container.style.top = '-9999px';
-    document.body.appendChild(container);
-    
-    // Generate a canvas from the HTML
-    const canvas = await html2canvas(container, {
-      scale: 2, // Higher quality
-      useCORS: true,
-      logging: false
-    });
-    
-    document.body.removeChild(container);
-    
-    // Convert canvas to PDF
-    const pdf = new jsPDF({
-      orientation: 'portrait',
-      unit: 'mm',
-      format: 'a4'
-    });
-    
-    const imgData = canvas.toDataURL('image/png');
-    const imgProps = pdf.getImageProperties(imgData);
-    const pdfWidth = pdf.internal.pageSize.getWidth();
-    const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
-    
-    pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
-    
-    // Get PDF as Uint8Array
-    const pdfBytes = pdf.output('arraybuffer');
-    return new Uint8Array(pdfBytes);
-  } catch (error) {
-    console.error('Error converting HTML to PDF:', error);
-    throw error;
-  }
-};
-
-/**
- * Sends a print job to PrintNode printer
+ * Sends a text receipt to PrintNode printer
  */
 export const sendToPrintNode = async (
-  content: string | Uint8Array,
+  content: string,
   apiKey: string,
-  printerId: string | number,
-  contentType: 'raw_base64' | 'pdf_base64' | 'html_base64' = 'raw_base64'
+  printerId: string | number
 ): Promise<boolean> => {
   if (!apiKey || !printerId) {
     console.error('PrintNode API key or printer ID is missing');
@@ -115,36 +65,9 @@ export const sendToPrintNode = async (
     // Convert printerId to number if it's a string
     const printerIdNum = typeof printerId === 'string' ? parseInt(printerId, 10) : printerId;
     
-    // Encode the content
-    let encodedContent: string;
-    let contentPreview: string;
-    
-    if (content instanceof Uint8Array) {
-      // For PDF data, convert to base64 using browser-compatible approach
-      encodedContent = btoa(Array.from(content)
-        .map(byte => String.fromCharCode(byte))
-        .join(''));
-      contentPreview = 'PDF Document';
-      contentType = 'pdf_base64';
-      console.log('Sending PDF content to PrintNode');
-    } else {
-      // For HTML content, make sure we're using the correct content type
-      // Check if the content is HTML and set the appropriate content type
-      if (content.startsWith('<html')) {
-        encodedContent = safeBase64Encode(content);
-        contentPreview = content.substring(0, 255);
-        contentType = 'html_base64';
-        console.log('Sending content as HTML to PrintNode');
-      } else {
-        // For plain text content (like tickets)
-        encodedContent = safeBase64Encode(content);
-        contentPreview = content.substring(0, 255);
-        contentType = 'raw_base64';
-        console.log('Sending content as raw text to PrintNode');
-      }
-    }
-    
-    console.log(`Content encoded successfully as ${contentType}`);
+    // Use our safe encoding method instead of direct btoa
+    const encodedContent = safeBase64Encode(content);
+    console.log('Content encoded successfully');
     
     const response = await fetch('https://api.printnode.com/printjobs', {
       method: 'POST',
@@ -155,7 +78,7 @@ export const sendToPrintNode = async (
       body: JSON.stringify({
         printerId: printerIdNum,
         title: 'Receipt Print Job',
-        contentType: contentType,
+        contentType: 'raw_base64',
         content: encodedContent,
         source: 'POS System'
       })
@@ -171,19 +94,18 @@ export const sendToPrintNode = async (
     console.log('PrintNode print job submitted successfully:', result);
     
     // Log the print job to our database
-    await logPrintJob(printerId.toString(), result.id || 0, contentPreview, true);
+    await logPrintJob(printerId.toString(), result.id || 0, content, true);
     
     return true;
   } catch (error) {
     console.error('Error sending to PrintNode:', error);
-    await logPrintJob(printerId.toString(), 0, typeof content === 'string' ? content.substring(0, 255) : 'PDF Document', false);
+    await logPrintJob(printerId.toString(), 0, content, false);
     return false;
   }
 };
 
 /**
- * Formats order details for text receipt - DEPRECATED, keeping for backward compatibility
- * Now we use the HTML format for both PrintNode and browser
+ * Formats order details for text receipt
  */
 export const formatTextReceipt = (
   orderNumber: string | number,
@@ -194,11 +116,55 @@ export const formatTextReceipt = (
   tax: number,
   total: number
 ): string => {
-  const { formatOrderReceipt } = require('./printUtils');
-  const htmlReceipt = formatOrderReceipt(orderNumber, items, orderType, tableNumber, subtotal, tax, total);
+  const orderDate = new Date().toLocaleString();
+  const lineWidth = 42; // Characters per line on most thermal printers
+  const separator = '-'.repeat(lineWidth);
   
-  // Add printer cut command at the end
-  return htmlReceipt + '\x1D\x56\x41\x03'; // GS V A - Paper cut
+  // Use the Euro symbol with appropriate encoding for thermal printers
+  // Most thermal printers use code page 858 or similar where Euro is represented
+  const currencySymbol = "€";
+  
+  let receipt = '\n';
+  receipt += centerText('ORDER RECEIPT', lineWidth) + '\n\n';
+  receipt += `Order #: ${orderNumber}\n`;
+  receipt += `Date: ${orderDate}\n`;
+  receipt += `Type: ${orderType === 'eat-in' ? 'Eat In' : 'Takeaway'}\n`;
+  if (orderType === 'eat-in' && tableNumber) {
+    receipt += `Table #: ${tableNumber}\n`;
+  }
+  receipt += separator + '\n\n';
+  
+  receipt += centerText('ITEMS', lineWidth) + '\n\n';
+  
+  items.forEach(item => {
+    receipt += `${item.quantity}x ${item.product.name}\n`;
+    receipt += `${' '.repeat(4)}${(item.product.price * item.quantity).toFixed(2)} ${currencySymbol}\n`;
+    
+    if (item.options && item.options.length > 0) {
+      receipt += `${' '.repeat(2)}${item.options.map(o => o.value).join(', ')}\n`;
+    }
+    
+    if (item.selectedToppings && item.selectedToppings.length > 0) {
+      item.selectedToppings.forEach(topping => {
+        receipt += `${' '.repeat(2)}+ ${topping.name} ${topping.price.toFixed(2)} ${currencySymbol}\n`;
+      });
+    }
+    receipt += '\n';
+  });
+  
+  receipt += separator + '\n\n';
+  
+  receipt += `Subtotal:${' '.repeat(lineWidth - 10 - subtotal.toFixed(2).length - currencySymbol.length - 1)}${subtotal.toFixed(2)} ${currencySymbol}\n`;
+  receipt += `Tax:${' '.repeat(lineWidth - 5 - tax.toFixed(2).length - currencySymbol.length - 1)}${tax.toFixed(2)} ${currencySymbol}\n`;
+  receipt += `TOTAL:${' '.repeat(lineWidth - 7 - total.toFixed(2).length - currencySymbol.length - 1)}${total.toFixed(2)} ${currencySymbol}\n\n`;
+  
+  receipt += centerText('Thank you for your order!', lineWidth) + '\n';
+  receipt += centerText('All prices include 10% tax', lineWidth) + '\n\n\n\n';
+  
+  // Add cut command for thermal printers
+  receipt += '\x1D\x56\x41\x03'; // GS V A - Paper cut
+  
+  return receipt;
 };
 
 /**

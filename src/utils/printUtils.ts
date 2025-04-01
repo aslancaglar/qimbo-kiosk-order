@@ -1,8 +1,7 @@
-
 import { CartItemType } from "../components/cart/types";
-import { getPrintNodeCredentials, sendToPrintNode, convertHtmlToPdf } from "./printNode";
+import { getPrintNodeCredentials, sendToPrintNode, formatTextReceipt } from "./printNode";
 
-// Format order for printing - optimized for 80mm thermal POS printer
+// Format order for printing
 export const formatOrderReceipt = (
   orderNumber: string | number,
   items: CartItemType[],
@@ -13,7 +12,6 @@ export const formatOrderReceipt = (
   total: number
 ): string => {
   const orderDate = new Date().toLocaleString();
-  const receiptWidth = "80mm"; // Standard thermal receipt width
   
   return `
     <html>
@@ -21,116 +19,87 @@ export const formatOrderReceipt = (
         <title>Order #${orderNumber}</title>
         <style>
           body {
-            font-family: 'Courier New', monospace;
-            margin: 0;
-            padding: 0;
-            width: ${receiptWidth};
-            max-width: ${receiptWidth};
-            font-size: 12px;
-            line-height: 1.2;
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            max-width: 400px;
+            margin: 0 auto;
           }
           h1, h2 {
             text-align: center;
-            font-size: 14px;
-            margin: 5px 0;
-          }
-          p {
-            margin: 2px 0;
           }
           .order-details {
-            margin-bottom: 10px;
+            margin-bottom: 20px;
           }
-          .divider {
-            border-top: 1px dashed #000;
-            margin: 8px 0;
-          }
-          .item-row {
-            margin-bottom: 5px;
-          }
-          .item-name {
-            width: 60%;
-            display: inline-block;
-          }
-          .item-qty {
-            width: 8%;
-            display: inline-block;
-            text-align: center;
-          }
-          .item-price {
-            width: 30%;
-            display: inline-block;
-            text-align: right;
+          .order-item {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
           }
           .topping-item {
-            padding-left: 10px;
+            display: flex;
+            justify-content: space-between;
+            margin-left: 20px;
+            font-size: 0.9em;
+            color: #666;
           }
-          .topping-name {
-            width: 60%;
-            display: inline-block;
+          .divider {
+            border-top: 1px dashed #ccc;
+            margin: 15px 0;
           }
-          .topping-price {
-            width: 38%;
-            display: inline-block;
-            text-align: right;
+          .totals {
+            margin-top: 20px;
           }
           .total-row {
             display: flex;
             justify-content: space-between;
+            margin-bottom: 5px;
           }
           .final-total {
             font-weight: bold;
+            font-size: 1.2em;
+            margin-top: 10px;
             border-top: 1px solid black;
-            border-bottom: 1px solid black;
-            padding: 3px 0;
-            margin: 5px 0;
+            padding-top: 10px;
           }
           .footer {
+            margin-top: 30px;
             text-align: center;
-            margin-top: 10px;
+            font-size: 0.9em;
+            color: #666;
           }
         </style>
       </head>
       <body>
-        <h1>ORDER RECEIPT</h1>
+        <h1>Order Receipt</h1>
         <div class="order-details">
-          <p>Order: #${orderNumber}</p>
-          <p>Date: ${orderDate}</p>
-          <p>Type: ${orderType === 'eat-in' ? 'Eat In' : 'Takeaway'}</p>
-          ${orderType === 'eat-in' && tableNumber ? `<p>Table: #${tableNumber}</p>` : ''}
+          <p><strong>Order #:</strong> ${orderNumber}</p>
+          <p><strong>Date:</strong> ${orderDate}</p>
+          <p><strong>Order Type:</strong> ${orderType === 'eat-in' ? 'Eat In' : 'Takeaway'}</p>
+          ${orderType === 'eat-in' && tableNumber ? `<p><strong>Table #:</strong> ${tableNumber}</p>` : ''}
         </div>
         
         <div class="divider"></div>
         
-        <h2>ITEMS</h2>
-        
-        <div>
-          <div class="item-row">
-            <span class="item-qty">QTY</span>
-            <span class="item-name">ITEM</span>
-            <span class="item-price">PRICE</span>
-          </div>
-          
-          ${items.map((item) => `
-            <div class="item-row">
-              <span class="item-qty">${item.quantity}</span>
-              <span class="item-name">${item.product.name}</span>
-              <span class="item-price">${(item.product.price * item.quantity).toFixed(2)} €</span>
+        <h2>Items</h2>
+        ${items.map((item) => `
+          <div class="order-item">
+            <div>
+              <span>${item.quantity} x ${item.product.name}</span>
+              ${item.options && item.options.length > 0 ? 
+                `<br><small>${item.options.map((o) => o.value).join(', ')}</small>` : 
+                ''}
             </div>
-            ${item.options && item.options.length > 0 ? 
-              `<div class="topping-item">
-                <span class="topping-name">${item.options.map((o) => o.value).join(', ')}</span>
-              </div>` : 
-              ''}
-            ${item.selectedToppings && item.selectedToppings.length > 0 ? 
-              item.selectedToppings.map((topping) => `
-                <div class="topping-item">
-                  <span class="topping-name">+ ${topping.name}</span>
-                  <span class="topping-price">${topping.price.toFixed(2)} €</span>
-                </div>
-              `).join('') : 
-              ''}
-          `).join('')}
-        </div>
+            <span>${(item.product.price * item.quantity).toFixed(2)} €</span>
+          </div>
+          ${item.selectedToppings && item.selectedToppings.length > 0 ? 
+            item.selectedToppings.map((topping) => `
+              <div class="topping-item">
+                <span>+ ${topping.name}</span>
+                <span>${topping.price.toFixed(2)} €</span>
+              </div>
+            `).join('') : 
+            ''}
+        `).join('')}
         
         <div class="divider"></div>
         
@@ -144,14 +113,13 @@ export const formatOrderReceipt = (
             <span>${tax?.toFixed(2) || '0.00'} €</span>
           </div>
           <div class="total-row final-total">
-            <span>TOTAL:</span>
+            <span>Total:</span>
             <span>${total?.toFixed(2) || '0.00'} €</span>
           </div>
         </div>
         
         <div class="footer">
           <p>Thank you for your order!</p>
-          <p>* * * * * * * * * * * * *</p>
         </div>
       </body>
     </html>
@@ -186,8 +154,7 @@ export const printToThermalPrinter = async (
     }
     
     console.log('PrintNode credentials found, formatting receipt...');
-    // Generate HTML receipt
-    const htmlReceipt = formatOrderReceipt(
+    const textReceipt = formatTextReceipt(
       orderNumber,
       items,
       orderType,
@@ -197,13 +164,8 @@ export const printToThermalPrinter = async (
       total
     );
     
-    console.log('Converting HTML to PDF for PrintNode...');
-    // Convert the HTML content to PDF
-    const pdfData = await convertHtmlToPdf(htmlReceipt);
-    
-    console.log('Sending PDF to PrintNode...');
-    // Send the PDF to PrintNode
-    const result = await sendToPrintNode(pdfData, credentials.apiKey, credentials.printerId);
+    console.log('Sending receipt to PrintNode...');
+    const result = await sendToPrintNode(textReceipt, credentials.apiKey, credentials.printerId);
     console.log('PrintNode send result:', result);
     return result;
   } catch (error) {
@@ -377,7 +339,7 @@ export const printOrder = async (
 };
 
 // For direct browser printing
-export const printOrderBrowser = async (
+export const printOrderBrowser = (
   orderNumber: string | number,
   items: CartItemType[],
   orderType: string,
@@ -385,9 +347,9 @@ export const printOrderBrowser = async (
   subtotal: number,
   tax: number,
   total: number
-): Promise<boolean> => {
+): boolean => {
   console.log('Direct browser printing requested');
-  return await printOrder(
+  return printOrder(
     orderNumber, 
     items, 
     orderType, 
@@ -400,7 +362,7 @@ export const printOrderBrowser = async (
 };
 
 // Print to both PrintNode and browser
-export const printOrderBoth = async (
+export const printOrderBoth = (
   orderNumber: string | number,
   items: CartItemType[],
   orderType: string,
@@ -410,7 +372,7 @@ export const printOrderBoth = async (
   total: number
 ): Promise<boolean> => {
   console.log('Printing to both PrintNode and browser');
-  return await printOrder(
+  return printOrder(
     orderNumber, 
     items, 
     orderType, 
