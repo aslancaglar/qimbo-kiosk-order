@@ -235,7 +235,7 @@ export const printToBrowser = (
   }
 };
 
-// Print order - Use PrintNode first, fall back to browser if needed
+// Print order - Updated to allow multiple print targets
 export const printOrder = async (
   orderNumber: string | number,
   items: CartItemType[],
@@ -244,30 +244,54 @@ export const printOrder = async (
   subtotal: number,
   tax: number,
   total: number,
-  fallbackToBrowser = true
+  options: { 
+    usePrintNode?: boolean; 
+    useBrowserPrint?: boolean;
+    fallbackToBrowser?: boolean;
+  } = { usePrintNode: true, useBrowserPrint: false, fallbackToBrowser: true }
 ): Promise<boolean> => {
   console.log('Print order function called with order #:', orderNumber);
+  let printSuccess = false;
+  
   try {
-    // First try PrintNode
-    const printed = await printToThermalPrinter(
-      orderNumber, 
-      items, 
-      orderType, 
-      tableNumber, 
-      subtotal, 
-      tax, 
-      total
-    );
-    
-    if (printed) {
-      console.log('Order receipt successfully sent to PrintNode.');
-      return true;
+    // Use PrintNode if requested
+    if (options.usePrintNode) {
+      const printNodeSuccess = await printToThermalPrinter(
+        orderNumber, 
+        items, 
+        orderType, 
+        tableNumber, 
+        subtotal, 
+        tax, 
+        total
+      );
+      
+      if (printNodeSuccess) {
+        console.log('Order receipt successfully sent to PrintNode.');
+        printSuccess = true;
+      } else if (!options.useBrowserPrint && options.fallbackToBrowser) {
+        // Only fallback to browser if browser printing isn't explicitly requested
+        console.log('PrintNode printing failed. Falling back to browser printing.');
+        const browserPrinted = printToBrowser(
+          orderNumber,
+          items,
+          orderType,
+          tableNumber,
+          subtotal,
+          tax,
+          total
+        );
+        
+        if (browserPrinted) {
+          console.log('Order receipt successfully sent to browser printing (fallback).');
+          printSuccess = true;
+        }
+      }
     }
     
-    // If PrintNode fails and fallback is enabled, try browser printing
-    if (fallbackToBrowser) {
-      console.log('PrintNode printing failed. Falling back to browser printing.');
-      const browserPrinted = printToBrowser(
+    // Use browser printing if requested (can be in addition to PrintNode)
+    if (options.useBrowserPrint) {
+      const browserPrintSuccess = printToBrowser(
         orderNumber,
         items,
         orderType,
@@ -277,21 +301,24 @@ export const printOrder = async (
         total
       );
       
-      if (browserPrinted) {
+      if (browserPrintSuccess) {
         console.log('Order receipt successfully sent to browser printing.');
-        return true;
+        printSuccess = true;
       }
     }
     
-    console.warn('Failed to print receipt via any method.');
-    return false;
+    if (!printSuccess) {
+      console.warn('Failed to print receipt via any method.');
+    }
+    
+    return printSuccess;
   } catch (error) {
     console.error('Error in printOrder:', error);
     
     // Last resort fallback to browser if an exception occurred
-    if (fallbackToBrowser) {
+    if (options.fallbackToBrowser && !options.useBrowserPrint) {
       try {
-        console.log('Error occurred with PrintNode. Attempting browser printing as last resort.');
+        console.log('Error occurred. Attempting browser printing as last resort.');
         return printToBrowser(
           orderNumber, 
           items, 
@@ -322,5 +349,37 @@ export const printOrderBrowser = (
   total: number
 ): boolean => {
   console.log('Direct browser printing requested');
-  return printToBrowser(orderNumber, items, orderType, tableNumber, subtotal, tax, total);
+  return printOrder(
+    orderNumber, 
+    items, 
+    orderType, 
+    tableNumber, 
+    subtotal, 
+    tax, 
+    total, 
+    { usePrintNode: false, useBrowserPrint: true, fallbackToBrowser: false }
+  );
+};
+
+// Print to both PrintNode and browser
+export const printOrderBoth = (
+  orderNumber: string | number,
+  items: CartItemType[],
+  orderType: string,
+  tableNumber: string | number | undefined,
+  subtotal: number,
+  tax: number,
+  total: number
+): Promise<boolean> => {
+  console.log('Printing to both PrintNode and browser');
+  return printOrder(
+    orderNumber, 
+    items, 
+    orderType, 
+    tableNumber, 
+    subtotal, 
+    tax, 
+    total, 
+    { usePrintNode: true, useBrowserPrint: true, fallbackToBrowser: false }
+  );
 };

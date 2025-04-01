@@ -94,6 +94,7 @@ const OrderConfirmation: React.FC<OrderConfirmationProps> = () => {
         itemsCount: items?.length
       });
       
+      // Use both PrintNode and browser printing
       await printOrder(
         orderNumber,
         items,
@@ -101,7 +102,8 @@ const OrderConfirmation: React.FC<OrderConfirmationProps> = () => {
         tableNumber,
         subtotal,
         taxAmount,
-        total
+        total,
+        { usePrintNode: true, useBrowserPrint: true, fallbackToBrowser: false }
       );
       
       toast({
