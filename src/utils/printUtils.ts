@@ -1,6 +1,6 @@
+
 import { CartItemType } from "../components/cart/types";
 import { getPrintNodeCredentials, sendToPrintNode, formatTextReceipt } from "./printNode";
-import { supabase } from "@/integrations/supabase/client";
 
 // Format order for printing
 export const formatOrderReceipt = (
@@ -261,85 +261,4 @@ export const printOrder = async (
   }
   
   return thermalPrinted;
-};
-
-/**
- * Test function to print the latest order via PrintNode
- */
-export const testPrintLatestOrder = async (): Promise<{ success: boolean; message: string }> => {
-  try {
-    console.log('Fetching the latest order for test printing...');
-    
-    // Get the latest order from the database
-    const { data: latestOrder, error: orderError } = await supabase
-      .from('orders')
-      .select('*, order_items(*, product:products(*))')
-      .order('created_at', { ascending: false })
-      .limit(1)
-      .single();
-    
-    if (orderError || !latestOrder) {
-      console.error('Error fetching latest order:', orderError);
-      return { 
-        success: false, 
-        message: `Failed to fetch latest order: ${orderError?.message || 'No orders found'}` 
-      };
-    }
-    
-    console.log('Latest order fetched:', latestOrder.id);
-    
-    // Convert order data to the format needed for printing
-    const items: CartItemType[] = latestOrder.order_items.map((item: any) => ({
-      quantity: item.quantity,
-      product: item.product,
-      options: [], // Add any options if your order schema includes them
-      selectedToppings: [], // Add any toppings if your order schema includes them
-    }));
-    
-    // Get the order details
-    const orderNumber = latestOrder.order_number || latestOrder.id;
-    const orderType = latestOrder.order_type || 'takeaway';
-    const tableNumber = latestOrder.table_number;
-    const subtotal = latestOrder.subtotal || 0;
-    const tax = latestOrder.tax_amount || 0;
-    const total = latestOrder.total_amount || 0;
-    
-    console.log('Sending test print to PrintNode with order details:', {
-      orderNumber,
-      items: items.length,
-      orderType,
-      tableNumber,
-      total
-    });
-    
-    // Send directly to thermal printer, skipping the fallback to browser
-    const success = await printToThermalPrinter(
-      orderNumber,
-      items,
-      orderType,
-      tableNumber,
-      subtotal,
-      tax,
-      total
-    );
-    
-    if (success) {
-      return {
-        success: true,
-        message: `Successfully sent order #${orderNumber} to PrintNode printer`
-      };
-    } else {
-      return {
-        success: false,
-        message: `Failed to send order #${orderNumber} to PrintNode printer. Check console logs for details.`
-      };
-    }
-    
-  } catch (error) {
-    console.error('Error in test print function:', error);
-    return {
-      success: false,
-      message: `Error: ${error instanceof Error ? error.message : 'Unknown error occurred'}`
-    };
-  }
 };
