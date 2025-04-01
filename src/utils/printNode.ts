@@ -4,7 +4,7 @@ import { CartItemType } from "../components/cart/types";
 
 interface PrintNodeCredentials {
   apiKey: string;
-  printerId: string | number;
+  printerIds: string[] | number[]; // Updated to array for multiple printers
   enabled: boolean;
 }
 
@@ -20,15 +20,24 @@ export const getPrintNodeCredentials = async (): Promise<PrintNodeCredentials> =
 
   if (error || !data) {
     console.error('Error fetching PrintNode credentials:', error);
-    return { apiKey: '', printerId: '', enabled: false };
+    return { apiKey: '', printerIds: [], enabled: false };
   }
 
   // Fix type issue by safely accessing properties
   const settings = data.value as Record<string, any>;
   
+  // Handle both legacy single printer ID and new array of printer IDs
+  let printerIds: string[] | number[] = [];
+  if (settings?.printerIds && Array.isArray(settings.printerIds)) {
+    printerIds = settings.printerIds;
+  } else if (settings?.printerId) {
+    // Legacy support for single printer ID
+    printerIds = [settings.printerId];
+  }
+  
   return {
     apiKey: settings?.apiKey || '',
-    printerId: settings?.printerId || '',
+    printerIds: printerIds,
     enabled: !!settings?.enabled
   };
 };
@@ -49,7 +58,45 @@ const safeBase64Encode = (str: string): string => {
 };
 
 /**
- * Sends a text receipt to PrintNode printer
+ * Sends a text receipt to multiple PrintNode printers
+ */
+export const sendToPrintNodeMultiple = async (
+  content: string,
+  apiKey: string,
+  printerIds: string[] | number[]
+): Promise<boolean> => {
+  if (!apiKey || printerIds.length === 0) {
+    console.error('PrintNode API key or printer IDs are missing');
+    return false;
+  }
+
+  try {
+    console.log(`Sending print job to ${printerIds.length} printers`);
+    
+    // Create an array of promises for each print job
+    const printPromises = printerIds.map(printerId => 
+      sendToPrintNode(content, apiKey, printerId)
+    );
+    
+    // Wait for all print jobs to complete
+    const results = await Promise.all(printPromises);
+    
+    // Return true only if all print jobs were successful
+    const allSucceeded = results.every(result => result === true);
+    
+    if (!allSucceeded) {
+      console.warn('Some print jobs failed to send');
+    }
+    
+    return allSucceeded;
+  } catch (error) {
+    console.error('Error sending to multiple PrintNode printers:', error);
+    return false;
+  }
+};
+
+/**
+ * Sends a text receipt to a single PrintNode printer
  */
 export const sendToPrintNode = async (
   content: string,
@@ -321,3 +368,4 @@ ${centerText('End of test', 42)}
 
   return await sendToPrintNode(testContent, apiKey, printerId);
 };
+

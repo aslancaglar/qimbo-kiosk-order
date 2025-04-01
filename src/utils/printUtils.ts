@@ -1,6 +1,6 @@
 
 import { CartItemType } from "../components/cart/types";
-import { getPrintNodeCredentials, sendToPrintNode, formatTextReceipt } from "./printNode";
+import { getPrintNodeCredentials, sendToPrintNodeMultiple, formatTextReceipt } from "./printNode";
 
 // Format order for printing
 export const formatOrderReceipt = (
@@ -129,6 +129,7 @@ export const formatOrderReceipt = (
 
 /**
  * Print to thermal printer via PrintNode
+ * Now supports multiple printers
  */
 export const printToThermalPrinter = async (
   orderNumber: string | number,
@@ -146,10 +147,11 @@ export const printToThermalPrinter = async (
     console.log('PrintNode credentials:', {
       enabled: credentials.enabled,
       hasApiKey: !!credentials.apiKey,
-      hasPrinterId: !!credentials.printerId
+      hasPrinterIds: credentials.printerIds.length > 0,
+      printerCount: credentials.printerIds.length
     });
     
-    if (!credentials.enabled || !credentials.apiKey || !credentials.printerId) {
+    if (!credentials.enabled || !credentials.apiKey || credentials.printerIds.length === 0) {
       console.error('PrintNode is not enabled or configured correctly:', credentials);
       return false;
     }
@@ -165,8 +167,8 @@ export const printToThermalPrinter = async (
       total
     );
     
-    console.log('Sending receipt to PrintNode...');
-    const result = await sendToPrintNode(textReceipt, credentials.apiKey, credentials.printerId);
+    console.log(`Sending receipt to ${credentials.printerIds.length} PrintNode printer(s)...`);
+    const result = await sendToPrintNodeMultiple(textReceipt, credentials.apiKey, credentials.printerIds);
     console.log('PrintNode send result:', result);
     return result;
   } catch (error) {
