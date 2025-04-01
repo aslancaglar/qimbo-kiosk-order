@@ -1,5 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
 import { CartItemType } from "../components/cart/types";
+import puppeteer from 'puppeteer';
 
 interface PrintNodeCredentials {
   apiKey: string;
@@ -48,12 +49,56 @@ const safeBase64Encode = (str: string): string => {
 };
 
 /**
- * Sends a text receipt to PrintNode printer
+ * Converts HTML to PDF using Puppeteer
+ */
+export const convertHtmlToPdf = async (htmlContent: string): Promise<Buffer> => {
+  console.log('Converting HTML to PDF with Puppeteer...');
+  
+  try {
+    // Launch a headless browser
+    const browser = await puppeteer.launch({
+      headless: 'new',
+      args: ['--no-sandbox', '--disable-setuid-sandbox']
+    });
+    
+    // Create a new page
+    const page = await browser.newPage();
+    
+    // Set content to our HTML
+    await page.setContent(htmlContent, { waitUntil: 'networkidle0' });
+    
+    // Generate PDF
+    const pdfBuffer = await page.pdf({
+      format: 'A4',
+      printBackground: true,
+      margin: {
+        top: '1cm',
+        right: '1cm',
+        bottom: '1cm',
+        left: '1cm'
+      }
+    });
+    
+    // Close the browser
+    await browser.close();
+    
+    console.log('PDF conversion successful');
+    return pdfBuffer;
+  } catch (error) {
+    console.error('Error converting HTML to PDF:', error);
+    throw error;
+  }
+};
+
+/**
+ * Sends a print job to PrintNode printer
+ * Now supports both raw text and PDF content
  */
 export const sendToPrintNode = async (
-  content: string,
+  content: string | Buffer,
   apiKey: string,
-  printerId: string | number
+  printerId: string | number,
+  contentType: 'raw_base64' | 'pdf_base64' = 'raw_base64'
 ): Promise<boolean> => {
   if (!apiKey || !printerId) {
     console.error('PrintNode API key or printer ID is missing');
@@ -64,9 +109,22 @@ export const sendToPrintNode = async (
     // Convert printerId to number if it's a string
     const printerIdNum = typeof printerId === 'string' ? parseInt(printerId, 10) : printerId;
     
-    // Use our safe encoding method instead of direct btoa
-    const encodedContent = safeBase64Encode(content);
-    console.log('Content encoded successfully');
+    // Encode the content
+    let encodedContent: string;
+    let contentPreview: string;
+    
+    if (content instanceof Buffer) {
+      // For PDF buffer, convert to base64
+      encodedContent = content.toString('base64');
+      contentPreview = 'PDF Document';
+      contentType = 'pdf_base64';
+    } else {
+      // For text content, use our safe encoding method
+      encodedContent = safeBase64Encode(content);
+      contentPreview = content.substring(0, 255);
+    }
+    
+    console.log(`Content encoded successfully as ${contentType}`);
     
     const response = await fetch('https://api.printnode.com/printjobs', {
       method: 'POST',
@@ -77,7 +135,7 @@ export const sendToPrintNode = async (
       body: JSON.stringify({
         printerId: printerIdNum,
         title: 'Receipt Print Job',
-        contentType: 'raw_base64',
+        contentType: contentType,
         content: encodedContent,
         source: 'POS System'
       })
@@ -93,12 +151,12 @@ export const sendToPrintNode = async (
     console.log('PrintNode print job submitted successfully:', result);
     
     // Log the print job to our database
-    await logPrintJob(printerId.toString(), result.id || 0, content, true);
+    await logPrintJob(printerId.toString(), result.id || 0, contentPreview, true);
     
     return true;
   } catch (error) {
     console.error('Error sending to PrintNode:', error);
-    await logPrintJob(printerId.toString(), 0, content, false);
+    await logPrintJob(printerId.toString(), 0, typeof content === 'string' ? content.substring(0, 255) : 'PDF Document', false);
     return false;
   }
 };
