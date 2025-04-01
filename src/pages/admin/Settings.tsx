@@ -1,1628 +1,541 @@
-import React, { useEffect, useState } from 'react';
-import { useToast } from "@/hooks/use-toast";
-import { supabase } from "../../integrations/supabase/client";
-import { Json } from "../../integrations/supabase/types";
-import AdminLayout from '../../components/admin/AdminLayout';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Button } from "@/components/ui/button";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Textarea } from "@/components/ui/textarea";
-import { Save, Settings2, RefreshCw, Upload, Bell, Volume2, Image, Images, Printer, Check } from 'lucide-react';
-import { Switch } from "@/components/ui/switch";
-import { clearAppCache } from "../../utils/serviceWorker";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { uploadFile } from '@/utils/fileUpload';
-import { fetchPrinters, testPrintNodeConnection } from '@/utils/printNode';
-import { PrintNodeSettings } from '@/components/cart/types';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import React, { useState, useEffect } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
+import { motion } from 'framer-motion';
+import Layout from '../layout/Layout';
+import Button from '../common/Button';
+import { Check, Home, Printer, Plus } from 'lucide-react';
+import { CartItemType } from '../cart/types';
+import { toast } from '@/hooks/use-toast';
+import { printReceipt } from '@/utils/printNode';
+import { supabase } from '@/integrations/supabase/client';
 
-interface OrderingSettings {
-  requireTableSelection: boolean;
-}
+interface OrderConfirmationProps {}
 
-interface NotificationSettings {
-  soundEnabled: boolean;
-  soundUrl?: string;
-  soundName?: string;
-  volume: number;
-}
-
-interface AppearanceSettings {
-  logo?: string;
-  slideshowImages: string[];
-}
-
-interface Printer {
-  id: string;
-  name: string;
-  description?: string;
-  state?: string;
-}
-
-const Settings = () => {
-  const { toast } = useToast();
-  const [loading, setLoading] = useState(false);
-  const [clearingCache, setClearingCache] = useState(false);
-  const [testingSound, setTestingSound] = useState(false);
-  const [uploadingSound, setUploadingSound] = useState(false);
-  const [uploadingImage, setUploadingImage] = useState(false);
-  const [uploadingLogo, setUploadingLogo] = useState(false);
-  const [testingPrintNode, setTestingPrintNode] = useState(false);
-  const [fetchingPrinters, setFetchingPrinters] = useState(false);
-  const [printers, setPrinters] = useState<Printer[]>([]);
-
-  const [restaurantInfo, setRestaurantInfo] = useState({
-    id: 1,
-    name: '',
-    phone: '',
-    address: '',
-    description: ''
-  });
-
-  const [businessHours, setBusinessHours] = useState([
-    { id: 0, day_of_week: 'Monday', open_time: '09:00', close_time: '21:00' },
-    { id: 0, day_of_week: 'Tuesday', open_time: '09:00', close_time: '21:00' },
-    { id: 0, day_of_week: 'Wednesday', open_time: '09:00', close_time: '21:00' },
-    { id: 0, day_of_week: 'Thursday', open_time: '09:00', close_time: '21:00' },
-    { id: 0, day_of_week: 'Friday', open_time: '09:00', close_time: '21:00' },
-    { id: 0, day_of_week: 'Saturday', open_time: '09:00', close_time: '21:00' },
-    { id: 0, day_of_week: 'Sunday', open_time: '09:00', close_time: '21:00' }
-  ]);
-
-  const [orderingSettings, setOrderingSettings] = useState<OrderingSettings>({
-    requireTableSelection: true
-  });
+const OrderConfirmation: React.FC<OrderConfirmationProps> = () => {
+  const location = useLocation();
+  const navigate = useNavigate();
+  const { 
+    items, 
+    orderType, 
+    tableNumber, 
+    subtotal: providedSubtotal, 
+    taxAmount: providedTax, 
+    total: providedTotal, 
+    orderId,
+    orderNumber
+  } = location.state || {};
   
-  const [notificationSettings, setNotificationSettings] = useState<NotificationSettings>({
-    soundEnabled: true,
-    soundUrl: '/notification.mp3',
-    soundName: 'Default notification',
-    volume: 1.0
-  });
-
-  const [appearanceSettings, setAppearanceSettings] = useState<AppearanceSettings>({
+  const [printed, setPrinted] = useState(false);
+  const [redirecting, setRedirecting] = useState(false);
+  const [printing, setPrinting] = useState(false);
+  const [restaurantInfo, setRestaurantInfo] = useState({
+    name: 'Restaurant',
     logo: '',
-    slideshowImages: [
-      "/lovable-uploads/6837434a-e5ba-495a-b295-9638c9b5c27f.png",
-      "https://images.unsplash.com/photo-1546793665-c74683f339c1?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80",
-      "https://images.unsplash.com/photo-1482938289607-e9573fc25ebb?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80",
-      "https://images.unsplash.com/photo-1465146344425-f00d5f5c8f07?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80",
-      "https://images.unsplash.com/photo-1500375592092-40eb2168fd21?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80",
-    ]
   });
-
-  const [printNodeSettings, setPrintNodeSettings] = useState<PrintNodeSettings>({
+  const [printNodeSettings, setPrintNodeSettings] = useState({
     apiKey: '',
     enabled: false,
     defaultPrinterId: '',
-    printerName: '',
   });
-
+  
+  const total = providedTotal || items?.reduce((sum: number, item: CartItemType) => {
+    let itemTotal = item.product.price * item.quantity;
+    if (item.selectedToppings && item.selectedToppings.length > 0) {
+      const toppingsPrice = item.selectedToppings.reduce((toppingSum, topping) => toppingSum + topping.price, 0);
+      itemTotal += toppingsPrice * item.quantity;
+    }
+    return sum + itemTotal;
+  }, 0) || 0;
+  
+  const taxRate = 0.1; // 10% tax
+  const taxAmount = providedTax || total - (total / (1 + taxRate));
+  const subtotal = providedSubtotal || total - taxAmount;
+  
   useEffect(() => {
-    fetchRestaurantInfo();
-    fetchBusinessHours();
-    fetchOrderingSettings();
-    fetchNotificationSettings();
-    fetchAppearanceSettings();
-    fetchPrintNodeSettings();
-  }, []);
-
-  const fetchRestaurantInfo = async () => {
-    try {
-      setLoading(true);
-      const { data, error } = await supabase
-        .from('restaurant_info')
-        .select('*')
-        .order('id', { ascending: true })
-        .limit(1)
-        .maybeSingle();
-
-      if (error) {
-        console.error('Error fetching restaurant info:', error);
-        toast({
-          title: "Error",
-          description: "Failed to load restaurant information",
-          variant: "destructive"
-        });
-        return;
-      }
-
-      if (data) {
-        setRestaurantInfo(data);
-      }
-    } catch (error) {
-      console.error('Unexpected error:', error);
-      toast({
-        title: "Error",
-        description: "An unexpected error occurred",
-        variant: "destructive"
-      });
-    } finally {
-      setLoading(false);
+    if (!items || items.length === 0) {
+      navigate('/', { replace: true });
     }
-  };
-
-  const fetchBusinessHours = async () => {
-    try {
-      setLoading(true);
-      const { data, error } = await supabase
-        .from('business_hours')
-        .select('*')
-        .order('id', { ascending: true });
-
-      if (error) {
-        console.error('Error fetching business hours:', error);
-        toast({
-          title: "Error",
-          description: "Failed to load business hours",
-          variant: "destructive"
-        });
-        return;
-      }
-
-      if (data && data.length > 0) {
-        setBusinessHours(data);
-      }
-    } catch (error) {
-      console.error('Unexpected error:', error);
-      toast({
-        title: "Error",
-        description: "An unexpected error occurred",
-        variant: "destructive"
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const fetchOrderingSettings = async () => {
-    try {
-      setLoading(true);
-      const { data, error } = await supabase
-        .from('settings')
-        .select('*')
-        .eq('key', 'ordering_settings')
-        .maybeSingle();
-        
-      if (error) {
-        console.error('Error fetching ordering settings:', error);
-        toast({
-          title: "Error",
-          description: "Failed to load ordering settings",
-          variant: "destructive"
-        });
-        return;
-      }
-
-      if (data && data.value) {
-        const settings = data.value as Record<string, any>;
-        setOrderingSettings({
-          requireTableSelection: settings.requireTableSelection !== undefined ? !!settings.requireTableSelection : true
-        });
-      }
-    } catch (error) {
-      console.error('Unexpected error:', error);
-      toast({
-        title: "Error",
-        description: "An unexpected error occurred",
-        variant: "destructive"
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const fetchNotificationSettings = async () => {
-    try {
-      setLoading(true);
-      const { data, error } = await supabase
-        .from('settings')
-        .select('*')
-        .eq('key', 'notification_settings')
-        .maybeSingle();
-        
-      if (error) {
-        console.error('Error fetching notification settings:', error);
-        toast({
-          title: "Error",
-          description: "Failed to load notification settings",
-          variant: "destructive"
-        });
-        return;
-      }
-
-      if (data && data.value) {
-        const settings = data.value as Record<string, any>;
-        setNotificationSettings({
-          soundEnabled: settings.soundEnabled !== undefined ? !!settings.soundEnabled : true,
-          soundUrl: settings.soundUrl || '/notification.mp3',
-          soundName: settings.soundName || 'Default notification',
-          volume: settings.volume !== undefined ? Number(settings.volume) : 1.0
-        });
-      }
-    } catch (error) {
-      console.error('Unexpected error:', error);
-      toast({
-        title: "Error",
-        description: "An unexpected error occurred",
-        variant: "destructive"
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const fetchAppearanceSettings = async () => {
-    try {
-      setLoading(true);
-      const { data, error } = await supabase
-        .from('settings')
-        .select('*')
-        .eq('key', 'appearance_settings')
-        .maybeSingle();
-        
-      if (error) {
-        console.error('Error fetching appearance settings:', error);
-        toast({
-          title: "Error",
-          description: "Failed to load appearance settings",
-          variant: "destructive"
-        });
-        return;
-      }
-
-      if (data && data.value) {
-        const settings = data.value as Record<string, any>;
-        setAppearanceSettings({
-          logo: settings.logo || '',
-          slideshowImages: settings.slideshowImages || [
-            "/lovable-uploads/6837434a-e5ba-495a-b295-9638c9b5c27f.png",
-            "https://images.unsplash.com/photo-1546793665-c74683f339c1?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80",
-            "https://images.unsplash.com/photo-1482938289607-e9573fc25ebb?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80",
-            "https://images.unsplash.com/photo-1465146344425-f00d5f5c8f07?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80",
-            "https://images.unsplash.com/photo-1500375592092-40eb2168fd21?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80",
-          ]
-        });
-      }
-    } catch (error) {
-      console.error('Unexpected error:', error);
-      toast({
-        title: "Error",
-        description: "An unexpected error occurred",
-        variant: "destructive"
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const fetchPrintNodeSettings = async () => {
-    try {
-      setLoading(true);
-      const { data, error } = await supabase
-        .from('settings')
-        .select('*')
-        .eq('key', 'printnode_settings')
-        .maybeSingle();
-        
-      if (error) {
-        console.error('Error fetching PrintNode settings:', error);
-        toast({
-          title: "Error",
-          description: "Failed to load PrintNode settings",
-          variant: "destructive"
-        });
-        return;
-      }
-
-      if (data && data.value) {
-        const settings = data.value as Record<string, any>;
-        setPrintNodeSettings({
-          apiKey: settings.apiKey || '',
-          enabled: settings.enabled !== undefined ? !!settings.enabled : false,
-          defaultPrinterId: settings.defaultPrinterId || '',
-          printerName: settings.printerName || '',
-        });
-      }
-    } catch (error) {
-      console.error('Unexpected error:', error);
-      toast({
-        title: "Error",
-        description: "An unexpected error occurred",
-        variant: "destructive"
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleInfoChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    const { id, value } = e.target;
-    setRestaurantInfo(prev => ({
-      ...prev,
-      [id.replace('restaurant-', '')]: value
-    }));
-  };
-
-  const handleHoursChange = (day: string, field: 'open_time' | 'close_time', value: string) => {
-    setBusinessHours(prev => 
-      prev.map(item => 
-        item.day_of_week === day 
-          ? { ...item, [field]: value } 
-          : item
-      )
-    );
-  };
-
-  const handleOrderingSettingChange = (field: string, checked: boolean) => {
-    setOrderingSettings(prev => ({
-      ...prev,
-      [field]: checked
-    }));
-  };
+  }, [items, navigate]);
   
-  const handleNotificationSettingChange = (field: string, value: any) => {
-    setNotificationSettings(prev => ({
-      ...prev,
-      [field]: value
-    }));
-  };
+  useEffect(() => {
+    const redirectTimer = setTimeout(() => {
+      setRedirecting(true);
+      navigate('/', { replace: true });
+    }, 6000);
+    
+    return () => clearTimeout(redirectTimer);
+  }, [navigate]);
+  
+  useEffect(() => {
+    const fetchSettings = async () => {
+      // Get restaurant info
+      try {
+        const { data: restaurantData, error: restaurantError } = await supabase
+          .from('restaurant_info')
+          .select('name, description')
+          .limit(1)
+          .single();
 
-  const handlePrintNodeSettingChange = (field: string, value: any) => {
-    setPrintNodeSettings(prev => ({
-      ...prev,
-      [field]: value
-    }));
-  };
-
-  const saveRestaurantInfo = async () => {
-    try {
-      setLoading(true);
-      const { error } = await supabase
-        .from('restaurant_info')
-        .update({
-          name: restaurantInfo.name,
-          phone: restaurantInfo.phone,
-          address: restaurantInfo.address,
-          description: restaurantInfo.description,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', restaurantInfo.id);
-
-      if (error) {
-        console.error('Error updating restaurant info:', error);
-        toast({
-          title: "Error",
-          description: "Failed to update restaurant information",
-          variant: "destructive"
-        });
-        return;
-      }
-
-      toast({
-        title: "Success",
-        description: "Restaurant information updated successfully"
-      });
-    } catch (error) {
-      console.error('Unexpected error:', error);
-      toast({
-        title: "Error",
-        description: "An unexpected error occurred",
-        variant: "destructive"
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const saveBusinessHours = async () => {
-    try {
-      setLoading(true);
-      
-      for (const hours of businessHours) {
-        const { error } = await supabase
-          .from('business_hours')
-          .update({
-            open_time: hours.open_time,
-            close_time: hours.close_time,
-            updated_at: new Date().toISOString()
-          })
-          .eq('id', hours.id);
-
-        if (error) {
-          console.error(`Error updating business hours for ${hours.day_of_week}:`, error);
-          toast({
-            title: "Error",
-            description: `Failed to update business hours for ${hours.day_of_week}`,
-            variant: "destructive"
-          });
-          return;
+        if (restaurantData) {
+          setRestaurantInfo(prev => ({ ...prev, name: restaurantData.name }));
         }
+      } catch (error) {
+        console.error('Error fetching restaurant info:', error);
       }
 
-      toast({
-        title: "Success",
-        description: "Business hours updated successfully"
-      });
-    } catch (error) {
-      console.error('Unexpected error:', error);
-      toast({
-        title: "Error",
-        description: "An unexpected error occurred",
-        variant: "destructive"
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
+      // Get appearance settings (for logo)
+      try {
+        const { data: appearanceData, error: appearanceError } = await supabase
+          .from('settings')
+          .select('value')
+          .eq('key', 'appearance_settings')
+          .single();
 
-  const saveOrderingSettings = async () => {
-    try {
-      setLoading(true);
-      
-      const { data: existingData, error: checkError } = await supabase
-        .from('settings')
-        .select('id')
-        .eq('key', 'ordering_settings')
-        .maybeSingle();
-        
-      if (checkError) {
-        console.error('Error checking ordering settings:', checkError);
-        toast({
-          title: "Error",
-          description: "Failed to check if settings exist",
-          variant: "destructive"
-        });
-        return;
+        if (appearanceData?.value) {
+          const appearanceValue = appearanceData.value as Record<string, any>;
+          if (appearanceValue.logo) {
+            setRestaurantInfo(prev => ({ ...prev, logo: appearanceValue.logo }));
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching logo:', error);
       }
-      
-      let saveError;
-      
-      const settingsValue = {
-        requireTableSelection: orderingSettings.requireTableSelection
-      } as Json;
-      
-      if (existingData) {
-        const { error } = await supabase
+
+      // Get PrintNode settings
+      try {
+        const { data: printNodeData, error: printNodeError } = await supabase
           .from('settings')
-          .update({
-            value: settingsValue,
-            updated_at: new Date().toISOString()
-          })
-          .eq('id', existingData.id);
-          
-        saveError = error;
-      } else {
-        const { error } = await supabase
-          .from('settings')
-          .insert({
-            key: 'ordering_settings',
-            value: settingsValue,
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString()
+          .select('value')
+          .eq('key', 'printnode_settings')
+          .single();
+
+        if (printNodeData?.value) {
+          const settings = printNodeData.value as Record<string, any>;
+          setPrintNodeSettings({
+            apiKey: settings.apiKey || '',
+            enabled: !!settings.enabled,
+            defaultPrinterId: settings.defaultPrinterId || '',
           });
-          
-        saveError = error;
+        }
+      } catch (error) {
+        console.error('Error fetching PrintNode settings:', error);
       }
+    };
 
-      if (saveError) {
-        console.error('Error saving ordering settings:', saveError);
-        toast({
-          title: "Error",
-          description: "Failed to save ordering settings",
-          variant: "destructive"
-        });
-        return;
-      }
-
-      toast({
-        title: "Success",
-        description: "Ordering settings saved successfully"
-      });
-    } catch (error) {
-      console.error('Unexpected error:', error);
-      toast({
-        title: "Error",
-        description: "An unexpected error occurred",
-        variant: "destructive"
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const saveNotificationSettings = async () => {
-    try {
-      setLoading(true);
-      
-      const { data: existingData, error: checkError } = await supabase
-        .from('settings')
-        .select('id')
-        .eq('key', 'notification_settings')
-        .maybeSingle();
-        
-      if (checkError) {
-        console.error('Error checking notification settings:', checkError);
-        toast({
-          title: "Error",
-          description: "Failed to check if settings exist",
-          variant: "destructive"
-        });
-        return;
-      }
-      
-      let saveError;
-      
-      const settingsValue = {
-        soundEnabled: notificationSettings.soundEnabled,
-        soundUrl: notificationSettings.soundUrl,
-        soundName: notificationSettings.soundName,
-        volume: notificationSettings.volume
-      } as Json;
-      
-      if (existingData) {
-        const { error } = await supabase
-          .from('settings')
-          .update({
-            value: settingsValue,
-            updated_at: new Date().toISOString()
-          })
-          .eq('id', existingData.id);
-          
-        saveError = error;
-      } else {
-        const { error } = await supabase
-          .from('settings')
-          .insert({
-            key: 'notification_settings',
-            value: settingsValue,
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString()
-          });
-          
-        saveError = error;
-      }
-
-      if (saveError) {
-        console.error('Error saving notification settings:', saveError);
-        toast({
-          title: "Error",
-          description: "Failed to save notification settings",
-          variant: "destructive"
-        });
-        return;
-      }
-
-      toast({
-        title: "Success",
-        description: "Notification settings saved successfully"
-      });
-    } catch (error) {
-      console.error('Unexpected error:', error);
-      toast({
-        title: "Error",
-        description: "An unexpected error occurred",
-        variant: "destructive"
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const saveAppearanceSettings = async () => {
-    try {
-      setLoading(true);
-      
-      const { data: existingData, error: checkError } = await supabase
-        .from('settings')
-        .select('id')
-        .eq('key', 'appearance_settings')
-        .maybeSingle();
-        
-      if (checkError) {
-        console.error('Error checking appearance settings:', checkError);
-        toast({
-          title: "Error",
-          description: "Failed to check if settings exist",
-          variant: "destructive"
-        });
-        return;
-      }
-      
-      let saveError;
-      
-      const settingsValue = {
-        logo: appearanceSettings.logo,
-        slideshowImages: appearanceSettings.slideshowImages
-      } as Json;
-      
-      if (existingData) {
-        const { error } = await supabase
-          .from('settings')
-          .update({
-            value: settingsValue,
-            updated_at: new Date().toISOString()
-          })
-          .eq('id', existingData.id);
-          
-        saveError = error;
-      } else {
-        const { error } = await supabase
-          .from('settings')
-          .insert({
-            key: 'appearance_settings',
-            value: settingsValue,
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString()
-          });
-          
-        saveError = error;
-      }
-
-      if (saveError) {
-        console.error('Error saving appearance settings:', saveError);
-        toast({
-          title: "Error",
-          description: "Failed to save appearance settings",
-          variant: "destructive"
-        });
-        return;
-      }
-
-      toast({
-        title: "Success",
-        description: "Appearance settings saved successfully"
-      });
-    } catch (error) {
-      console.error('Unexpected error:', error);
-      toast({
-        title: "Error",
-        description: "An unexpected error occurred",
-        variant: "destructive"
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const savePrintNodeSettings = async () => {
-    try {
-      setLoading(true);
-      
-      const { data: existingData, error: checkError } = await supabase
-        .from('settings')
-        .select('id')
-        .eq('key', 'printnode_settings')
-        .maybeSingle();
-        
-      if (checkError) {
-        console.error('Error checking PrintNode settings:', checkError);
-        toast({
-          title: "Error",
-          description: "Failed to check if settings exist",
-          variant: "destructive"
-        });
-        return;
-      }
-      
-      let saveError;
-      
-      const settingsValue = {
-        apiKey: printNodeSettings.apiKey,
-        enabled: printNodeSettings.enabled,
-        defaultPrinterId: printNodeSettings.defaultPrinterId,
-        printerName: printNodeSettings.printerName
-      } as Json;
-      
-      if (existingData) {
-        const { error } = await supabase
-          .from('settings')
-          .update({
-            value: settingsValue,
-            updated_at: new Date().toISOString()
-          })
-          .eq('id', existingData.id);
-          
-        saveError = error;
-      } else {
-        const { error } = await supabase
-          .from('settings')
-          .insert({
-            key: 'printnode_settings',
-            value: settingsValue,
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString()
-          });
-          
-        saveError = error;
-      }
-
-      if (saveError) {
-        console.error('Error saving PrintNode settings:', saveError);
-        toast({
-          title: "Error",
-          description: "Failed to save PrintNode settings",
-          variant: "destructive"
-        });
-        return;
-      }
-
-      toast({
-        title: "Success",
-        description: "PrintNode settings saved successfully"
-      });
-    } catch (error) {
-      console.error('Unexpected error:', error);
-      toast({
-        title: "Error",
-        description: "An unexpected error occurred",
-        variant: "destructive"
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleClearCache = async () => {
-    try {
-      setClearingCache(true);
-      const success = await clearAppCache();
-      
-      if (success) {
-        toast({
-          title: "Cache cleared",
-          description: "Application cache has been successfully cleared"
-        });
-      } else {
-        toast({
-          title: "Error",
-          description: "Failed to clear application cache",
-          variant: "destructive"
-        });
-      }
-    } catch (error) {
-      console.error('Error clearing cache:', error);
-      toast({
-        title: "Error",
-        description: "An unexpected error occurred while clearing cache",
-        variant: "destructive"
-      });
-    } finally {
-      setClearingCache(false);
-    }
-  };
-
-  const handleSoundUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    try {
-      if (!e.target.files || e.target.files.length === 0) {
-        return;
-      }
-      
-      const file = e.target.files[0];
-      
-      if (!file.type.startsWith('audio/')) {
-        toast({
-          title: "Invalid file",
-          description: "Please upload an audio file (MP3, WAV, etc.)",
-          variant: "destructive"
-        });
-        return;
-      }
-      
-      if (file.size > 2 * 1024 * 1024) {
-        toast({
-          title: "File too large",
-          description: "Audio file must be less than 2MB",
-          variant: "destructive"
-        });
-        return;
-      }
-      
-      setUploadingSound(true);
-      
-      const soundUrl = await uploadFile(file, 'menu-images');
-      
-      if (soundUrl) {
-        setNotificationSettings(prev => ({
-          ...prev,
-          soundUrl,
-          soundName: file.name
-        }));
-        
-        toast({
-          title: "Sound uploaded",
-          description: "Notification sound uploaded successfully"
-        });
-        
-        const audio = new Audio(soundUrl);
-        audio.volume = notificationSettings.volume;
-        audio.play().catch(error => {
-          console.error('Error playing test sound:', error);
-        });
-      } else {
-        toast({
-          title: "Upload failed",
-          description: "Failed to upload notification sound",
-          variant: "destructive"
-        });
-      }
-    } catch (error) {
-      console.error('Error uploading sound:', error);
-      toast({
-        title: "Upload failed",
-        description: "Failed to upload notification sound",
-        variant: "destructive"
-      });
-    } finally {
-      setUploadingSound(false);
-      if (e.target) e.target.value = '';
-    }
-  };
-
-  const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    try {
-      if (!e.target.files || e.target.files.length === 0) {
-        return;
-      }
-      
-      const file = e.target.files[0];
-      
-      if (!file.type.startsWith('image/')) {
-        toast({
-          title: "Invalid file",
-          description: "Please upload an image file (JPG, PNG, etc.)",
-          variant: "destructive"
-        });
-        return;
-      }
-      
-      if (file.size > 5 * 1024 * 1024) {
-        toast({
-          title: "File too large",
-          description: "Image file must be less than 5MB",
-          variant: "destructive"
-        });
-        return;
-      }
-      
-      setUploadingLogo(true);
-      
-      const logoUrl = await uploadFile(file, 'menu-images');
-      
-      if (logoUrl) {
-        setAppearanceSettings(prev => ({
-          ...prev,
-          logo: logoUrl
-        }));
-        
-        toast({
-          title: "Logo uploaded",
-          description: "Logo uploaded successfully"
-        });
-      } else {
-        toast({
-          title: "Upload failed",
-          description: "Failed to upload logo",
-          variant: "destructive"
-        });
-      }
-    } catch (error) {
-      console.error('Error uploading logo:', error);
-      toast({
-        title: "Upload failed",
-        description: "Failed to upload logo",
-        variant: "destructive"
-      });
-    } finally {
-      setUploadingLogo(false);
-      if (e.target) e.target.value = '';
-    }
-  };
-
-  const handleSlideImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    try {
-      if (!e.target.files || e.target.files.length === 0) {
-        return;
-      }
-      
-      const file = e.target.files[0];
-      
-      if (!file.type.startsWith('image/')) {
-        toast({
-          title: "Invalid file",
-          description: "Please upload an image file (JPG, PNG, etc.)",
-          variant: "destructive"
-        });
-        return;
-      }
-      
-      if (file.size > 5 * 1024 * 1024) {
-        toast({
-          title: "File too large",
-          description: "Image file must be less than 5MB",
-          variant: "destructive"
-        });
-        return;
-      }
-      
-      setUploadingImage(true);
-      
-      const imageUrl = await uploadFile(file, 'menu-images');
-      
-      if (imageUrl) {
-        setAppearanceSettings(prev => ({
-          ...prev,
-          slideshowImages: [...prev.slideshowImages, imageUrl]
-        }));
-        
-        toast({
-          title: "Image uploaded",
-          description: "Slideshow image uploaded successfully"
-        });
-      } else {
-        toast({
-          title: "Upload failed",
-          description: "Failed to upload image",
-          variant: "destructive"
-        });
-      }
-    } catch (error) {
-      console.error('Error uploading image:', error);
-      toast({
-        title: "Upload failed",
-        description: "Failed to upload image",
-        variant: "destructive"
-      });
-    } finally {
-      setUploadingImage(false);
-      if (e.target) e.target.value = '';
-    }
-  };
-
-  const removeSlideImage = (index: number) => {
-    setAppearanceSettings(prev => ({
-      ...prev,
-      slideshowImages: prev.slideshowImages.filter((_, i) => i !== index)
-    }));
-  };
-
-  const playTestSound = () => {
-    if (!notificationSettings.soundUrl) return;
-    
-    setTestingSound(true);
-    
-    try {
-      const audio = new Audio(notificationSettings.soundUrl);
-      audio.volume = notificationSettings.volume;
-      
-      audio.onended = () => {
-        setTestingSound(false);
-      };
-      
-      audio.onerror = (e) => {
-        console.error('Audio error:', e);
-        setTestingSound(false);
-        toast({
-          title: "Playback error",
-          description: "Failed to play the notification sound",
-          variant: "destructive"
-        });
-      };
-      
-      audio.play().catch(err => {
-        console.error('Error playing audio:', err);
-        setTestingSound(false);
-        toast({
-          title: "Playback error",
-          description: "Please click anywhere on the page first to enable sound playback",
-          variant: "destructive"
-        });
-      });
-    } catch (error) {
-      console.error('Error creating audio:', error);
-      setTestingSound(false);
-    }
-  };
-
-  const testPrintNodeAPI = async () => {
-    if (!printNodeSettings.apiKey) {
-      toast({
-        title: "API Key Required",
-        description: "Please enter a PrintNode API key first",
-        variant: "destructive"
-      });
-      return;
-    }
-    
-    try {
-      setTestingPrintNode(true);
-      const success = await testPrintNodeConnection(printNodeSettings.apiKey);
-      
-      if (success) {
-        toast({
-          title: "Connection Successful",
-          description: "PrintNode API connection verified"
-        });
-      } else {
-        toast({
-          title: "Connection Failed",
-          description: "Could not connect to PrintNode API. Please check your API key.",
-          variant: "destructive"
-        });
-      }
-    } catch (error) {
-      console.error('Error testing PrintNode connection:', error);
-      toast({
-        title: "Connection Error",
-        description: "An error occurred while testing the connection",
-        variant: "destructive"
-      });
-    } finally {
-      setTestingPrintNode(false);
-    }
-  };
+    fetchSettings();
+  }, []);
   
-  const loadPrinters = async () => {
-    if (!printNodeSettings.apiKey) {
-      toast({
-        title: "API Key Required",
-        description: "Please enter a PrintNode API key first",
-        variant: "destructive"
-      });
-      return;
+  useEffect(() => {
+    if (items && items.length > 0 && !printed && printNodeSettings.enabled && printNodeSettings.apiKey && printNodeSettings.defaultPrinterId) {
+      printOrder(true);
+    } else if (items && items.length > 0 && !printed) {
+      // Fall back to browser-based printing if PrintNode is not available
+      printBrowserOrder();
+      setPrinted(true);
     }
-    
-    try {
-      setFetchingPrinters(true);
-      setPrinters([]);
-      
-      const printerList = await fetchPrinters(printNodeSettings.apiKey);
-      
-      if (printerList.length > 0) {
-        setPrinters(printerList);
-        toast({
-          title: "Printers Loaded",
-          description: `Found ${printerList.length} printer${printerList.length !== 1 ? 's' : ''}`
-        });
-      } else {
-        toast({
-          title: "No Printers Found",
-          description: "No printers are available in your PrintNode account",
-          variant: "destructive"
-        });
-      }
-    } catch (error) {
-      console.error('Error loading printers:', error);
-      toast({
-        title: "Printer Error",
-        description: "An error occurred while fetching printers",
-        variant: "destructive"
-      });
-    } finally {
-      setFetchingPrinters(false);
-    }
-  };
+  }, [items, printed, printNodeSettings]);
   
-  const handlePrinterSelect = (printerId: string) => {
-    const printer = printers.find(p => p.id === printerId);
-    setPrintNodeSettings(prev => ({
-      ...prev,
-      defaultPrinterId: printerId,
-      printerName: printer?.name || ''
-    }));
-  };
-
-  return (
-    <AdminLayout>
-      <div className="space-y-6">
-        <Tabs defaultValue="general">
-          <TabsList>
-            <TabsTrigger value="general">General</TabsTrigger>
-            <TabsTrigger value="ordering">Ordering</TabsTrigger>
-            <TabsTrigger value="appearance">Appearance</TabsTrigger>
-            <TabsTrigger value="notifications">Notifications</TabsTrigger>
-            <TabsTrigger value="printing">Printing</TabsTrigger>
-            <TabsTrigger value="system">System</TabsTrigger>
-          </TabsList>
-          
-          <TabsContent value="general" className="mt-6 space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Restaurant Information</CardTitle>
-                <CardDescription>
-                  Update your restaurant's basic information.
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                  <div className="space-y-2">
-                    <Label htmlFor="restaurant-name">Restaurant Name</Label>
-                    <Input 
-                      id="restaurant-name" 
-                      value={restaurantInfo.name} 
-                      onChange={handleInfoChange}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="restaurant-phone">Phone Number</Label>
-                    <Input 
-                      id="restaurant-phone" 
-                      value={restaurantInfo.phone} 
-                      onChange={handleInfoChange}
-                    />
-                  </div>
-                </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="restaurant-address">Address</Label>
-                  <Input 
-                    id="restaurant-address" 
-                    value={restaurantInfo.address} 
-                    onChange={handleInfoChange}
-                  />
-                </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="restaurant-description">Description</Label>
-                  <Textarea 
-                    id="restaurant-description" 
-                    value={restaurantInfo.description || ''} 
-                    onChange={handleInfoChange}
-                    rows={3}
-                  />
-                </div>
-                
-                <Button 
-                  className="mt-4" 
-                  onClick={saveRestaurantInfo} 
-                  disabled={loading}
-                >
-                  {loading ? 'Saving...' : 'Save Changes'}
-                </Button>
-              </CardContent>
-            </Card>
+  const printBrowserOrder = () => {
+    try {
+      const iframe = document.createElement('iframe');
+      iframe.style.display = 'none';
+      document.body.appendChild(iframe);
+      
+      const orderDate = new Date().toLocaleString();
+      
+      if (!iframe.contentDocument) {
+        console.error("Could not access iframe document");
+        return;
+      }
+      
+      iframe.contentDocument.write(`
+        <html>
+          <head>
+            <title>Order #${orderNumber}</title>
+            <style>
+              body {
+                font-family: Arial, sans-serif;
+                padding: 20px;
+                max-width: 400px;
+                margin: 0 auto;
+              }
+              h1, h2 {
+                text-align: center;
+              }
+              .order-details {
+                margin-bottom: 20px;
+              }
+              .order-item {
+                display: flex;
+                justify-content: space-between;
+                margin-bottom: 8px;
+              }
+              .topping-item {
+                display: flex;
+                justify-content: space-between;
+                margin-left: 20px;
+                font-size: 0.9em;
+                color: #666;
+              }
+              .divider {
+                border-top: 1px dashed #ccc;
+                margin: 15px 0;
+              }
+              .totals {
+                margin-top: 20px;
+              }
+              .total-row {
+                display: flex;
+                justify-content: space-between;
+                margin-bottom: 5px;
+              }
+              .final-total {
+                font-weight: bold;
+                font-size: 1.2em;
+                margin-top: 10px;
+                border-top: 1px solid black;
+                padding-top: 10px;
+              }
+              .footer {
+                margin-top: 30px;
+                text-align: center;
+                font-size: 0.9em;
+                color: #666;
+              }
+            </style>
+          </head>
+          <body>
+            <h1>Order Receipt</h1>
+            <div class="order-details">
+              <p><strong>Order #:</strong> ${orderNumber}</p>
+              <p><strong>Date:</strong> ${orderDate}</p>
+              <p><strong>Order Type:</strong> ${orderType === 'eat-in' ? 'Eat In' : 'Takeaway'}</p>
+              ${orderType === 'eat-in' && tableNumber ? `<p><strong>Table #:</strong> ${tableNumber}</p>` : ''}
+            </div>
             
-            <Card>
-              <CardHeader>
-                <CardTitle>Business Hours</CardTitle>
-                <CardDescription>
-                  Set your restaurant's opening hours.
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {businessHours.map((day, i) => (
-                    <div key={i} className="flex items-center justify-between pb-2 border-b">
-                      <span className="font-medium">{day.day_of_week}</span>
-                      <div className="flex gap-2 items-center">
-                        <Input
-                          type="time"
-                          value={day.open_time}
-                          onChange={(e) => handleHoursChange(day.day_of_week, 'open_time', e.target.value)}
-                          className="w-24"
-                        />
-                        <span>to</span>
-                        <Input
-                          type="time"
-                          value={day.close_time}
-                          onChange={(e) => handleHoursChange(day.day_of_week, 'close_time', e.target.value)}
-                          className="w-24"
-                        />
-                      </div>
-                    </div>
-                  ))}
-                  <Button 
-                    className="mt-4"
-                    onClick={saveBusinessHours}
-                    disabled={loading}
-                  >
-                    {loading ? 'Saving...' : 'Save Hours'}
-                  </Button>
+            <div class="divider"></div>
+            
+            <h2>Items</h2>
+            ${items && items.map((item: CartItemType) => `
+              <div class="order-item">
+                <div>
+                  <span>${item.quantity} x ${item.product.name}</span>
+                  ${item.options && item.options.length > 0 ? 
+                    `<br><small>${item.options.map((o: {name: string, value: string}) => o.value).join(', ')}</small>` : 
+                    ''}
                 </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
+                <span>${(item.product.price * item.quantity).toFixed(2)} €</span>
+              </div>
+              ${item.selectedToppings && item.selectedToppings.length > 0 ? 
+                item.selectedToppings.map((topping: {id: number, name: string, price: number}) => `
+                  <div class="topping-item">
+                    <span>+ ${topping.name}</span>
+                    <span>${topping.price.toFixed(2)} €</span>
+                  </div>
+                `).join('') : 
+                ''}
+            `).join('')}
+            
+            <div class="divider"></div>
+            
+            <div class="totals">
+              <div class="total-row">
+                <span>Subtotal:</span>
+                <span>${subtotal?.toFixed(2) || '0.00'} €</span>
+              </div>
+              <div class="total-row">
+                <span>Tax (included):</span>
+                <span>${taxAmount?.toFixed(2) || '0.00'} €</span>
+              </div>
+              <div class="total-row final-total">
+                <span>Total:</span>
+                <span>${total?.toFixed(2) || '0.00'} €</span>
+              </div>
+            </div>
+            
+            <div class="footer">
+              <p>Thank you for your order!</p>
+              <p><small>All prices include 10% tax</small></p>
+            </div>
+            <script>
+              window.onload = function() {
+                setTimeout(function() {
+                  window.print();
+                  setTimeout(function() {
+                    document.body.innerHTML = 'Printing complete.';
+                  }, 500);
+                }, 500);
+              };
+            </script>
+          </body>
+        </html>
+      `);
+      
+      iframe.contentDocument.close();
+      
+      setTimeout(() => {
+        iframe.remove();
+      }, 2000);
+    } catch (error) {
+      console.error('Error printing order:', error);
+      toast({
+        title: "Error",
+        description: "Failed to print order receipt",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const printOrder = async (isAutomatic = false) => {
+    // Don't print if PrintNode is disabled
+    if (!printNodeSettings.enabled || !printNodeSettings.apiKey || !printNodeSettings.defaultPrinterId) {
+      toast({
+        title: "PrintNode not configured",
+        description: "PrintNode printing is not enabled or configured properly",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    try {
+      setPrinting(true);
+      
+      const result = await printReceipt(
+        printNodeSettings.apiKey,
+        printNodeSettings.defaultPrinterId,
+        restaurantInfo.name,
+        restaurantInfo.logo,
+        orderNumber || orderId,
+        items,
+        total,
+        subtotal,
+        taxAmount,
+        orderType,
+        tableNumber,
+        'Cash' // Default payment method, could be updated if payment info is available
+      );
+
+      if (result.success) {
+        setPrinted(true);
+        toast({
+          title: "Receipt printed",
+          description: isAutomatic ? "Order receipt sent to printer automatically" : "Order receipt sent to printer",
+        });
+        
+        // Log the print job
+        await supabase.from('print_jobs').insert({
+          order_id: orderId?.toString(),
+          job_id: result.jobId || '',
+          status: 'success',
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        });
+      } else {
+        toast({
+          title: "Print failed",
+          description: result.error || "Failed to send receipt to printer",
+          variant: "destructive",
+        });
+        
+        // Log the failed print job
+        await supabase.from('print_jobs').insert({
+          order_id: orderId?.toString(),
+          job_id: '',
+          status: 'failed',
+          error_message: result.error,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        });
+        
+        // Fall back to browser printing
+        printBrowserOrder();
+      }
+    } catch (error) {
+      console.error('Error during PrintNode printing:', error);
+      // Fall back to browser printing
+      printBrowserOrder();
+    } finally {
+      setPrinting(false);
+    }
+  };
+  
+  if (redirecting) {
+    return null;
+  }
+  
+  return (
+    <Layout>
+      <div className="h-full flex flex-col">
+        <header className="flex justify-between items-center p-6 border-b border-gray-100">
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            onClick={() => navigate('/')}
+            className="rounded-full"
+          >
+            <Home size={24} />
+          </Button>
           
-          <TabsContent value="ordering" className="mt-6">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Settings2 className="h-5 w-5" />
-                  Ordering Options
-                </CardTitle>
-                <CardDescription>
-                  Configure ordering options and customer experience settings.
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex items-center space-x-2">
-                  <Switch 
-                    id="require-table-selection"
-                    checked={orderingSettings.requireTableSelection}
-                    onCheckedChange={(checked) => handleOrderingSettingChange('requireTableSelection', checked)}
-                  />
-                  <Label htmlFor="require-table-selection">
-                    Require table selection for dine-in orders
-                  </Label>
-                </div>
-                <p className="text-sm text-muted-foreground pl-7">
-                  When disabled, customers can place dine-in orders without selecting a table number.
-                </p>
-                
-                <Button 
-                  onClick={saveOrderingSettings}
-                  disabled={loading}
-                  className="mt-4"
+          <h1 className="text-2xl font-semibold">Order Confirmation</h1>
+          
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => printOrder()}
+            className="rounded-full"
+            title="Print receipt"
+            disabled={printing}
+          >
+            <Printer size={24} />
+          </Button>
+        </header>
+        
+        <motion.div 
+          className="flex-1 overflow-y-auto p-6 flex flex-col items-center"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.4 }}
+        >
+          <div className="w-full max-w-2xl mx-auto">
+            <div className="text-center mb-8">
+              <motion.div
+                initial={{ scale: 0, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                transition={{ type: 'spring', delay: 0.2 }}
+                className="w-24 h-24 rounded-full bg-green-100 flex items-center justify-center mx-auto mb-6"
+              >
+                <Check className="h-10 w-10 text-green-600" />
+              </motion.div>
+              
+              <motion.h2 
+                className="text-3xl font-bold mb-2"
+                initial={{ y: 20, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                transition={{ delay: 0.3 }}
+              >
+                Thank You!
+              </motion.h2>
+              
+              <motion.p 
+                className="text-xl text-gray-600 mb-2"
+                initial={{ y: 20, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                transition={{ delay: 0.4 }}
+              >
+                Your order #{orderNumber || orderId} has been placed
+              </motion.p>
+              
+              {orderType === 'eat-in' && tableNumber && (
+                <motion.div
+                  initial={{ y: 20, opacity: 0 }}
+                  animate={{ y: 0, opacity: 1 }}
+                  transition={{ delay: 0.5 }}
+                  className="bg-blue-50 text-blue-800 font-medium rounded-md py-2 px-4 inline-block mt-2"
                 >
-                  <Save className="h-4 w-4 mr-2" />
-                  {loading ? 'Saving...' : 'Save Settings'}
-                </Button>
-              </CardContent>
-            </Card>
-          </TabsContent>
-          
-          <TabsContent value="appearance" className="mt-6">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Images className="h-5 w-5" />
-                  Index Page Appearance
-                </CardTitle>
-                <CardDescription>
-                  Customize the landing page logo and slideshow images.
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-6">
+                  Table #{tableNumber}
+                </motion.div>
+              )}
+              
+              <motion.p
+                initial={{ y: 20, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                transition={{ delay: 0.6 }}
+                className="text-gray-500 mt-4"
+              >
+                {printing ? 'Printing receipt...' : (printed ? 'Receipt sent to printer.' : 'Preparing your receipt...')}
+              </motion.p>
+              
+              <motion.p
+                initial={{ y: 20, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                transition={{ delay: 0.7 }}
+                className="text-gray-500 mt-2"
+              >
+                Redirecting to home page in a few seconds...
+              </motion.p>
+            </div>
+            
+            <motion.div
+              initial={{ y: 20, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              transition={{ delay: 0.7 }}
+              className="bg-white rounded-xl shadow-card overflow-hidden mb-8"
+            >
+              <div className="p-6 border-b border-gray-100">
+                <h3 className="font-semibold text-lg mb-4">Order Summary</h3>
+                
                 <div className="space-y-4">
-                  <h3 className="text-lg font-medium">Restaurant Logo</h3>
-                  
-                  <div className="space-y-2">
-                    <Label>Current Logo</Label>
-                    <div className="flex items-center gap-4">
-                      {appearanceSettings.logo ? (
-                        <div className="w-16 h-16 rounded-full border overflow-hidden bg-white flex items-center justify-center">
-                          <img 
-                            src={appearanceSettings.logo} 
-                            alt="Restaurant Logo" 
-                            className="max-w-full max-h-full object-contain"
-                          />
-                        </div>
-                      ) : (
-                        <div className="w-16 h-16 rounded-full bg-white/80 flex items-center justify-center">
-                          <span className="text-primary font-bold text-xs text-center">DUMMY<br/>LOGO</span>
-                        </div>
-                      )}
-                      
+                  {items && items.map((item: CartItemType, index: number) => (
+                    <div key={index} className="flex justify-between">
                       <div className="flex-1">
-                        <Input
-                          id="logo-file"
-                          type="file"
-                          accept="image/*"
-                          onChange={handleLogoUpload}
-                          disabled={uploadingLogo}
-                          className="flex-1"
-                        />
-                        <p className="text-xs text-muted-foreground mt-1">
-                          Recommended size: 128x128px, transparent background (PNG)
+                        <p className="font-medium">
+                          {item.quantity} x {item.product.name}
                         </p>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-                
-                <div className="space-y-4 pt-4 border-t">
-                  <h3 className="text-lg font-medium">Slideshow Images</h3>
-                  <p className="text-sm text-muted-foreground">
-                    These images will appear in the slideshow on the landing page. Recommended ratio: 16:9, landscape orientation.
-                  </p>
-                  
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {appearanceSettings.slideshowImages.map((image, index) => (
-                      <div key={index} className="relative rounded-md overflow-hidden border group">
-                        <img 
-                          src={image} 
-                          alt={`Slideshow Image ${index + 1}`}
-                          className="w-full h-48 object-cover"
-                        />
-                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                          <Button 
-                            variant="destructive"
-                            size="sm"
-                            onClick={() => removeSlideImage(index)}
-                          >
-                            Remove
-                          </Button>
-                        </div>
-                      </div>
-                    ))}
-                    
-                    <div className="border border-dashed rounded-md flex flex-col items-center justify-center h-48 p-4">
-                      <Image className="h-8 w-8 text-muted-foreground mb-2" />
-                      <p className="text-sm text-center text-muted-foreground mb-3">
-                        Upload a new image for the slideshow
-                      </p>
-                      <Input
-                        id="slideshow-file"
-                        type="file"
-                        accept="image/*"
-                        onChange={handleSlideImageUpload}
-                        disabled={uploadingImage}
-                        className="max-w-[200px]"
-                      />
-                    </div>
-                  </div>
-                </div>
-                
-                <Button 
-                  onClick={saveAppearanceSettings}
-                  disabled={loading}
-                  className="mt-6"
-                >
-                  <Save className="h-4 w-4 mr-2" />
-                  {loading ? 'Saving...' : 'Save Appearance Settings'}
-                </Button>
-              </CardContent>
-            </Card>
-          </TabsContent>
-          
-          <TabsContent value="notifications" className="mt-6">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Bell className="h-5 w-5" />
-                  Notification Settings
-                </CardTitle>
-                <CardDescription>
-                  Configure how notifications are handled throughout the system.
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="space-y-4">
-                  <h3 className="text-lg font-medium">Sound Notifications</h3>
-                  
-                  <div className="flex items-center space-x-2">
-                    <Switch 
-                      id="sound-enabled"
-                      checked={notificationSettings.soundEnabled}
-                      onCheckedChange={(checked) => handleNotificationSettingChange('soundEnabled', checked)}
-                    />
-                    <Label htmlFor="sound-enabled">
-                      Enable notification sounds
-                    </Label>
-                  </div>
-                  
-                  {notificationSettings.soundEnabled && (
-                    <div className="pl-7 space-y-4">
-                      <div className="space-y-2">
-                        <Label>Current notification sound</Label>
-                        <div className="flex items-center gap-2 p-3 rounded-md bg-muted text-sm">
-                          <Volume2 className="h-5 w-5 text-muted-foreground" />
-                          <span className="flex-1 truncate">
-                            {notificationSettings.soundName || 'Default notification'}
-                          </span>
-                          <Button 
-                            variant="outline" 
-                            size="sm"
-                            onClick={playTestSound}
-                            disabled={testingSound}
-                          >
-                            {testingSound ? 'Playing...' : 'Test Sound'}
-                          </Button>
-                        </div>
-                      </div>
-                      
-                      <div className="space-y-2">
-                        <Label htmlFor="notification-volume">Volume</Label>
-                        <div className="flex items-center gap-4">
-                          <input
-                            id="notification-volume"
-                            type="range"
-                            min="0"
-                            max="1"
-                            step="0.1"
-                            value={notificationSettings.volume}
-                            onChange={(e) => handleNotificationSettingChange('volume', parseFloat(e.target.value))}
-                            className="w-full"
-                          />
-                          <span className="text-sm">
-                            {Math.round(notificationSettings.volume * 100)}%
-                          </span>
-                        </div>
-                      </div>
-                      
-                      <div className="pt-2">
-                        <Label htmlFor="sound-file" className="block mb-2">Upload custom notification sound</Label>
-                        <div className="flex flex-col gap-2">
-                          <div className="flex gap-2">
-                            <Input
-                              id="sound-file"
-                              type="file"
-                              accept="audio/*"
-                              onChange={handleSoundUpload}
-                              disabled={uploadingSound}
-                              className="flex-1"
-                            />
-                          </div>
-                          <p className="text-xs text-muted-foreground">
-                            Accepted formats: MP3, WAV, OGG (max 2MB)
+                        {item.options && item.options.length > 0 && (
+                          <p className="text-sm text-gray-500">
+                            {item.options.map(o => o.value).join(', ')}
                           </p>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                </div>
-                
-                <Button 
-                  onClick={saveNotificationSettings}
-                  disabled={loading}
-                  className="mt-4"
-                >
-                  <Save className="h-4 w-4 mr-2" />
-                  {loading ? 'Saving...' : 'Save Notification Settings'}
-                </Button>
-              </CardContent>
-            </Card>
-          </TabsContent>
-          
-          <TabsContent value="printing" className="mt-6">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Printer className="h-5 w-5" />
-                  PrintNode Integration
-                </CardTitle>
-                <CardDescription>
-                  Configure automatic receipt printing via PrintNode
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="space-y-4">
-                  <h3 className="text-lg font-medium">PrintNode API Connection</h3>
-                  
-                  <div className="flex items-center space-x-2">
-                    <Switch 
-                      id="printnode-enabled"
-                      checked={printNodeSettings.enabled}
-                      onCheckedChange={(checked) => handlePrintNodeSettingChange('enabled', checked)}
-                    />
-                    <Label htmlFor="printnode-enabled">
-                      Enable PrintNode receipt printing
-                    </Label>
-                  </div>
-                  
-                  {printNodeSettings.enabled && (
-                    <div className="space-y-4 pl-7">
-                      <div className="space-y-2">
-                        <Label htmlFor="printnode-api-key">PrintNode API Key</Label>
-                        <div className="flex gap-2">
-                          <Input
-                            id="printnode-api-key"
-                            type="password"
-                            placeholder="Enter your PrintNode API key"
-                            value={printNodeSettings.apiKey}
-                            onChange={(e) => handlePrintNodeSettingChange('apiKey', e.target.value)}
-                            className="flex-1"
-                          />
-                          <Button
-                            variant="outline"
-                            onClick={testPrintNodeAPI}
-                            disabled={!printNodeSettings.apiKey || testingPrintNode}
-                          >
-                            {testingPrintNode ? 'Testing...' : 'Test Connection'}
-                          </Button>
-                        </div>
-                        <p className="text-xs text-muted-foreground mt-1">
-                          Get your API key from the <a href="https://app.printnode.com/app/apikeys" target="_blank" rel="noopener noreferrer" className="text-primary underline">PrintNode dashboard</a>
-                        </p>
-                      </div>
-                      
-                      <div className="space-y-2 pt-4">
-                        <Label>Printer Selection</Label>
-                        <div className="flex gap-2 mb-4">
-                          <Button 
-                            variant="outline" 
-                            onClick={loadPrinters}
-                            disabled={!printNodeSettings.apiKey || fetchingPrinters}
-                            className="flex-shrink-0"
-                          >
-                            {fetchingPrinters ? 'Loading...' : printers.length > 0 ? 'Refresh Printers' : 'Load Printers'}
-                          </Button>
-                        </div>
+                        )}
                         
-                        {printers.length > 0 ? (
-                          <div className="space-y-2">
-                            <Select 
-                              value={printNodeSettings.defaultPrinterId} 
-                              onValueChange={handlePrinterSelect}
-                            >
-                              <SelectTrigger className="w-full">
-                                <SelectValue placeholder="Select a printer" />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {printers.map((printer) => (
-                                  <SelectItem key={printer.id} value={printer.id}>
-                                    {printer.name} {printer.state && `(${printer.state})`}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                            
-                            {printNodeSettings.defaultPrinterId && (
-                              <div className="flex items-center p-2 bg-green-50 text-green-800 rounded-md">
-                                <Check size={16} className="mr-2" />
-                                Selected printer: {printNodeSettings.printerName || 'Unknown printer'}
+                        {item.selectedToppings && item.selectedToppings.length > 0 && (
+                          <div className="mt-1">
+                            {item.selectedToppings.map((topping, idx) => (
+                              <div key={idx} className="flex justify-between text-sm text-gray-500">
+                                <span className="flex items-center">
+                                  <Plus size={12} className="mr-1 text-gray-400" />
+                                  {topping.name}
+                                </span>
+                                <span>{topping.price.toFixed(2)} €</span>
                               </div>
-                            )}
-                          </div>
-                        ) : (
-                          <div className="text-sm text-muted-foreground">
-                            {fetchingPrinters ? 'Loading printers...' : 'No printers loaded. Click the button above to load your printers.'}
+                            ))}
                           </div>
                         )}
                       </div>
+                      <p className="font-medium">
+                        {(item.product.price * item.quantity).toFixed(2)} €
+                      </p>
                     </div>
-                  )}
+                  ))}
                 </div>
-                
-                <Alert variant="info" className="bg-blue-50">
-                  <AlertDescription>
-                    <p>
-                      When enabled, order receipts will be automatically sent to the selected printer.
-                      Make sure your printer is properly connected and configured with PrintNode.
-                    </p>
-                  </AlertDescription>
-                </Alert>
-                
-                <Button 
-                  onClick={savePrintNodeSettings}
-                  disabled={loading}
-                  className="mt-4"
-                >
-                  <Save className="h-4 w-4 mr-2" />
-                  {loading ? 'Saving...' : 'Save Printing Settings'}
-                </Button>
-              </CardContent>
-            </Card>
-          </TabsContent>
-          
-          <TabsContent value="system" className="mt-6">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <RefreshCw className="h-5 w-5" />
-                  System Maintenance
-                </CardTitle>
-                <CardDescription>
-                  Manage cache and system maintenance options.
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-4">
-                  <Alert>
-                    <AlertDescription>
-                      Clearing the application cache will remove stored data and reload the latest content.
-                      This can help fix issues with outdated content or unexpected behavior.
-                    </AlertDescription>
-                  </Alert>
-                  
-                  <Button 
-                    onClick={handleClearCache}
-                    disabled={clearingCache}
-                    className="mt-4"
-                  >
-                    <RefreshCw className={`h-4 w-4 mr-2 ${clearingCache ? 'animate-spin' : ''}`} />
-                    {clearingCache ? 'Clearing Cache...' : 'Clear Application Cache'}
-                  </Button>
+              </div>
+              
+              <div className="p-6 bg-gray-50">
+                <div className="space-y-2">
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-600">Sous-total</span>
+                    <span>{subtotal?.toFixed(2) || '0.00'} €</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-600">TVA (10%, incluse)</span>
+                    <span>{taxAmount?.toFixed(2) || '0.00'} €</span>
+                  </div>
+                  <div className="flex justify-between font-semibold text-base pt-2 border-t border-gray-200 mt-2">
+                    <span>Total</span>
+                    <span>{total?.toFixed(2) || '0.00'} €</span>
+                  </div>
                 </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-        </Tabs>
+              </div>
+            </motion.div>
+            
+            <motion.div
+              initial={{ y: 20, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              transition={{ delay: 0.8 }}
+              className="text-center"
+            >
+              <Button 
+                size="lg" 
+                onClick={() => navigate('/')}
+                className="min-w-[200px]"
+              >
+                Place New Order
+              </Button>
+            </motion.div>
+          </div>
+        </motion.div>
       </div>
-    </AdminLayout>
+    </Layout>
   );
 };
 
-export default Settings;
+export default OrderConfirmation;

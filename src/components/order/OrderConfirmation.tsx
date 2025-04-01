@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
@@ -92,8 +91,11 @@ const OrderConfirmation: React.FC<OrderConfirmationProps> = () => {
           .eq('key', 'appearance_settings')
           .single();
 
-        if (appearanceData?.value && appearanceData.value.logo) {
-          setRestaurantInfo(prev => ({ ...prev, logo: appearanceData.value.logo }));
+        if (appearanceData?.value) {
+          const appearanceValue = appearanceData.value as Record<string, any>;
+          if (appearanceValue.logo) {
+            setRestaurantInfo(prev => ({ ...prev, logo: appearanceValue.logo }));
+          }
         }
       } catch (error) {
         console.error('Error fetching logo:', error);
@@ -108,10 +110,11 @@ const OrderConfirmation: React.FC<OrderConfirmationProps> = () => {
           .single();
 
         if (printNodeData?.value) {
+          const settings = printNodeData.value as Record<string, any>;
           setPrintNodeSettings({
-            apiKey: printNodeData.value.apiKey || '',
-            enabled: !!printNodeData.value.enabled,
-            defaultPrinterId: printNodeData.value.defaultPrinterId || '',
+            apiKey: settings.apiKey || '',
+            enabled: !!settings.enabled,
+            defaultPrinterId: settings.defaultPrinterId || '',
           });
         }
       } catch (error) {
@@ -321,10 +324,11 @@ const OrderConfirmation: React.FC<OrderConfirmationProps> = () => {
         
         // Log the print job
         await supabase.from('print_jobs').insert({
-          order_id: orderId,
-          printnode_job_id: result.jobId,
+          order_id: orderId?.toString(),
+          job_id: result.jobId || '',
           status: 'success',
-          timestamp: new Date().toISOString()
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
         });
       } else {
         toast({
@@ -335,10 +339,12 @@ const OrderConfirmation: React.FC<OrderConfirmationProps> = () => {
         
         // Log the failed print job
         await supabase.from('print_jobs').insert({
-          order_id: orderId,
+          order_id: orderId?.toString(),
+          job_id: '',
           status: 'failed',
           error_message: result.error,
-          timestamp: new Date().toISOString()
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
         });
         
         // Fall back to browser printing
