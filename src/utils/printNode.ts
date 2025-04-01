@@ -56,8 +56,8 @@ export const convertHtmlToPdf = async (htmlContent: string): Promise<string> => 
   console.log('Converting HTML for PrintNode...');
   
   try {
-    // Instead of generating PDF on client side, we'll send the HTML directly to PrintNode
-    // PrintNode can handle HTML content when we specify the contentType as 'html_base64'
+    // For PrintNode, we need to specify the content type as 'html_base64' when sending
+    // This tells PrintNode to interpret the base64 content as HTML
     return safeBase64Encode(htmlContent);
   } catch (error) {
     console.error('Error preparing HTML for PrintNode:', error);
@@ -67,7 +67,6 @@ export const convertHtmlToPdf = async (htmlContent: string): Promise<string> => 
 
 /**
  * Sends a print job to PrintNode printer
- * Now supports HTML content directly
  */
 export const sendToPrintNode = async (
   content: string | Uint8Array,
@@ -96,10 +95,20 @@ export const sendToPrintNode = async (
       contentPreview = 'PDF Document';
       contentType = 'pdf_base64';
     } else {
-      // For text content, use our safe encoding method
-      encodedContent = content.startsWith('<html') ? safeBase64Encode(content) : safeBase64Encode(content);
-      contentPreview = content.substring(0, 255);
-      contentType = content.startsWith('<html') ? 'html_base64' : 'raw_base64';
+      // For HTML content, make sure we're using the correct content type
+      // Check if the content is HTML and set the appropriate content type
+      if (content.startsWith('<html')) {
+        encodedContent = safeBase64Encode(content);
+        contentPreview = content.substring(0, 255);
+        contentType = 'html_base64';
+        console.log('Sending content as HTML to PrintNode');
+      } else {
+        // For plain text content (like tickets)
+        encodedContent = safeBase64Encode(content);
+        contentPreview = content.substring(0, 255);
+        contentType = 'raw_base64';
+        console.log('Sending content as raw text to PrintNode');
+      }
     }
     
     console.log(`Content encoded successfully as ${contentType}`);
