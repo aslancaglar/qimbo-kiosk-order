@@ -138,6 +138,7 @@ export const printOrderBrowser = (
   total: number
 ): void => {
   try {
+    console.log('Printing receipt in browser for order:', orderNumber);
     const iframe = document.createElement('iframe');
     iframe.style.display = 'none';
     document.body.appendChild(iframe);
@@ -169,7 +170,7 @@ export const printOrderBrowser = (
       }, 2000);
     }, 500);
   } catch (error) {
-    console.error('Error printing order:', error);
+    console.error('Error printing order in browser:', error);
   }
 };
 
@@ -186,17 +187,27 @@ export const printToThermalPrinter = async (
   total: number
 ): Promise<boolean> => {
   try {
-    console.log('Attempting to print to thermal printer...');
+    console.log('Attempting to print to thermal printer via PrintNode for order:', orderNumber);
     const credentials = await getPrintNodeCredentials();
     
-    if (!credentials.enabled || !credentials.apiKey || !credentials.printerId) {
-      console.log('PrintNode is not enabled or configured:', credentials);
+    if (!credentials.enabled) {
+      console.log('PrintNode is not enabled in settings');
+      return false;
+    }
+    
+    if (!credentials.apiKey || !credentials.apiKey.trim()) {
+      console.log('PrintNode API key is not set');
+      return false;
+    }
+    
+    if (!credentials.printerId) {
+      console.log('PrintNode printer ID is not set');
       return false;
     }
     
     console.log('PrintNode credentials found:', {
       enabled: credentials.enabled,
-      apiKey: credentials.apiKey ? '[REDACTED]' : 'Not set',
+      apiKey: credentials.apiKey ? `${credentials.apiKey.substring(0, 4)}...` : 'Not set',
       printerId: credentials.printerId
     });
     
@@ -210,6 +221,7 @@ export const printToThermalPrinter = async (
       total
     );
     
+    console.log('Text receipt generated, sending to PrintNode...');
     const result = await sendToPrintNode(textReceipt, credentials.apiKey, credentials.printerId);
     console.log('PrintNode result:', result);
     return result;
@@ -244,6 +256,8 @@ export const printOrder = async (
   if (!thermalPrinted) {
     console.log('Thermal printing failed, falling back to browser printing');
     printOrderBrowser(orderNumber, items, orderType, tableNumber, subtotal, tax, total);
+  } else {
+    console.log('Successfully printed to thermal printer');
   }
   
   return thermalPrinted;
