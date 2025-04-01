@@ -9,6 +9,7 @@ import {
 } from '@/components/ui/carousel';
 import Layout from '../components/layout/Layout';
 import { supabase } from '../integrations/supabase/client';
+import { getOptimizedImageUrl } from '../utils/imageOptimizer';
 
 // Default food images for the slideshow (fallback)
 const defaultFoodImages = [
@@ -94,6 +95,26 @@ const Index: React.FC = () => {
             <span className="text-primary font-bold text-xs text-center">DUMMY<br/>LOGO</span>
           )}
         </div>
+      </div>
+      
+      {/* Background slideshow */}
+      <div className="absolute inset-0 z-0">
+        <AnimatePresence mode="wait">
+          <motion.div 
+            key={currentIndex}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 1 }}
+            className="h-full w-full flex items-center justify-center"
+          >
+            <img 
+              src={getOptimizedImageUrl(foodImages[currentIndex], 1200, 85)} 
+              alt="Food" 
+              className="h-full w-full object-cover object-center opacity-70" // Added opacity to blend with black background
+            />
+          </motion.div>
+        </AnimatePresence>
       </div>
       
       {/* Content overlay */}
