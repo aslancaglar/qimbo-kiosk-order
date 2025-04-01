@@ -1,3 +1,4 @@
+
 import { CartItemType } from "../components/cart/types";
 import { getPrintNodeCredentials, sendToPrintNode, convertHtmlToPdf } from "./printNode";
 
@@ -154,8 +155,8 @@ export const printToThermalPrinter = async (
     }
     
     console.log('PrintNode credentials found, formatting receipt...');
-    // Use the HTML receipt format for PrintNode too
-    const receipt = formatOrderReceipt(
+    // Generate HTML receipt
+    const htmlReceipt = formatOrderReceipt(
       orderNumber,
       items,
       orderType,
@@ -165,12 +166,12 @@ export const printToThermalPrinter = async (
       total
     );
     
-    // Convert HTML receipt to PDF using Puppeteer
-    console.log('Converting receipt to PDF before sending to PrintNode...');
-    const pdfBuffer = await convertHtmlToPdf(receipt);
+    // Prepare HTML for PrintNode (no longer converting to PDF with Puppeteer)
+    console.log('Preparing HTML content for PrintNode...');
+    const encodedHtml = await convertHtmlToPdf(htmlReceipt);
     
-    console.log('Sending PDF receipt to PrintNode...');
-    const result = await sendToPrintNode(pdfBuffer, credentials.apiKey, credentials.printerId, 'pdf_base64');
+    console.log('Sending HTML receipt to PrintNode...');
+    const result = await sendToPrintNode(encodedHtml, credentials.apiKey, credentials.printerId, 'html_base64');
     console.log('PrintNode send result:', result);
     return result;
   } catch (error) {

@@ -1,6 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
 import { CartItemType } from "../components/cart/types";
-import puppeteer from 'puppeteer';
 
 interface PrintNodeCredentials {
   apiKey: string;
@@ -49,56 +48,31 @@ const safeBase64Encode = (str: string): string => {
 };
 
 /**
- * Converts HTML to PDF using Puppeteer
+ * Converts HTML to PDF using browser-compatible approach
+ * Instead of Puppeteer (which is Node.js only), we'll use the PrintNode API directly with HTML content
  */
-export const convertHtmlToPdf = async (htmlContent: string): Promise<Buffer> => {
-  console.log('Converting HTML to PDF with Puppeteer...');
+export const convertHtmlToPdf = async (htmlContent: string): Promise<string> => {
+  console.log('Converting HTML for PrintNode...');
   
   try {
-    // Launch a headless browser
-    const browser = await puppeteer.launch({
-      headless: true,
-      args: ['--no-sandbox', '--disable-setuid-sandbox']
-    });
-    
-    // Create a new page
-    const page = await browser.newPage();
-    
-    // Set content to our HTML
-    await page.setContent(htmlContent, { waitUntil: 'networkidle0' });
-    
-    // Generate PDF
-    const pdfBuffer = await page.pdf({
-      format: 'A4',
-      printBackground: true,
-      margin: {
-        top: '1cm',
-        right: '1cm',
-        bottom: '1cm',
-        left: '1cm'
-      }
-    });
-    
-    // Close the browser
-    await browser.close();
-    
-    console.log('PDF conversion successful');
-    return Buffer.from(pdfBuffer);
+    // Instead of generating PDF on client side, we'll send the HTML directly to PrintNode
+    // PrintNode can handle HTML content when we specify the contentType as 'html_base64'
+    return safeBase64Encode(htmlContent);
   } catch (error) {
-    console.error('Error converting HTML to PDF:', error);
+    console.error('Error preparing HTML for PrintNode:', error);
     throw error;
   }
 };
 
 /**
  * Sends a print job to PrintNode printer
- * Now supports both raw text and PDF content
+ * Now supports HTML content directly
  */
 export const sendToPrintNode = async (
   content: string | Buffer,
   apiKey: string,
   printerId: string | number,
-  contentType: 'raw_base64' | 'pdf_base64' = 'raw_base64'
+  contentType: 'raw_base64' | 'pdf_base64' | 'html_base64' = 'raw_base64'
 ): Promise<boolean> => {
   if (!apiKey || !printerId) {
     console.error('PrintNode API key or printer ID is missing');
@@ -120,8 +94,9 @@ export const sendToPrintNode = async (
       contentType = 'pdf_base64';
     } else {
       // For text content, use our safe encoding method
-      encodedContent = safeBase64Encode(content);
+      encodedContent = content.startsWith('<html') ? safeBase64Encode(content) : safeBase64Encode(content);
       contentPreview = content.substring(0, 255);
+      contentType = content.startsWith('<html') ? 'html_base64' : 'raw_base64';
     }
     
     console.log(`Content encoded successfully as ${contentType}`);
