@@ -1,5 +1,6 @@
 
 import { CartItemType } from "../components/cart/types";
+import { getPrintNodeCredentials, sendToPrintNode, formatTextReceipt } from "./printNode";
 
 // Format order for printing
 export const formatOrderReceipt = (
@@ -172,9 +173,10 @@ export const printOrderBrowser = (
   }
 };
 
-// Print order - this is now just a wrapper around browser printing 
-// since PrintBiz integration is removed
-export const printOrder = (
+/**
+ * Print to thermal printer via PrintNode
+ */
+export const printToThermalPrinter = async (
   orderNumber: string | number,
   items: CartItemType[],
   orderType: string,
@@ -182,6 +184,54 @@ export const printOrder = (
   subtotal: number,
   tax: number,
   total: number
-): void => {
-  printOrderBrowser(orderNumber, items, orderType, tableNumber, subtotal, tax, total);
+): Promise<boolean> => {
+  try {
+    const credentials = await getPrintNodeCredentials();
+    
+    if (!credentials.enabled || !credentials.apiKey || !credentials.printerId) {
+      console.log('PrintNode is not enabled or configured. Falling back to browser printing.');
+      return false;
+    }
+    
+    const textReceipt = formatTextReceipt(
+      orderNumber,
+      items,
+      orderType,
+      tableNumber,
+      subtotal,
+      tax,
+      total
+    );
+    
+    return await sendToPrintNode(textReceipt, credentials.apiKey, credentials.printerId);
+  } catch (error) {
+    console.error('Error printing to thermal printer:', error);
+    return false;
+  }
+};
+
+// Print order - try thermal printer first, fallback to browser
+export const printOrder = async (
+  orderNumber: string | number,
+  items: CartItemType[],
+  orderType: string,
+  tableNumber: string | number | undefined,
+  subtotal: number,
+  tax: number,
+  total: number
+): Promise<void> => {
+  const thermalPrinted = await printToThermalPrinter(
+    orderNumber, 
+    items, 
+    orderType, 
+    tableNumber, 
+    subtotal, 
+    tax, 
+    total
+  );
+  
+  if (!thermalPrinted) {
+    console.log('Falling back to browser printing');
+    printOrderBrowser(orderNumber, items, orderType, tableNumber, subtotal, tax, total);
+  }
 };
