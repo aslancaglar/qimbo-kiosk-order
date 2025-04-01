@@ -135,6 +135,7 @@ export function useCart({ orderType, tableNumber }: UseCartOptions) {
       console.log('Starting checkout process with order data:', orderData);
       
       const orderNumber = Math.floor(10000 + Math.random() * 90000).toString();
+      console.log('Generated order number:', orderNumber);
       
       const { data: orderResult, error: orderError } = await supabase
         .from('orders')
@@ -191,6 +192,14 @@ export function useCart({ orderType, tableNumber }: UseCartOptions) {
           }
         }
       }
+      
+      console.log('Navigating to confirmation with data:', {
+        orderId: orderResult.id,
+        orderNumber,
+        itemsCount: cartItems.length,
+        orderType,
+        tableNumber
+      });
       
       navigate('/confirmation', { 
         state: { 

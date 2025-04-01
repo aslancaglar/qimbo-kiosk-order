@@ -42,12 +42,14 @@ const OrderConfirmation: React.FC<OrderConfirmationProps> = () => {
   const subtotal = providedSubtotal || total - taxAmount;
   const orderNumber = providedOrderNumber || orderId;
   
+  // Ensure we have order items before proceeding
   useEffect(() => {
     if (!items || items.length === 0) {
       navigate('/', { replace: true });
     }
   }, [items, navigate]);
   
+  // Redirect after some time
   useEffect(() => {
     const redirectTimer = setTimeout(() => {
       setRedirecting(true);
@@ -57,20 +59,33 @@ const OrderConfirmation: React.FC<OrderConfirmationProps> = () => {
     return () => clearTimeout(redirectTimer);
   }, [navigate]);
   
+  // Immediately try to print the receipt when component mounts
   useEffect(() => {
     if (items && items.length > 0 && !printed) {
-      const timer = setTimeout(() => {
-        handlePrintReceipt();
+      console.log('Auto-printing receipt on OrderConfirmation mount...');
+      // Immediate print attempt
+      handlePrintReceipt().then(() => {
         setPrinted(true);
-      }, 1000);
-      
-      return () => clearTimeout(timer);
+      }).catch(err => {
+        console.error('Auto-print failed:', err);
+        // Still mark as printed to prevent infinite retries
+        setPrinted(true);
+      });
     }
-  }, [items, printed]);
+  }, [items]); // Remove printed from dependencies to ensure it runs once
 
   const handlePrintReceipt = async () => {
     try {
-      console.log('Printing receipt from OrderConfirmation...');
+      console.log('Printing receipt from OrderConfirmation for order #:', orderNumber);
+      console.log('Order details:', {
+        orderType,
+        tableNumber,
+        subtotal,
+        taxAmount,
+        total,
+        itemsCount: items?.length
+      });
+      
       await printOrder(
         orderNumber,
         items,
@@ -85,6 +100,8 @@ const OrderConfirmation: React.FC<OrderConfirmationProps> = () => {
         title: "Receipt Sent",
         description: "The receipt has been sent to the printer",
       });
+      
+      return true;
     } catch (error) {
       console.error('Error printing receipt:', error);
       toast({
@@ -92,6 +109,7 @@ const OrderConfirmation: React.FC<OrderConfirmationProps> = () => {
         description: "Failed to print the receipt",
         variant: "destructive",
       });
+      return false;
     }
   };
   

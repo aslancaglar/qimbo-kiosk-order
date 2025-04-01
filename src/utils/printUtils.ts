@@ -1,3 +1,4 @@
+
 import { CartItemType } from "../components/cart/types";
 import { getPrintNodeCredentials, sendToPrintNode, formatTextReceipt } from "./printNode";
 
@@ -142,6 +143,12 @@ export const printToThermalPrinter = async (
     console.log('Attempting to print receipt to PrintNode...');
     const credentials = await getPrintNodeCredentials();
     
+    console.log('PrintNode credentials:', {
+      enabled: credentials.enabled,
+      hasApiKey: !!credentials.apiKey,
+      hasPrinterId: !!credentials.printerId
+    });
+    
     if (!credentials.enabled || !credentials.apiKey || !credentials.printerId) {
       console.error('PrintNode is not enabled or configured correctly:', credentials);
       return false;
@@ -159,7 +166,9 @@ export const printToThermalPrinter = async (
     );
     
     console.log('Sending receipt to PrintNode...');
-    return await sendToPrintNode(textReceipt, credentials.apiKey, credentials.printerId);
+    const result = await sendToPrintNode(textReceipt, credentials.apiKey, credentials.printerId);
+    console.log('PrintNode send result:', result);
+    return result;
   } catch (error) {
     console.error('Error printing to thermal printer:', error);
     return false;
@@ -189,6 +198,7 @@ export const printOrder = async (
   
   if (!printed) {
     console.warn('Failed to print receipt to PrintNode. No fallback to browser printing.');
+    throw new Error('Failed to print receipt to PrintNode');
   } else {
     console.log('Order receipt successfully sent to PrintNode.');
   }
