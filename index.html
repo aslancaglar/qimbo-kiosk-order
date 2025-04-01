@@ -8,7 +8,7 @@
     <meta name="description" content="Lovable Generated Project" />
     <meta name="author" content="Lovable" />
 
-    <!-- Cache control meta tags -->
+    <!-- Improved cache control meta tags -->
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
     <meta http-equiv="Pragma" content="no-cache" />
     <meta http-equiv="Expires" content="0" />
@@ -22,7 +22,19 @@
     <meta name="twitter:site" content="@lovable_dev" />
     <meta name="twitter:image" content="https://lovable.dev/opengraph-image-p98pqg.png" />
     
+    <!-- Inline error recovery script - runs before other scripts -->
     <script>
+      // Detect any previous errors persisting across reloads
+      if (sessionStorage.getItem('module_error_recovery') === 'true') {
+        console.warn('Previous page load had module errors - using aggressive cache clearing');
+        sessionStorage.removeItem('module_error_recovery');
+        
+        // Clear all caches immediately 
+        if ('caches' in window) {
+          caches.keys().then(keys => keys.forEach(key => caches.delete(key)));
+        }
+      }
+      
       // Enhanced cache clearing utility
       window.clearCache = async function() {
         try {
@@ -38,8 +50,9 @@
             navigator.serviceWorker.controller.postMessage({ action: 'CLEAR_CACHES' });
           }
           
-          // 3. Update localStorage timestamp to invalidate any app data
-          localStorage.setItem('app_cache_timestamp', Date.now().toString());
+          // 3. Clear localStorage and sessionStorage
+          localStorage.clear();
+          sessionStorage.clear();
           
           // 4. Force reload with cache bust parameter
           const cacheBust = Date.now();
@@ -52,12 +65,53 @@
           console.error('Failed to clear cache:', error);
           // Last resort - simple reload
           window.location.reload(true);
+          return false;
         }
-        return false;
       };
+      
+      // Error handler for script loading failures
+      window.addEventListener('error', function(event) {
+        // Only handle script errors before app loads
+        if (event.filename && event.filename.includes('.js') && !window.appLoaded) {
+          console.error('Script loading error detected:', event);
+          
+          // If error persists after reload attempts, show user-friendly message
+          if (sessionStorage.getItem('reload_attempts')) {
+            const attempts = parseInt(sessionStorage.getItem('reload_attempts') || '0');
+            if (attempts >= 2) {
+              document.body.innerHTML = `
+                <div style="padding: 2rem; text-align: center; font-family: system-ui, sans-serif;">
+                  <h2 style="color: #e11d48;">Unable to load application</h2>
+                  <p>We're experiencing technical difficulties. Please try again later or contact support.</p>
+                  <button onclick="window.clearCache()" style="padding: 0.5rem 1rem; background: #2563eb; color: white; border: none; border-radius: 0.25rem; margin-top: 1rem; cursor: pointer;">
+                    Clear Cache & Reload
+                  </button>
+                </div>
+              `;
+              sessionStorage.removeItem('reload_attempts');
+              return;
+            }
+            
+            sessionStorage.setItem('reload_attempts', (attempts + 1).toString());
+          } else {
+            sessionStorage.setItem('reload_attempts', '1');
+          }
+          
+          // Auto-reload on script errors
+          setTimeout(function() {
+            window.clearCache();
+          }, 1000);
+        }
+      }, true);
       
       // Check for outdated cache on load
       document.addEventListener('DOMContentLoaded', function() {
+        // Mark app as loaded to prevent certain error handlers
+        window.appLoaded = true;
+        
+        // Clear reload attempts counter on successful load
+        sessionStorage.removeItem('reload_attempts');
+        
         // Create timestamp for this session
         const currentTimestamp = Date.now();
         const lastCacheUpdate = localStorage.getItem('app_cache_timestamp');
