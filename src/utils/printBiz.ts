@@ -1,4 +1,3 @@
-
 // This file is kept as a placeholder to avoid breaking imports but functionality is removed.
 // The PrintBiz integration has been removed from the application.
 
@@ -9,7 +8,6 @@ export interface PrintBizConfig {
 export interface PrintJob {
   printer_id: string;
   content: string;
-  contentType: string;
   type: 'receipt' | 'kitchen' | 'label';
   copies?: number;
   metadata?: Record<string, any>;

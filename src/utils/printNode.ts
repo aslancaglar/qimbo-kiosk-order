@@ -1,36 +1,93 @@
 
-import { PrintJob } from "@/utils/printBiz";
+import { supabase } from "@/integrations/supabase/client";
+import { CartItemType } from "../components/cart/types";
+
+interface PrintNodeCredentials {
+  apiKey: string;
+  printerId: string | number;
+  enabled: boolean;
+}
 
 /**
- * Get PrintNode credentials from localStorage
+ * Gets PrintNode credentials from Supabase settings
  */
-export const getPrintNodeCredentials = async (): Promise<{ enabled: boolean, apiKey: string | null, printerId: string | null }> => {
+export const getPrintNodeCredentials = async (): Promise<PrintNodeCredentials> => {
+  const { data, error } = await supabase
+    .from('settings')
+    .select('value')
+    .eq('key', 'print_settings')
+    .maybeSingle();
+
+  if (error || !data) {
+    console.error('Error fetching PrintNode credentials:', error);
+    return { apiKey: '', printerId: '', enabled: false };
+  }
+
+  // Fix type issue by safely accessing properties
+  const settings = data.value as Record<string, any>;
+  
+  return {
+    apiKey: settings?.apiKey || '',
+    printerId: settings?.printerId || '',
+    enabled: !!settings?.enabled
+  };
+};
+
+/**
+ * Sends a text receipt to PrintNode printer
+ */
+export const sendToPrintNode = async (
+  content: string,
+  apiKey: string,
+  printerId: string | number
+): Promise<boolean> => {
+  if (!apiKey || !printerId) {
+    console.error('PrintNode API key or printer ID is missing');
+    return false;
+  }
+
   try {
-    const printNodeEnabled = localStorage.getItem('printnode_enabled') === 'true';
-    const apiKey = localStorage.getItem('printnode_api_key');
-    const printerId = localStorage.getItem('printnode_printer_id');
+    const response = await fetch('https://api.printnode.com/printjobs', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Basic ${btoa(apiKey + ':')}`
+      },
+      body: JSON.stringify({
+        printerId: printerId,
+        title: 'Receipt Print Job',
+        contentType: 'raw_base64',
+        content: btoa(content),
+        source: 'POS System'
+      })
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      console.error('PrintNode API error:', errorData);
+      return false;
+    }
+
+    const result = await response.json();
+    console.log('PrintNode print job submitted successfully:', result);
     
-    return {
-      enabled: printNodeEnabled,
-      apiKey,
-      printerId
-    };
+    // Log the print job to our database
+    await logPrintJob(printerId.toString(), result.id || 0, content, true);
+    
+    return true;
   } catch (error) {
-    console.error('Error getting PrintNode credentials:', error);
-    return {
-      enabled: false,
-      apiKey: null,
-      printerId: null
-    };
+    console.error('Error sending to PrintNode:', error);
+    await logPrintJob(printerId.toString(), 0, content, false);
+    return false;
   }
 };
 
 /**
- * Format text receipt for PrintNode
+ * Formats order details for text receipt
  */
 export const formatTextReceipt = (
   orderNumber: string | number,
-  items: any[],
+  items: CartItemType[],
   orderType: string,
   tableNumber: string | number | undefined,
   subtotal: number,
@@ -38,120 +95,106 @@ export const formatTextReceipt = (
   total: number
 ): string => {
   const orderDate = new Date().toLocaleString();
-  const dashes = '-'.repeat(40);
+  const lineWidth = 42; // Characters per line on most thermal printers
+  const separator = '-'.repeat(lineWidth);
   
-  let receipt = `
-ORDER RECEIPT
-${dashes}
-
-Order #: ${orderNumber}
-Date: ${orderDate}
-Order Type: ${orderType === 'eat-in' ? 'Eat In' : 'Takeaway'}
-${orderType === 'eat-in' && tableNumber ? `Table #: ${tableNumber}` : ''}
-
-${dashes}
-ITEMS
-${dashes}
-
-`;
-
+  let receipt = '\n';
+  receipt += centerText('ORDER RECEIPT', lineWidth) + '\n\n';
+  receipt += `Order #: ${orderNumber}\n`;
+  receipt += `Date: ${orderDate}\n`;
+  receipt += `Type: ${orderType === 'eat-in' ? 'Eat In' : 'Takeaway'}\n`;
+  if (orderType === 'eat-in' && tableNumber) {
+    receipt += `Table #: ${tableNumber}\n`;
+  }
+  receipt += separator + '\n\n';
+  
+  receipt += centerText('ITEMS', lineWidth) + '\n\n';
+  
   items.forEach(item => {
-    receipt += `${item.quantity} x ${item.product.name} ${(item.product.price * item.quantity).toFixed(2)} €\n`;
+    receipt += `${item.quantity}x ${item.product.name}\n`;
+    receipt += `${' '.repeat(4)}${(item.product.price * item.quantity).toFixed(2)} €\n`;
     
     if (item.options && item.options.length > 0) {
-      receipt += `   ${item.options.map((o: any) => o.value).join(', ')}\n`;
+      receipt += `${' '.repeat(2)}${item.options.map(o => o.value).join(', ')}\n`;
     }
     
     if (item.selectedToppings && item.selectedToppings.length > 0) {
-      item.selectedToppings.forEach((topping: any) => {
-        receipt += `   + ${topping.name} ${topping.price.toFixed(2)} €\n`;
+      item.selectedToppings.forEach(topping => {
+        receipt += `${' '.repeat(2)}+ ${topping.name} ${topping.price.toFixed(2)} €\n`;
       });
     }
+    receipt += '\n';
   });
   
-  receipt += `
-${dashes}
-
-Subtotal: ${subtotal?.toFixed(2) || '0.00'} €
-Tax: ${tax?.toFixed(2) || '0.00'} €
-TOTAL: ${total?.toFixed(2) || '0.00'} €
-
-${dashes}
-Thank you for your order!
-${dashes}
-`;
-
+  receipt += separator + '\n\n';
+  
+  receipt += `Subtotal:${' '.repeat(lineWidth - 10 - subtotal.toFixed(2).length - 2)}${subtotal.toFixed(2)} €\n`;
+  receipt += `Tax:${' '.repeat(lineWidth - 5 - tax.toFixed(2).length - 2)}${tax.toFixed(2)} €\n`;
+  receipt += `TOTAL:${' '.repeat(lineWidth - 7 - total.toFixed(2).length - 2)}${total.toFixed(2)} €\n\n`;
+  
+  receipt += centerText('Thank you for your order!', lineWidth) + '\n';
+  receipt += centerText('All prices include 10% tax', lineWidth) + '\n\n\n\n';
+  
+  // Add cut command for thermal printers
+  receipt += '\x1D\x56\x41\x03'; // GS V A - Paper cut
+  
   return receipt;
 };
 
 /**
- * Send print job to PrintNode API
+ * Helper to center text for thermal printer receipts
  */
-export const sendToPrintNode = async (content: string, apiKey: string, printerId: string): Promise<boolean> => {
-  try {
-    // PrintNode API expects specific contentType values: pdf_uri, pdf_base64, raw_uri, or raw_base64
-    // For plain text receipts, we should use raw_base64
-    const contentBase64 = btoa(content);
-    
-    // Convert printerId to integer as required by PrintNode API
-    const printerIdInt = parseInt(printerId, 10);
-    
-    if (isNaN(printerIdInt)) {
-      console.error('Invalid printer ID:', printerId);
-      return false;
-    }
-    
-    const printJob: PrintJob = {
-      printer_id: printerIdInt, // Use integer printer ID
-      content: contentBase64,
-      contentType: 'raw_base64',
-      type: 'receipt',
-      copies: 1,
-      metadata: {
-        source: 'POS System'
-      }
-    };
-    
-    console.log('Sending print job to PrintNode:', JSON.stringify(printJob, null, 2));
-    
-    const response = await fetch('https://api.printnode.com/printjobs', {
-      method: 'POST',
-      headers: {
-        'Authorization': 'Basic ' + btoa(apiKey + ':'),
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(printJob)
-    });
-    
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('PrintNode send print job failed:', errorText);
-      return false;
-    }
-    
-    return true;
-  } catch (error) {
-    console.error('Error sending print job to PrintNode:', error);
-    return false;
-  }
-};
+function centerText(text: string, width: number): string {
+  if (text.length >= width) return text;
+  const spaces = Math.floor((width - text.length) / 2);
+  return ' '.repeat(spaces) + text;
+}
 
 /**
- * Test connection to PrintNode API
+ * Tests PrintNode connection with the provided credentials
  */
-export const testPrintNodeConnection = async (apiKey: string): Promise<boolean> => {
+export const testPrintNodeConnection = async (
+  apiKey: string,
+  printerId: string | number
+): Promise<boolean> => {
+  if (!apiKey) {
+    console.error('PrintNode API key is missing');
+    return false;
+  }
+  
   try {
-    const response = await fetch('https://api.printnode.com/whoami', {
+    // First, test if the API key is valid by getting whoami info
+    const whoamiResponse = await fetch('https://api.printnode.com/whoami', {
       method: 'GET',
       headers: {
-        'Authorization': 'Basic ' + btoa(apiKey + ':'),
-        'Content-Type': 'application/json'
+        'Authorization': `Basic ${btoa(apiKey + ':')}`
       }
     });
     
-    if (!response.ok) {
-      console.error('PrintNode connection test failed:', await response.text());
+    if (!whoamiResponse.ok) {
+      const errorData = await whoamiResponse.text();
+      console.error('PrintNode API key validation failed:', errorData);
       return false;
+    }
+    
+    console.log('PrintNode API key is valid');
+    
+    // If printerId is provided, also test that specific printer
+    if (printerId) {
+      const printerResponse = await fetch(`https://api.printnode.com/printers/${printerId}`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Basic ${btoa(apiKey + ':')}`
+        }
+      });
+      
+      if (!printerResponse.ok) {
+        const errorData = await printerResponse.text();
+        console.error('PrintNode printer check failed:', errorData);
+        return false;
+      }
+      
+      console.log('PrintNode printer is accessible');
     }
     
     return true;
@@ -162,20 +205,22 @@ export const testPrintNodeConnection = async (apiKey: string): Promise<boolean> 
 };
 
 /**
- * Fetch printers from PrintNode API
+ * Fetches available printers from PrintNode
  */
 export const fetchPrintNodePrinters = async (apiKey: string): Promise<any[]> => {
+  if (!apiKey) {
+    return [];
+  }
+  
   try {
     const response = await fetch('https://api.printnode.com/printers', {
       method: 'GET',
       headers: {
-        'Authorization': 'Basic ' + btoa(apiKey + ':'),
-        'Content-Type': 'application/json'
+        'Authorization': `Basic ${btoa(apiKey + ':')}`
       }
     });
     
     if (!response.ok) {
-      console.error('PrintNode fetch printers failed:', await response.text());
       return [];
     }
     
@@ -183,8 +228,8 @@ export const fetchPrintNodePrinters = async (apiKey: string): Promise<any[]> => 
     return printers.map((printer: any) => ({
       id: printer.id,
       name: printer.name,
-      description: printer.description,
-      state: printer.state
+      description: printer.description || '',
+      state: printer.state || ''
     }));
   } catch (error) {
     console.error('Error fetching PrintNode printers:', error);
@@ -193,67 +238,52 @@ export const fetchPrintNodePrinters = async (apiKey: string): Promise<any[]> => 
 };
 
 /**
- * Send test print job to PrintNode API
+ * Logs print job to database
  */
-export const sendTestPrint = async (apiKey: string, printerId: string): Promise<boolean> => {
+const logPrintJob = async (
+  printerId: string,
+  jobId: number,
+  content: string,
+  successful: boolean
+): Promise<void> => {
   try {
-    const testContent = `
----------------------------------------
-           TEST RECEIPT
----------------------------------------
+    // Make sure field names match the database schema
+    await supabase.from('print_jobs').insert({
+      printer_id: printerId,
+      job_id: jobId.toString(), // Convert number to string as the schema expects string
+      content_preview: content.substring(0, 255),
+      successful: successful,
+      status: successful ? 'completed' : 'failed',
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error('Error logging print job:', error);
+  }
+};
 
-This is a test receipt from your POS system.
-The thermal printer integration is working!
+/**
+ * Sends a test print job to configured printer
+ */
+export const sendTestPrint = async (apiKey: string, printerId: string | number): Promise<boolean> => {
+  const testContent = `
+${centerText('TEST RECEIPT', 42)}
+${centerText('----------------', 42)}
 
-Date: ${new Date().toLocaleString()}
+This is a test receipt from your
+Point of Sale system.
 
----------------------------------------
-          END OF TEST
----------------------------------------
+Printer: ${printerId}
+Time: ${new Date().toLocaleString()}
+
+${centerText('If you can read this, your printer', 42)}
+${centerText('is correctly configured!', 42)}
+
+${centerText('----------------', 42)}
+${centerText('End of test', 42)}
+
+\x1D\x56\x41\x03
 `;
 
-    // Convert plain text to base64 for PrintNode API
-    const contentBase64 = btoa(testContent);
-    
-    // Convert printerId to integer as required by PrintNode API
-    const printerIdInt = parseInt(printerId, 10);
-    
-    if (isNaN(printerIdInt)) {
-      console.error('Invalid printer ID:', printerId);
-      return false;
-    }
-    
-    const printJob: PrintJob = {
-      printer_id: printerIdInt, // Use integer printer ID
-      content: contentBase64,
-      contentType: 'raw_base64',
-      type: 'receipt',
-      copies: 1,
-      metadata: {
-        test: true
-      }
-    };
-    
-    console.log('Sending test print to PrintNode:', JSON.stringify(printJob, null, 2));
-    
-    const response = await fetch('https://api.printnode.com/printjobs', {
-      method: 'POST',
-      headers: {
-        'Authorization': 'Basic ' + btoa(apiKey + ':'),
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(printJob)
-    });
-    
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('PrintNode send test print failed:', errorText);
-      return false;
-    }
-    
-    return true;
-  } catch (error) {
-    console.error('Error sending test print to PrintNode:', error);
-    return false;
-  }
+  return await sendToPrintNode(testContent, apiKey, printerId);
 };
