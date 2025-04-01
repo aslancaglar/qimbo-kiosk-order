@@ -51,7 +51,21 @@ const CartSidebar: React.FC<CartSidebarProps> = ({
     return sum + itemTotal;
   }, 0);
   
-  const tax = subtotal * 0.1; // 10% tax rate
+  // Calculate tax with individual tax percentages
+  const tax = items.reduce((taxTotal, item) => {
+    let itemPrice = item.product.price * item.quantity;
+    
+    if (item.selectedToppings && item.selectedToppings.length > 0) {
+      const toppingsPrice = item.selectedToppings.reduce(
+        (toppingSum, topping) => toppingSum + topping.price, 0
+      );
+      itemPrice += toppingsPrice * item.quantity;
+    }
+    
+    const taxRate = item.taxPercentage || 10; // Default to 10% if not specified
+    return taxTotal + (itemPrice * (taxRate / 100));
+  }, 0);
+  
   const total = subtotal + tax;
   
   const saveOrderToDatabase = async (orderData: any) => {
@@ -228,6 +242,11 @@ const CartSidebar: React.FC<CartSidebarProps> = ({
                         onDecrement={() => onDecrementItem(index)}
                         isTablet={!isMobile && window.innerWidth < 1025}
                       />
+                      
+                      {/* Display tax percentage */}
+                      <div className="pl-3 mt-1 text-xs text-gray-500">
+                        TVA: {item.taxPercentage || 10}%
+                      </div>
                       
                       {/* Display toppings if any */}
                       {item.selectedToppings && item.selectedToppings.length > 0 && (

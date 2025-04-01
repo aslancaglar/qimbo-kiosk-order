@@ -15,5 +15,6 @@ export interface CartItemType {
   quantity: number;
   selectedToppings?: ToppingItem[];
   options?: { name: string; value: string }[];
-  notes?: string; // Adding the notes property
+  notes?: string;
+  taxPercentage?: number; // Added tax percentage field
 }

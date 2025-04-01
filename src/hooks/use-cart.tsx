@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { CartItemType, ToppingItem } from '@/components/cart/types';
 import { Product } from '@/components/menu/ProductCard';
@@ -23,7 +24,35 @@ export function useCart({ orderType, tableNumber }: UseCartOptions) {
     }
   }, [cartItems, isCartOpen]);
 
-  const handleProductSelect = (product: Product, selectedToppings?: ToppingItem[]) => {
+  // Calculate item price with tax included
+  const calculateItemPrice = (item: CartItemType) => {
+    let basePrice = item.product.price;
+    
+    if (item.selectedToppings && item.selectedToppings.length > 0) {
+      const toppingsPrice = item.selectedToppings.reduce(
+        (toppingSum, topping) => toppingSum + topping.price, 0
+      );
+      basePrice += toppingsPrice;
+    }
+    
+    return basePrice * item.quantity;
+  };
+
+  // Calculate subtotal (pre-tax amount)
+  const calculateSubtotal = (items: CartItemType[]) => {
+    return items.reduce((sum, item) => sum + calculateItemPrice(item), 0);
+  };
+
+  // Calculate tax based on each product's tax percentage
+  const calculateTax = (items: CartItemType[]) => {
+    return items.reduce((taxTotal, item) => {
+      const itemPrice = calculateItemPrice(item);
+      const taxRate = item.taxPercentage || 10; // Default to 10% if not specified
+      return taxTotal + (itemPrice * (taxRate / 100));
+    }, 0);
+  };
+
+  const handleProductSelect = (product: Product, selectedToppings?: ToppingItem[], taxPercentage: number = 10) => {
     const existingItemIndex = cartItems.findIndex(item => {
       if (item.product.id !== product.id) return false;
       
@@ -53,7 +82,8 @@ export function useCart({ orderType, tableNumber }: UseCartOptions) {
       const newItem: CartItemType = {
         product,
         quantity: 1,
-        selectedToppings
+        selectedToppings,
+        taxPercentage
       };
       setCartItems([...cartItems, newItem]);
       
@@ -107,18 +137,8 @@ export function useCart({ orderType, tableNumber }: UseCartOptions) {
     if (cartItems.length === 0) return;
     
     try {
-      const subtotal = cartItems.reduce((sum, item) => {
-        let itemTotal = item.product.price * item.quantity;
-        if (item.selectedToppings && item.selectedToppings.length > 0) {
-          const toppingsPrice = item.selectedToppings.reduce(
-            (toppingSum, topping) => toppingSum + topping.price, 0
-          );
-          itemTotal += toppingsPrice * item.quantity;
-        }
-        return sum + itemTotal;
-      }, 0);
-      
-      const tax = subtotal * 0.1;
+      const subtotal = calculateSubtotal(cartItems);
+      const tax = calculateTax(cartItems);
       const total = subtotal + tax;
       
       const orderData = { 
@@ -225,6 +245,8 @@ export function useCart({ orderType, tableNumber }: UseCartOptions) {
     handleDecrementItem,
     handleCancelOrderClick,
     handleConfirmCancel,
-    handleConfirmOrder
+    handleConfirmOrder,
+    calculateSubtotal,
+    calculateTax
   };
 }
