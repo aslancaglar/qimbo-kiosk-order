@@ -155,7 +155,7 @@ export const printToThermalPrinter = async (
     }
     
     console.log('PrintNode credentials found, formatting receipt...');
-    // Use the HTML receipt format for PrintNode too
+    // Use the HTML receipt format for PrintNode too, the converter in sendToPrintNode will handle it
     const receipt = formatOrderReceipt(
       orderNumber,
       items,

@@ -48,6 +48,94 @@ const safeBase64Encode = (str: string): string => {
 };
 
 /**
+ * Converts HTML to plain text for thermal printers
+ */
+const convertHtmlToPlainTextForPrinter = (htmlContent: string): string => {
+  // Create a simple parser to extract text content
+  const stripTags = (html: string) => {
+    // Remove all HTML tags
+    let text = html.replace(/<[^>]*>/g, '');
+    // Replace HTML entities
+    text = text.replace(/&nbsp;/g, ' ')
+              .replace(/&amp;/g, '&')
+              .replace(/&lt;/g, '<')
+              .replace(/&gt;/g, '>')
+              .replace(/&quot;/g, '"')
+              .replace(/&#39;/g, "'");
+    // Trim whitespace
+    return text.trim();
+  };
+  
+  // Extract main sections from the HTML receipt
+  const extractSection = (html: string, startMarker: string, endMarker: string): string => {
+    const startIdx = html.indexOf(startMarker);
+    const endIdx = html.indexOf(endMarker, startIdx + startMarker.length);
+    if (startIdx >= 0 && endIdx >= 0) {
+      return html.substring(startIdx + startMarker.length, endIdx);
+    }
+    return '';
+  };
+  
+  const lineWidth = 42; // Standard width for thermal printers
+  const separator = '-'.repeat(lineWidth);
+  let plainText = '\n';
+  
+  // Create header
+  plainText += centerText('ORDER RECEIPT', lineWidth) + '\n\n';
+  
+  // Extract order details
+  const orderSection = extractSection(htmlContent, '<div class="order-details">', '</div>');
+  const orderLines = stripTags(orderSection).split('\n')
+    .map(line => line.trim())
+    .filter(line => line.length > 0);
+  
+  orderLines.forEach(line => {
+    plainText += line + '\n';
+  });
+  
+  plainText += separator + '\n\n';
+  plainText += centerText('ITEMS', lineWidth) + '\n\n';
+  
+  // Extract items
+  const itemsSection = extractSection(htmlContent, '<h2>Items</h2>', '<div class="divider"></div>');
+  const itemBlocks = itemsSection.split('<div class="order-item">');
+  
+  // Skip the first empty element
+  for (let i = 1; i < itemBlocks.length; i++) {
+    const itemBlock = itemBlocks[i];
+    const itemLines = stripTags(itemBlock).split('\n')
+      .map(line => line.trim())
+      .filter(line => line.length > 0);
+    
+    itemLines.forEach(line => {
+      plainText += line + '\n';
+    });
+    plainText += '\n';
+  }
+  
+  plainText += separator + '\n\n';
+  
+  // Extract totals
+  const totalsSection = extractSection(htmlContent, '<div class="totals">', '</div>');
+  const totalLines = stripTags(totalsSection).split('\n')
+    .map(line => line.trim())
+    .filter(line => line.length > 0);
+  
+  totalLines.forEach(line => {
+    plainText += line + '\n';
+  });
+  
+  plainText += '\n';
+  plainText += centerText('Thank you for your order!', lineWidth) + '\n';
+  plainText += centerText('All prices include 10% tax', lineWidth) + '\n\n\n';
+  
+  // Add cut command for thermal printers
+  plainText += '\x1D\x56\x41\x03'; // GS V A - Paper cut
+  
+  return plainText;
+};
+
+/**
  * Sends a text receipt to PrintNode printer
  */
 export const sendToPrintNode = async (
@@ -61,11 +149,17 @@ export const sendToPrintNode = async (
   }
 
   try {
+    // Check if content appears to be HTML
+    const isHtml = content.trim().startsWith('<html') || content.includes('<body');
+    
+    // If it's HTML, convert it to plain text for thermal printer
+    const printerContent = isHtml ? convertHtmlToPlainTextForPrinter(content) : content;
+    
     // Convert printerId to number if it's a string
     const printerIdNum = typeof printerId === 'string' ? parseInt(printerId, 10) : printerId;
     
     // Use our safe encoding method instead of direct btoa
-    const encodedContent = safeBase64Encode(content);
+    const encodedContent = safeBase64Encode(printerContent);
     console.log('Content encoded successfully');
     
     const response = await fetch('https://api.printnode.com/printjobs', {
