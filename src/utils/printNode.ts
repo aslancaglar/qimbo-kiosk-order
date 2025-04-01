@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { CartItemType } from "../components/cart/types";
 
@@ -26,11 +25,20 @@ export const getPrintNodeCredentials = async (): Promise<PrintNodeCredentials> =
   // Fix type issue by safely accessing properties
   const settings = data.value as Record<string, any>;
   
-  return {
+  const credentials = {
     apiKey: settings?.apiKey || '',
     printerId: settings?.printerId || '',
     enabled: !!settings?.enabled
   };
+  
+  console.log('PrintNode credentials loaded:', {
+    apiKeyExists: !!credentials.apiKey,
+    apiKeyLength: credentials.apiKey?.length || 0,
+    printerId: credentials.printerId,
+    enabled: credentials.enabled
+  });
+  
+  return credentials;
 };
 
 /**
@@ -62,10 +70,18 @@ export const sendToPrintNode = async (
     
     console.log('Print job data prepared:', JSON.stringify({
       ...printData,
-      content: '[CONTENT REDACTED]' // Don't log the actual content
+      content: '[CONTENT REDACTED]', // Don't log the actual content
+      printerId: printerIdNum,
+      title: printData.title,
+      contentType: printData.contentType
     }));
     
-    const response = await fetch('https://api.printnode.com/printjobs', {
+    console.log(`Using PrintNode API Key starting with: ${apiKey.substring(0, 4)}...`);
+    
+    const apiUrl = 'https://api.printnode.com/printjobs';
+    console.log(`Sending request to: ${apiUrl}`);
+    
+    const response = await fetch(apiUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -74,8 +90,10 @@ export const sendToPrintNode = async (
       body: JSON.stringify(printData)
     });
 
+    console.log(`PrintNode API response status: ${response.status}`);
+    
     const responseText = await response.text();
-    console.log(`PrintNode API response status: ${response.status}, body:`, responseText);
+    console.log(`PrintNode API response body:`, responseText);
 
     if (!response.ok) {
       console.error('PrintNode API error:', responseText);
@@ -322,4 +340,3 @@ ${centerText('End of test', 42)}
 
   return await sendToPrintNode(testContent, apiKey, printerId);
 };
-
