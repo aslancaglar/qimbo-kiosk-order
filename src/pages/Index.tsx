@@ -11,19 +11,10 @@ import Layout from '../components/layout/Layout';
 import { supabase } from '../integrations/supabase/client';
 import { getOptimizedImageUrl } from '../utils/imageOptimizer';
 
-// Default food images for the slideshow (fallback)
-const defaultFoodImages = [
-  "/lovable-uploads/6837434a-e5ba-495a-b295-9638c9b5c27f.png", // Uploaded burger image
-  "https://images.unsplash.com/photo-1546793665-c74683f339c1?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80", // Salad
-  "https://images.unsplash.com/photo-1482938289607-e9573fc25ebb?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80", // Pizza
-  "https://images.unsplash.com/photo-1465146344425-f00d5f5c8f07?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80", // Burger
-  "https://images.unsplash.com/photo-1500375592092-40eb2168fd21?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80", // Pasta
-];
-
 const Index: React.FC = () => {
   const navigate = useNavigate();
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [foodImages, setFoodImages] = useState(defaultFoodImages);
+  const [customImages, setCustomImages] = useState<string[]>([]);
   const [logoUrl, setLogoUrl] = useState('');
   const [loading, setLoading] = useState(true);
   
@@ -46,7 +37,7 @@ const Index: React.FC = () => {
         if (data && data.value) {
           const settings = data.value as Record<string, any>;
           if (settings.slideshowImages && Array.isArray(settings.slideshowImages) && settings.slideshowImages.length > 0) {
-            setFoodImages(settings.slideshowImages);
+            setCustomImages(settings.slideshowImages);
           }
           if (settings.logo) {
             setLogoUrl(settings.logo);
@@ -62,14 +53,16 @@ const Index: React.FC = () => {
     fetchAppearanceSettings();
   }, []);
   
-  // Auto-advance slideshow
+  // Auto-advance slideshow only if we have custom images
   useEffect(() => {
+    if (customImages.length === 0) return;
+    
     const interval = setInterval(() => {
-      setCurrentIndex((prevIndex) => (prevIndex + 1) % foodImages.length);
+      setCurrentIndex((prevIndex) => (prevIndex + 1) % customImages.length);
     }, 3000);
     
     return () => clearInterval(interval);
-  }, [foodImages]);
+  }, [customImages]);
   
   const handleButtonClick = () => {
     navigate('/whereyoueat');
@@ -97,25 +90,27 @@ const Index: React.FC = () => {
         </div>
       </div>
       
-      {/* Background slideshow */}
-      <div className="absolute inset-0 z-0">
-        <AnimatePresence mode="wait">
-          <motion.div 
-            key={currentIndex}
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 1 }}
-            className="h-full w-full flex items-center justify-center"
-          >
-            <img 
-              src={getOptimizedImageUrl(foodImages[currentIndex], 1200, 85)} 
-              alt="Food" 
-              className="h-full w-full object-cover object-center opacity-70" // Added opacity to blend with black background
-            />
-          </motion.div>
-        </AnimatePresence>
-      </div>
+      {/* Background slideshow - only shown if custom images exist */}
+      {customImages.length > 0 && (
+        <div className="absolute inset-0 z-0">
+          <AnimatePresence mode="wait">
+            <motion.div 
+              key={currentIndex}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 1 }}
+              className="h-full w-full flex items-center justify-center"
+            >
+              <img 
+                src={getOptimizedImageUrl(customImages[currentIndex], 1200, 85)} 
+                alt="Food" 
+                className="h-full w-full object-cover object-center opacity-70" 
+              />
+            </motion.div>
+          </AnimatePresence>
+        </div>
+      )}
       
       {/* Content overlay */}
       <div className="relative z-10 flex flex-col h-full">
@@ -140,15 +135,17 @@ const Index: React.FC = () => {
           </motion.button>
         </div>
         
-        {/* Indicator dots */}
-        <div className="absolute bottom-4 left-0 right-0 flex justify-center gap-2 pb-2">
-          {foodImages.map((_, index) => (
-            <div 
-              key={index} 
-              className={`w-2 h-2 rounded-full ${currentIndex === index ? 'bg-white' : 'bg-white/50'}`}
-            />
-          ))}
-        </div>
+        {/* Indicator dots - only shown if custom images exist */}
+        {customImages.length > 0 && (
+          <div className="absolute bottom-4 left-0 right-0 flex justify-center gap-2 pb-2">
+            {customImages.map((_, index) => (
+              <div 
+                key={index} 
+                className={`w-2 h-2 rounded-full ${currentIndex === index ? 'bg-white' : 'bg-white/50'}`}
+              />
+            ))}
+          </div>
+        )}
       </div>
     </motion.div>
   );
