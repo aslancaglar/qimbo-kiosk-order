@@ -120,8 +120,9 @@ export const formatTextReceipt = (
   const lineWidth = 42; // Characters per line on most thermal printers
   const separator = '-'.repeat(lineWidth);
   
-  // Using "EUR" currency code instead of € symbol for compatibility
-  const currencySymbol = "EUR";
+  // Use the Euro symbol with appropriate encoding for thermal printers
+  // Most thermal printers use code page 858 or similar where Euro is represented
+  const currencySymbol = "€";
   
   let receipt = '\n';
   receipt += centerText('ORDER RECEIPT', lineWidth) + '\n\n';
@@ -307,7 +308,7 @@ Point of Sale system.
 Printer: ${printerId}
 Time: ${new Date().toLocaleString()}
 
-Sample price: 10.00 EUR
+Sample price: 10.00 €
 
 ${centerText('If you can read this, your printer', 42)}
 ${centerText('is correctly configured!', 42)}
