@@ -195,7 +195,8 @@ export function useCart({ orderType, tableNumber }: UseCartOptions) {
       navigate('/confirmation', { 
         state: { 
           ...orderData,
-          orderId: orderResult.id
+          orderId: orderResult.id,
+          orderNumber: orderNumber
         } 
       });
       

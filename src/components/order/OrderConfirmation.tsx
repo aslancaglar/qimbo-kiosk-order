@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
@@ -67,9 +68,10 @@ const OrderConfirmation: React.FC<OrderConfirmationProps> = () => {
     }
   }, [items, printed]);
 
-  const handlePrintReceipt = () => {
+  const handlePrintReceipt = async () => {
     try {
-      printOrder(
+      console.log('Printing receipt for order:', orderNumber);
+      const success = await printOrder(
         orderNumber,
         items,
         orderType,
@@ -78,6 +80,12 @@ const OrderConfirmation: React.FC<OrderConfirmationProps> = () => {
         taxAmount,
         total
       );
+      
+      if (success) {
+        console.log('Receipt printed successfully');
+      } else {
+        console.log('Receipt printing fell back to browser printing');
+      }
     } catch (error) {
       console.error('Error printing receipt:', error);
       toast({
