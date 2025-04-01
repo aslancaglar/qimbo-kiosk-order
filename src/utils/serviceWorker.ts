@@ -155,7 +155,7 @@ export const clearAppCache = async (): Promise<boolean> => {
     // As a last resort, try to force reload with cache busting
     if (!sessionStorage.getItem('force_reload')) {
       sessionStorage.setItem('force_reload', 'true');
-      window.location.reload(true);
+      window.location.reload();
       return true;
     } else {
       sessionStorage.removeItem('force_reload');
