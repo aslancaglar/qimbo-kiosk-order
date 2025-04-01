@@ -6,9 +6,6 @@ import Button from '../common/Button';
 import { Check, Home, Printer, Plus } from 'lucide-react';
 import { CartItemType } from '../cart/types';
 import { toast } from '@/components/ui/use-toast';
-import { printOrder } from '@/utils/printUtils';
-import { PrintNodeSettings } from '@/utils/printNode';
-import { supabase } from '@/integrations/supabase/client';
 
 interface OrderConfirmationProps {}
 
@@ -27,7 +24,6 @@ const OrderConfirmation: React.FC<OrderConfirmationProps> = () => {
   
   const [printed, setPrinted] = useState(false);
   const [redirecting, setRedirecting] = useState(false);
-  const [printNodeSettings, setPrintNodeSettings] = useState<PrintNodeSettings | null>(null);
   
   const total = providedTotal || items?.reduce((sum: number, item: CartItemType) => {
     let itemTotal = item.product.price * item.quantity;
@@ -41,32 +37,6 @@ const OrderConfirmation: React.FC<OrderConfirmationProps> = () => {
   const taxRate = 0.1; // 10% tax
   const taxAmount = providedTax || total - (total / (1 + taxRate));
   const subtotal = providedSubtotal || total - taxAmount;
-
-  useEffect(() => {
-    const fetchPrintNodeSettings = async () => {
-      try {
-        const { data, error } = await supabase
-          .from('settings')
-          .select('*')
-          .eq('key', 'printnode')
-          .single();
-
-        if (error) {
-          console.error('Error fetching PrintNode settings:', error);
-          return;
-        }
-
-        if (data && data.value) {
-          const settings = data.value as unknown as PrintNodeSettings;
-          setPrintNodeSettings(settings);
-        }
-      } catch (error) {
-        console.error('Error processing PrintNode settings:', error);
-      }
-    };
-
-    fetchPrintNodeSettings();
-  }, []);
   
   useEffect(() => {
     if (!items || items.length === 0) {
@@ -78,7 +48,7 @@ const OrderConfirmation: React.FC<OrderConfirmationProps> = () => {
     const redirectTimer = setTimeout(() => {
       setRedirecting(true);
       navigate('/', { replace: true });
-    }, 10000);
+    }, 6000);
     
     return () => clearTimeout(redirectTimer);
   }, [navigate]);
@@ -86,59 +56,157 @@ const OrderConfirmation: React.FC<OrderConfirmationProps> = () => {
   useEffect(() => {
     if (items && items.length > 0 && !printed) {
       const timer = setTimeout(() => {
-        handlePrint();
+        printOrder();
         setPrinted(true);
       }, 1000);
       
       return () => clearTimeout(timer);
     }
-  }, [items, printed, printNodeSettings]);
+  }, [items, printed]);
   
   const orderNumber = orderId;
 
-  const handlePrint = async () => {
+  const printOrder = () => {
     try {
-      const printResult = await printOrder(
-        orderNumber,
-        items,
-        orderType,
-        tableNumber,
-        subtotal,
-        taxAmount,
-        total,
-        printNodeSettings || undefined
-      );
-
-      if (printResult.method === 'printnode' && printResult.jobId) {
-        try {
-          await supabase.from('print_jobs')
-            .insert({
-              order_id: orderNumber.toString(),
-              printer_id: printNodeSettings?.defaultPrinterId,
-              job_id: printResult.jobId,
-              status: printResult.success ? 'success' : 'failed',
-              error_message: printResult.error || null
-            });
-        } catch (logError) {
-          console.error('Error logging print job:', logError);
-        }
+      const iframe = document.createElement('iframe');
+      iframe.style.display = 'none';
+      document.body.appendChild(iframe);
+      
+      const orderDate = new Date().toLocaleString();
+      
+      if (!iframe.contentDocument) {
+        console.error("Could not access iframe document");
+        return;
       }
-
-      if (printResult.success) {
-        toast({
-          title: "Receipt printed",
-          description: printResult.method === 'printnode' 
-            ? "Receipt sent to thermal printer" 
-            : "Receipt opened in browser",
-          variant: "default"
-        });
-      } else {
-        toast({
-          title: "Print error",
-          description: printResult.error || "Failed to print receipt",
-          variant: "destructive"
-        });
-      }
+      
+      iframe.contentDocument.write(`
+        <html>
+          <head>
+            <title>Order #${orderNumber}</title>
+            <style>
+              body {
+                font-family: Arial, sans-serif;
+                padding: 20px;
+                max-width: 400px;
+                margin: 0 auto;
+              }
+              h1, h2 {
+                text-align: center;
+              }
+              .order-details {
+                margin-bottom: 20px;
+              }
+              .order-item {
+                display: flex;
+                justify-content: space-between;
+                margin-bottom: 8px;
+              }
+              .topping-item {
+                display: flex;
+                justify-content: space-between;
+                margin-left: 20px;
+                font-size: 0.9em;
+                color: #666;
+              }
+              .divider {
+                border-top: 1px dashed #ccc;
+                margin: 15px 0;
+              }
+              .totals {
+                margin-top: 20px;
+              }
+              .total-row {
+                display: flex;
+                justify-content: space-between;
+                margin-bottom: 5px;
+              }
+              .final-total {
+                font-weight: bold;
+                font-size: 1.2em;
+                margin-top: 10px;
+                border-top: 1px solid black;
+                padding-top: 10px;
+              }
+              .footer {
+                margin-top: 30px;
+                text-align: center;
+                font-size: 0.9em;
+                color: #666;
+              }
+            </style>
+          </head>
+          <body>
+            <h1>Order Receipt</h1>
+            <div class="order-details">
+              <p><strong>Order #:</strong> ${orderNumber}</p>
+              <p><strong>Date:</strong> ${orderDate}</p>
+              <p><strong>Order Type:</strong> ${orderType === 'eat-in' ? 'Eat In' : 'Takeaway'}</p>
+              ${orderType === 'eat-in' && tableNumber ? `<p><strong>Table #:</strong> ${tableNumber}</p>` : ''}
+            </div>
+            
+            <div class="divider"></div>
+            
+            <h2>Items</h2>
+            ${items && items.map((item: CartItemType) => `
+              <div class="order-item">
+                <div>
+                  <span>${item.quantity} x ${item.product.name}</span>
+                  ${item.options && item.options.length > 0 ? 
+                    `<br><small>${item.options.map((o: {name: string, value: string}) => o.value).join(', ')}</small>` : 
+                    ''}
+                </div>
+                <span>${(item.product.price * item.quantity).toFixed(2)} €</span>
+              </div>
+              ${item.selectedToppings && item.selectedToppings.length > 0 ? 
+                item.selectedToppings.map((topping: {id: number, name: string, price: number}) => `
+                  <div class="topping-item">
+                    <span>+ ${topping.name}</span>
+                    <span>${topping.price.toFixed(2)} €</span>
+                  </div>
+                `).join('') : 
+                ''}
+            `).join('')}
+            
+            <div class="divider"></div>
+            
+            <div class="totals">
+              <div class="total-row">
+                <span>Subtotal:</span>
+                <span>${subtotal?.toFixed(2) || '0.00'} €</span>
+              </div>
+              <div class="total-row">
+                <span>Tax (included):</span>
+                <span>${taxAmount?.toFixed(2) || '0.00'} €</span>
+              </div>
+              <div class="total-row final-total">
+                <span>Total:</span>
+                <span>${total?.toFixed(2) || '0.00'} €</span>
+              </div>
+            </div>
+            
+            <div class="footer">
+              <p>Thank you for your order!</p>
+              <p><small>All prices include 10% tax</small></p>
+            </div>
+            <script>
+              window.onload = function() {
+                setTimeout(function() {
+                  window.print();
+                  setTimeout(function() {
+                    document.body.innerHTML = 'Printing complete.';
+                  }, 500);
+                }, 500);
+              };
+            </script>
+          </body>
+        </html>
+      `);
+      
+      iframe.contentDocument.close();
+      
+      setTimeout(() => {
+        iframe.remove();
+      }, 2000);
     } catch (error) {
       console.error('Error printing order:', error);
       toast({
@@ -148,7 +216,7 @@ const OrderConfirmation: React.FC<OrderConfirmationProps> = () => {
       });
     }
   };
-
+  
   if (redirecting) {
     return null;
   }
@@ -171,7 +239,7 @@ const OrderConfirmation: React.FC<OrderConfirmationProps> = () => {
           <Button
             variant="ghost"
             size="icon"
-            onClick={handlePrint}
+            onClick={printOrder}
             className="rounded-full"
             title="Print receipt"
           >
