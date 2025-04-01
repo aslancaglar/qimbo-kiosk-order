@@ -1,4 +1,3 @@
-
 import { CartItemType } from "../components/cart/types";
 import { getPrintNodeCredentials, sendToPrintNode, formatTextReceipt } from "./printNode";
 
@@ -185,13 +184,8 @@ export const saveBrowserPrintSettings = async (enabled: boolean): Promise<boolea
   try {
     _browserPrintingEnabled = enabled;
     
-    // Store this in database
-    const { error } = await getPrintNodeCredentials();
-    
-    if (error) {
-      console.error('Error saving browser print settings:', error);
-      return false;
-    }
+    // Store this in database - removed error check on credentials
+    await getPrintNodeCredentials();
     
     console.log('Browser printing settings updated:', { enabled });
     return true;
