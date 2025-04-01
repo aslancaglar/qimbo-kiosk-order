@@ -89,10 +89,14 @@ ${dashes}
  */
 export const sendToPrintNode = async (content: string, apiKey: string, printerId: string): Promise<boolean> => {
   try {
+    // PrintNode API expects specific contentType values: pdf_uri, pdf_base64, raw_uri, or raw_base64
+    // For plain text receipts, we should use raw_base64
+    const contentBase64 = btoa(content);
+    
     const printJob: PrintJob = {
       printer_id: printerId,
-      content: content,
-      contentType: 'raw_text',
+      content: contentBase64,
+      contentType: 'raw_base64', // Changed from raw_text to raw_base64
       type: 'receipt',
       copies: 1,
       metadata: {
@@ -110,7 +114,8 @@ export const sendToPrintNode = async (content: string, apiKey: string, printerId
     });
     
     if (!response.ok) {
-      console.error('PrintNode send print job failed:', await response.text());
+      const errorText = await response.text();
+      console.error('PrintNode send print job failed:', errorText);
       return false;
     }
     
@@ -197,10 +202,13 @@ Date: ${new Date().toLocaleString()}
 ---------------------------------------
 `;
 
+    // Convert plain text to base64 for PrintNode API
+    const contentBase64 = btoa(testContent);
+    
     const printJob: PrintJob = {
       printer_id: printerId,
-      content: testContent,
-      contentType: 'raw_text',
+      content: contentBase64,
+      contentType: 'raw_base64', // Changed from raw_text to raw_base64
       type: 'receipt',
       copies: 1,
       metadata: {
@@ -218,7 +226,8 @@ Date: ${new Date().toLocaleString()}
     });
     
     if (!response.ok) {
-      console.error('PrintNode send test print failed:', await response.text());
+      const errorText = await response.text();
+      console.error('PrintNode send test print failed:', errorText);
       return false;
     }
     
