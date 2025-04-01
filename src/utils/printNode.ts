@@ -23,10 +23,13 @@ export const getPrintNodeCredentials = async (): Promise<PrintNodeCredentials> =
     return { apiKey: '', printerId: '', enabled: false };
   }
 
+  // Fix type issue by safely accessing properties
+  const settings = data.value as Record<string, any>;
+  
   return {
-    apiKey: data.value?.apiKey || '',
-    printerId: data.value?.printerId || '',
-    enabled: !!data.value?.enabled
+    apiKey: settings?.apiKey || '',
+    printerId: settings?.printerId || '',
+    enabled: !!settings?.enabled
   };
 };
 
@@ -216,7 +219,8 @@ const logPrintJob = async (
   successful: boolean
 ): Promise<void> => {
   try {
-    await supabase.from('print_logs').insert({
+    // Fix the table name to match what's available in the database
+    await supabase.from('print_jobs').insert({
       printer_id: printerId,
       print_job_id: jobId,
       content_preview: content.substring(0, 255),

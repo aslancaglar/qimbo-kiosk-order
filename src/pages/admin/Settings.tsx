@@ -381,6 +381,13 @@ const Settings = () => {
     }));
   };
 
+  const handlePrintSettingChange = (field: string, value: any) => {
+    setPrintSettings(prev => ({
+      ...prev,
+      [field]: value
+    }));
+  };
+
   const saveRestaurantInfo = async () => {
     try {
       setLoading(true);
