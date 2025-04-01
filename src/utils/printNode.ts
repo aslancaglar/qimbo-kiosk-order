@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { CartItemType } from "../components/cart/types";
 
@@ -34,6 +33,21 @@ export const getPrintNodeCredentials = async (): Promise<PrintNodeCredentials> =
 };
 
 /**
+ * Safely encodes a string to base64, handling non-ASCII characters
+ */
+const safeBase64Encode = (str: string): string => {
+  // First encode as UTF-8
+  const utf8Bytes = new TextEncoder().encode(str);
+  // Convert bytes to string
+  let binaryString = '';
+  utf8Bytes.forEach(byte => {
+    binaryString += String.fromCharCode(byte);
+  });
+  // Now use btoa on the binary string
+  return btoa(binaryString);
+};
+
+/**
  * Sends a text receipt to PrintNode printer
  */
 export const sendToPrintNode = async (
@@ -50,6 +64,10 @@ export const sendToPrintNode = async (
     // Convert printerId to number if it's a string
     const printerIdNum = typeof printerId === 'string' ? parseInt(printerId, 10) : printerId;
     
+    // Use our safe encoding method instead of direct btoa
+    const encodedContent = safeBase64Encode(content);
+    console.log('Content encoded successfully');
+    
     const response = await fetch('https://api.printnode.com/printjobs', {
       method: 'POST',
       headers: {
@@ -60,7 +78,7 @@ export const sendToPrintNode = async (
         printerId: printerIdNum,
         title: 'Receipt Print Job',
         contentType: 'raw_base64',
-        content: btoa(content),
+        content: encodedContent,
         source: 'POS System'
       })
     });
