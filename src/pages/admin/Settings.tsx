@@ -41,8 +41,8 @@ interface AppearanceSettings {
 interface PrintSettings {
   enabled: boolean;
   apiKey: string;
-  printerIds: string[]; // Updated to array
-  printerNames?: Record<string, string>; // Map of printer IDs to printer names
+  printerIds: string[];
+  printerNames?: Record<string, string>;
 }
 
 interface PrinterOption {
@@ -336,19 +336,15 @@ const Settings = () => {
         let printerIds: string[] = [];
         let printerNames: Record<string, string> = {};
         
-        // Handle the new array format for printer IDs
         if (settings.printerIds && Array.isArray(settings.printerIds)) {
           printerIds = settings.printerIds;
         } else if (settings.printerId) {
-          // Legacy support: convert single printerId to array
           printerIds = [settings.printerId];
         }
         
-        // Handle printer names
         if (settings.printerNames && typeof settings.printerNames === 'object') {
           printerNames = settings.printerNames;
         } else if (settings.printerName && settings.printerId) {
-          // Legacy support: create mapping from single printer name
           printerNames = { [settings.printerId]: settings.printerName };
         }
         
@@ -361,12 +357,9 @@ const Settings = () => {
         
         setPrintSettings(newSettings);
         
-        // If we have an API key, auto-fetch printers on initial load
         if (newSettings.apiKey && !initialPrinterLoad) {
-          console.log('Auto-fetching printers on initial load');
           setInitialPrinterLoad(true);
           
-          // We need to wait for the state to update
           setTimeout(async () => {
             try {
               setFetchingPrinters(true);
@@ -375,7 +368,6 @@ const Settings = () => {
               
               if (printers.length === 0 && newSettings.printerIds.length > 0) {
                 console.log('No printers found but printerIds exist in settings, trying again...');
-                // Try once more after a short delay
                 setTimeout(async () => {
                   const retryPrinters = await fetchPrintNodePrinters(newSettings.apiKey);
                   setAvailablePrinters(retryPrinters);
@@ -772,10 +764,8 @@ const Settings = () => {
         return;
       }
       
-      // Create a map of printer names
       let printerNames: Record<string, string> = {};
       
-      // For each printer ID, store its name
       printSettings.printerIds.forEach(printerId => {
         const printer = availablePrinters.find(p => p.id.toString() === printerId);
         if (printer) {
@@ -1038,3 +1028,716 @@ const Settings = () => {
           description: "Slideshow image uploaded successfully"
         });
       } else {
+        toast({
+          title: "Upload failed",
+          description: "Failed to upload slideshow image",
+          variant: "destructive"
+        });
+      }
+    } catch (error) {
+      console.error('Error uploading slideshow image:', error);
+      toast({
+        title: "Upload failed",
+        description: "Failed to upload slideshow image",
+        variant: "destructive"
+      });
+    } finally {
+      setUploadingImage(false);
+      if (e.target) e.target.value = '';
+    }
+  };
+
+  const handleRemoveSlideImage = (index: number) => {
+    setAppearanceSettings(prev => ({
+      ...prev,
+      slideshowImages: prev.slideshowImages.filter((_, i) => i !== index)
+    }));
+    
+    toast({
+      title: "Image removed",
+      description: "Slideshow image removed successfully"
+    });
+  };
+  
+  const handleTestPrintNodeConnection = async () => {
+    try {
+      setTestingConnection(true);
+      
+      if (!printSettings.apiKey) {
+        toast({
+          title: "API key required",
+          description: "Please enter a PrintNode API key",
+          variant: "destructive"
+        });
+        return;
+      }
+      
+      const success = await testPrintNodeConnection(printSettings.apiKey);
+      
+      if (success) {
+        toast({
+          title: "Connection successful",
+          description: "Successfully connected to PrintNode API"
+        });
+        
+        await handleFetchPrinters();
+      } else {
+        toast({
+          title: "Connection failed",
+          description: "Failed to connect to PrintNode API. Please check your API key.",
+          variant: "destructive"
+        });
+      }
+    } catch (error) {
+      console.error('Error testing PrintNode connection:', error);
+      toast({
+        title: "Connection error",
+        description: "An error occurred while testing PrintNode connection",
+        variant: "destructive"
+      });
+    } finally {
+      setTestingConnection(false);
+    }
+  };
+  
+  const handleFetchPrinters = async () => {
+    try {
+      setFetchingPrinters(true);
+      
+      if (!printSettings.apiKey) {
+        toast({
+          title: "API key required",
+          description: "Please enter a PrintNode API key",
+          variant: "destructive"
+        });
+        return;
+      }
+      
+      const printers = await fetchPrintNodePrinters(printSettings.apiKey);
+      setAvailablePrinters(printers);
+      
+      if (printers.length === 0) {
+        toast({
+          title: "No printers found",
+          description: "No printers were found in your PrintNode account",
+          variant: "destructive"
+        });
+      } else {
+        toast({
+          title: "Printers fetched",
+          description: `Found ${printers.length} printer(s) in your PrintNode account`
+        });
+      }
+    } catch (error) {
+      console.error('Error fetching printers:', error);
+      toast({
+        title: "Error",
+        description: "Failed to fetch printers from PrintNode",
+        variant: "destructive"
+      });
+    } finally {
+      setFetchingPrinters(false);
+    }
+  };
+  
+  const handleTestPrint = async () => {
+    try {
+      setTestingPrinter(true);
+      
+      if (!printSettings.apiKey) {
+        toast({
+          title: "API key required",
+          description: "Please enter a PrintNode API key",
+          variant: "destructive"
+        });
+        return;
+      }
+      
+      if (!selectedTestPrinter) {
+        toast({
+          title: "Printer required",
+          description: "Please select a printer for test printing",
+          variant: "destructive"
+        });
+        return;
+      }
+      
+      const testContent = `
+        <html>
+        <body>
+          <h1>Test Receipt</h1>
+          <p>This is a test receipt from your restaurant ordering system.</p>
+          <p>Date: ${new Date().toLocaleString()}</p>
+          <p>If you can read this, printing is working correctly!</p>
+        </body>
+        </html>
+      `;
+      
+      const success = await sendToPrintNode(
+        printSettings.apiKey,
+        selectedTestPrinter,
+        testContent,
+        'Test Print'
+      );
+      
+      if (success) {
+        toast({
+          title: "Test print sent",
+          description: "Test receipt has been sent to the printer"
+        });
+      } else {
+        toast({
+          title: "Print failed",
+          description: "Failed to send test receipt to printer",
+          variant: "destructive"
+        });
+      }
+    } catch (error) {
+      console.error('Error sending test print:', error);
+      toast({
+        title: "Print error",
+        description: "An error occurred while sending test print",
+        variant: "destructive"
+      });
+    } finally {
+      setTestingPrinter(false);
+    }
+  };
+
+  return (
+    <AdminLayout>
+      <div className="p-6">
+        <h1 className="text-2xl font-bold mb-6 flex items-center gap-2">
+          <Settings2 className="size-6" />
+          Settings
+        </h1>
+        
+        <Tabs defaultValue="restaurant" className="w-full">
+          <TabsList className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 mb-4">
+            <TabsTrigger value="restaurant">Restaurant</TabsTrigger>
+            <TabsTrigger value="hours">Hours</TabsTrigger>
+            <TabsTrigger value="ordering">Ordering</TabsTrigger>
+            <TabsTrigger value="appearance">Appearance</TabsTrigger>
+            <TabsTrigger value="notifications">Notifications</TabsTrigger>
+            <TabsTrigger value="printing">Printing</TabsTrigger>
+          </TabsList>
+          
+          <TabsContent value="restaurant">
+            <Card>
+              <CardHeader>
+                <CardTitle>Restaurant Information</CardTitle>
+                <CardDescription>
+                  Update your restaurant information and contact details
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <form className="space-y-4" onSubmit={(e) => { e.preventDefault(); saveRestaurantInfo(); }}>
+                  <div className="grid gap-4">
+                    <div className="grid gap-2">
+                      <Label htmlFor="restaurant-name">Restaurant Name</Label>
+                      <Input 
+                        id="restaurant-name" 
+                        value={restaurantInfo.name} 
+                        onChange={handleInfoChange}
+                        placeholder="Enter restaurant name" 
+                      />
+                    </div>
+                    
+                    <div className="grid gap-2">
+                      <Label htmlFor="restaurant-phone">Phone Number</Label>
+                      <Input 
+                        id="restaurant-phone" 
+                        value={restaurantInfo.phone} 
+                        onChange={handleInfoChange}
+                        placeholder="Enter phone number" 
+                      />
+                    </div>
+                    
+                    <div className="grid gap-2">
+                      <Label htmlFor="restaurant-address">Address</Label>
+                      <Input 
+                        id="restaurant-address" 
+                        value={restaurantInfo.address} 
+                        onChange={handleInfoChange}
+                        placeholder="Enter restaurant address" 
+                      />
+                    </div>
+                    
+                    <div className="grid gap-2">
+                      <Label htmlFor="restaurant-description">Description</Label>
+                      <Textarea 
+                        id="restaurant-description" 
+                        value={restaurantInfo.description} 
+                        onChange={handleInfoChange}
+                        placeholder="Enter restaurant description" 
+                      />
+                    </div>
+                  </div>
+                  
+                  <Button type="submit" disabled={loading}>
+                    {loading ? (
+                      <><RefreshCw className="mr-2 h-4 w-4 animate-spin" /> Saving...</>
+                    ) : (
+                      <><Save className="mr-2 h-4 w-4" /> Save Information</>
+                    )}
+                  </Button>
+                </form>
+              </CardContent>
+            </Card>
+            
+            <Card className="mt-4">
+              <CardHeader>
+                <CardTitle>System</CardTitle>
+                <CardDescription>
+                  System maintenance and cache settings
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="flex flex-col gap-4">
+                  <Alert>
+                    <AlertDescription>
+                      Clearing the application cache can help resolve issues with outdated data or display problems.
+                    </AlertDescription>
+                  </Alert>
+                  
+                  <Button 
+                    variant="outline" 
+                    onClick={handleClearCache} 
+                    disabled={clearingCache}
+                  >
+                    {clearingCache ? (
+                      <><RefreshCw className="mr-2 h-4 w-4 animate-spin" /> Clearing Cache...</>
+                    ) : (
+                      <><RefreshCw className="mr-2 h-4 w-4" /> Clear Application Cache</>
+                    )}
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+          
+          <TabsContent value="hours">
+            <Card>
+              <CardHeader>
+                <CardTitle>Business Hours</CardTitle>
+                <CardDescription>
+                  Set your restaurant's opening and closing hours for each day
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <form className="space-y-4" onSubmit={(e) => { e.preventDefault(); saveBusinessHours(); }}>
+                  <div className="grid gap-4">
+                    {businessHours.map((day) => (
+                      <div key={day.day_of_week} className="grid grid-cols-3 gap-4 items-center">
+                        <div className="font-medium">{day.day_of_week}</div>
+                        <div className="grid gap-2">
+                          <Label htmlFor={`open-${day.day_of_week}`}>Open</Label>
+                          <Input 
+                            id={`open-${day.day_of_week}`} 
+                            type="time" 
+                            value={day.open_time} 
+                            onChange={(e) => handleHoursChange(day.day_of_week, 'open_time', e.target.value)}
+                          />
+                        </div>
+                        <div className="grid gap-2">
+                          <Label htmlFor={`close-${day.day_of_week}`}>Close</Label>
+                          <Input 
+                            id={`close-${day.day_of_week}`} 
+                            type="time" 
+                            value={day.close_time} 
+                            onChange={(e) => handleHoursChange(day.day_of_week, 'close_time', e.target.value)}
+                          />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  
+                  <Button type="submit" disabled={loading}>
+                    {loading ? (
+                      <><RefreshCw className="mr-2 h-4 w-4 animate-spin" /> Saving...</>
+                    ) : (
+                      <><Save className="mr-2 h-4 w-4" /> Save Hours</>
+                    )}
+                  </Button>
+                </form>
+              </CardContent>
+            </Card>
+          </TabsContent>
+          
+          <TabsContent value="ordering">
+            <Card>
+              <CardHeader>
+                <CardTitle>Ordering Settings</CardTitle>
+                <CardDescription>
+                  Configure how customers place orders in your restaurant
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <form className="space-y-4" onSubmit={(e) => { e.preventDefault(); saveOrderingSettings(); }}>
+                  <div className="flex items-center space-x-2">
+                    <Switch 
+                      id="require-table" 
+                      checked={orderingSettings.requireTableSelection}
+                      onCheckedChange={(checked) => handleOrderingSettingChange('requireTableSelection', checked)} 
+                    />
+                    <Label htmlFor="require-table">Require table selection for orders</Label>
+                  </div>
+                  
+                  <Button type="submit" disabled={loading}>
+                    {loading ? (
+                      <><RefreshCw className="mr-2 h-4 w-4 animate-spin" /> Saving...</>
+                    ) : (
+                      <><Save className="mr-2 h-4 w-4" /> Save Settings</>
+                    )}
+                  </Button>
+                </form>
+              </CardContent>
+            </Card>
+          </TabsContent>
+          
+          <TabsContent value="notifications">
+            <Card>
+              <CardHeader>
+                <CardTitle>Notification Settings</CardTitle>
+                <CardDescription>
+                  Configure notification sounds and alerts for new orders
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <form className="space-y-4" onSubmit={(e) => { e.preventDefault(); saveNotificationSettings(); }}>
+                  <div className="flex items-center space-x-2">
+                    <Switch 
+                      id="sound-enabled" 
+                      checked={notificationSettings.soundEnabled}
+                      onCheckedChange={(checked) => handleNotificationSettingChange('soundEnabled', checked)} 
+                    />
+                    <Label htmlFor="sound-enabled">Enable notification sounds</Label>
+                  </div>
+                  
+                  <div className="grid gap-2">
+                    <Label>Notification Sound</Label>
+                    <div className="flex items-center gap-2">
+                      <div className="text-sm text-muted-foreground">
+                        {notificationSettings.soundName || 'Default sound'}
+                      </div>
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        onClick={() => {
+                          const audio = new Audio(notificationSettings.soundUrl);
+                          audio.volume = notificationSettings.volume;
+                          audio.play().catch(error => {
+                            console.error('Error playing test sound:', error);
+                          });
+                        }}
+                        disabled={testingSound}
+                      >
+                        <Volume2 className="mr-2 h-4 w-4" />
+                        Test Sound
+                      </Button>
+                    </div>
+                    
+                    <div className="grid gap-2 mt-2">
+                      <Label htmlFor="sound-upload">Upload New Sound</Label>
+                      <div className="flex items-center gap-2">
+                        <Input 
+                          id="sound-upload" 
+                          type="file" 
+                          accept="audio/*"
+                          onChange={handleSoundUpload}
+                          disabled={uploadingSound}
+                        />
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="outline"
+                          disabled={uploadingSound}
+                        >
+                          {uploadingSound ? (
+                            <><RefreshCw className="mr-2 h-4 w-4 animate-spin" /> Uploading...</>
+                          ) : (
+                            <><Upload className="h-4 w-4" /></>
+                          )}
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="grid gap-2">
+                    <Label htmlFor="volume">Volume</Label>
+                    <Input 
+                      id="volume" 
+                      type="range" 
+                      min="0" 
+                      max="1" 
+                      step="0.1"
+                      value={notificationSettings.volume}
+                      onChange={(e) => handleNotificationSettingChange('volume', parseFloat(e.target.value))}
+                    />
+                    <div className="text-right text-sm text-muted-foreground">
+                      {Math.round(notificationSettings.volume * 100)}%
+                    </div>
+                  </div>
+                  
+                  <Button type="submit" disabled={loading}>
+                    {loading ? (
+                      <><RefreshCw className="mr-2 h-4 w-4 animate-spin" /> Saving...</>
+                    ) : (
+                      <><Save className="mr-2 h-4 w-4" /> Save Settings</>
+                    )}
+                  </Button>
+                </form>
+              </CardContent>
+            </Card>
+          </TabsContent>
+          
+          <TabsContent value="appearance">
+            <Card>
+              <CardHeader>
+                <CardTitle>Appearance Settings</CardTitle>
+                <CardDescription>
+                  Customize the look and feel of your restaurant ordering system
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <form className="space-y-4" onSubmit={(e) => { e.preventDefault(); saveAppearanceSettings(); }}>
+                  <div className="grid gap-2">
+                    <Label>Restaurant Logo</Label>
+                    {appearanceSettings.logo ? (
+                      <div className="relative w-64 h-64">
+                        <img 
+                          src={appearanceSettings.logo} 
+                          alt="Restaurant Logo" 
+                          className="object-contain w-full h-full border rounded"
+                        />
+                      </div>
+                    ) : (
+                      <div className="flex items-center justify-center w-64 h-64 border rounded bg-muted">
+                        <p className="text-sm text-muted-foreground">No logo uploaded</p>
+                      </div>
+                    )}
+                    
+                    <div className="flex items-center gap-2 mt-2">
+                      <Input 
+                        id="logo-upload" 
+                        type="file" 
+                        accept="image/*"
+                        onChange={handleLogoUpload}
+                        disabled={uploadingLogo}
+                      />
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        disabled={uploadingLogo}
+                      >
+                        {uploadingLogo ? (
+                          <><RefreshCw className="mr-2 h-4 w-4 animate-spin" /> Uploading...</>
+                        ) : (
+                          <><Upload className="h-4 w-4" /></>
+                        )}
+                      </Button>
+                    </div>
+                  </div>
+                  
+                  <div className="grid gap-2">
+                    <Label>Slideshow Images</Label>
+                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                      {appearanceSettings.slideshowImages.map((image, index) => (
+                        <div key={index} className="relative aspect-video">
+                          <img 
+                            src={image} 
+                            alt={`Slideshow Image ${index + 1}`} 
+                            className="object-cover w-full h-full rounded"
+                          />
+                          <Button
+                            type="button"
+                            size="icon"
+                            variant="destructive"
+                            className="absolute top-2 right-2 h-6 w-6"
+                            onClick={() => handleRemoveSlideImage(index)}
+                          >
+                            <X className="h-3 w-3" />
+                          </Button>
+                        </div>
+                      ))}
+                      
+                      <div className="flex flex-col items-center justify-center aspect-video border rounded bg-muted">
+                        <div className="flex items-center gap-2">
+                          <label 
+                            htmlFor="image-upload" 
+                            className="cursor-pointer flex flex-col items-center justify-center p-4"
+                          >
+                            <Images className="h-8 w-8 text-muted-foreground mb-2" />
+                            <span className="text-sm text-muted-foreground">Add Image</span>
+                            <Input 
+                              id="image-upload" 
+                              type="file" 
+                              accept="image/*"
+                              onChange={handleSlideImageUpload}
+                              disabled={uploadingImage}
+                              className="hidden"
+                            />
+                          </label>
+                        </div>
+                        {uploadingImage && <RefreshCw className="h-4 w-4 animate-spin mt-2" />}
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <Button type="submit" disabled={loading}>
+                    {loading ? (
+                      <><RefreshCw className="mr-2 h-4 w-4 animate-spin" /> Saving...</>
+                    ) : (
+                      <><Save className="mr-2 h-4 w-4" /> Save Settings</>
+                    )}
+                  </Button>
+                </form>
+              </CardContent>
+            </Card>
+          </TabsContent>
+          
+          <TabsContent value="printing">
+            <Card>
+              <CardHeader>
+                <CardTitle>Thermal Printer Configuration</CardTitle>
+                <CardDescription>
+                  Configure your PrintNode integration for receipt printing
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <form className="space-y-4" onSubmit={(e) => { e.preventDefault(); savePrintSettings(); }}>
+                  <div className="flex items-center space-x-2">
+                    <Switch 
+                      id="print-enabled" 
+                      checked={printSettings.enabled}
+                      onCheckedChange={(checked) => handlePrintSettingChange('enabled', checked)} 
+                    />
+                    <Label htmlFor="print-enabled">Enable receipt printing</Label>
+                  </div>
+                  
+                  <div className="grid gap-2">
+                    <Label htmlFor="print-api-key">PrintNode API Key</Label>
+                    <div className="flex items-center gap-2">
+                      <Input 
+                        id="print-api-key" 
+                        value={printSettings.apiKey} 
+                        onChange={(e) => handlePrintSettingChange('apiKey', e.target.value)}
+                        placeholder="Enter PrintNode API key" 
+                        type="password"
+                      />
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        onClick={handleTestPrintNodeConnection}
+                        disabled={testingConnection || !printSettings.apiKey}
+                      >
+                        {testingConnection ? (
+                          <><RefreshCw className="mr-2 h-4 w-4 animate-spin" /> Testing...</>
+                        ) : (
+                          <>Test Connection</>
+                        )}
+                      </Button>
+                    </div>
+                  </div>
+                  
+                  <div className="grid gap-2">
+                    <div className="flex items-center justify-between">
+                      <Label htmlFor="printers">Available Printers</Label>
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        onClick={handleFetchPrinters}
+                        disabled={fetchingPrinters || !printSettings.apiKey}
+                      >
+                        {fetchingPrinters ? (
+                          <><RefreshCw className="mr-2 h-4 w-4 animate-spin" /> Fetching...</>
+                        ) : (
+                          <><RefreshCw className="mr-2 h-4 w-4" /> Refresh Printers</>
+                        )}
+                      </Button>
+                    </div>
+                    
+                    {availablePrinters.length > 0 ? (
+                      <>
+                        <div className="grid gap-4">
+                          <div>
+                            <Label htmlFor="selected-printers" className="mb-2 block">Selected Printers for Order Receipts</Label>
+                            <MultiSelect
+                              options={availablePrinters.map(printer => ({
+                                label: printer.name,
+                                value: printer.id.toString()
+                              }))}
+                              selected={printSettings.printerIds}
+                              onChange={(selected) => handlePrintSettingChange('printerIds', selected)}
+                              placeholder="Select printers for order receipts"
+                              disabled={availablePrinters.length === 0}
+                            />
+                            <p className="text-sm text-muted-foreground mt-1">
+                              Order receipts will be sent to all selected printers
+                            </p>
+                          </div>
+                          
+                          <div>
+                            <Label htmlFor="test-printer">Test Printer</Label>
+                            <Select
+                              value={selectedTestPrinter}
+                              onValueChange={setSelectedTestPrinter}
+                            >
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select a printer for test printing" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {availablePrinters.map(printer => (
+                                  <SelectItem key={printer.id} value={printer.id.toString()}>
+                                    {printer.name}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                            
+                            <div className="flex justify-end mt-2">
+                              <Button
+                                type="button"
+                                size="sm"
+                                onClick={handleTestPrint}
+                                disabled={testingPrinter || !selectedTestPrinter}
+                              >
+                                {testingPrinter ? (
+                                  <><RefreshCw className="mr-2 h-4 w-4 animate-spin" /> Printing...</>
+                                ) : (
+                                  <><Printer className="mr-2 h-4 w-4" /> Test Print</>
+                                )}
+                              </Button>
+                            </div>
+                          </div>
+                        </div>
+                      </>
+                    ) : (
+                      <div className="text-center p-4 border rounded">
+                        <p className="text-muted-foreground">No printers available. Click "Refresh Printers" to fetch printers from PrintNode.</p>
+                      </div>
+                    )}
+                  </div>
+                  
+                  <Button type="submit" disabled={loading}>
+                    {loading ? (
+                      <><RefreshCw className="mr-2 h-4 w-4 animate-spin" /> Saving...</>
+                    ) : (
+                      <><Save className="mr-2 h-4 w-4" /> Save Settings</>
+                    )}
+                  </Button>
+                </form>
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
+      </div>
+    </AdminLayout>
+  );
+};
+
+export default Settings;
