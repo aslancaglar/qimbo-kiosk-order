@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
@@ -27,7 +26,6 @@ const OrderConfirmation: React.FC<OrderConfirmationProps> = () => {
   
   const [printed, setPrinted] = useState(false);
   const [redirecting, setRedirecting] = useState(false);
-  const [printLoading, setPrintLoading] = useState(false);
   
   const total = providedTotal || items?.reduce((sum: number, item: CartItemType) => {
     let itemTotal = item.product.price * item.quantity;
@@ -69,19 +67,9 @@ const OrderConfirmation: React.FC<OrderConfirmationProps> = () => {
     }
   }, [items, printed]);
 
-  const handlePrintReceipt = async () => {
-    if (printLoading) return;
-    
+  const handlePrintReceipt = () => {
     try {
-      setPrintLoading(true);
-      console.log('Printing confirmation receipt for order:', orderNumber);
-      
-      if (!orderNumber) {
-        console.error('No order number provided for printing');
-        throw new Error('No order number provided');
-      }
-      
-      const success = await printOrder(
+      printOrder(
         orderNumber,
         items,
         orderType,
@@ -90,20 +78,6 @@ const OrderConfirmation: React.FC<OrderConfirmationProps> = () => {
         taxAmount,
         total
       );
-      
-      if (success) {
-        console.log('Receipt printed successfully via PrintNode');
-        toast({
-          title: "Receipt Printed",
-          description: "Receipt sent to printer successfully",
-        });
-      } else {
-        console.log('Receipt printing fell back to browser printing');
-        toast({
-          title: "Browser Printing",
-          description: "Using browser print dialog as fallback",
-        });
-      }
     } catch (error) {
       console.error('Error printing receipt:', error);
       toast({
@@ -111,8 +85,6 @@ const OrderConfirmation: React.FC<OrderConfirmationProps> = () => {
         description: "Failed to print the receipt",
         variant: "destructive",
       });
-    } finally {
-      setPrintLoading(false);
     }
   };
   

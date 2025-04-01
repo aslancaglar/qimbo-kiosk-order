@@ -47,23 +47,8 @@ export const sendToPrintNode = async (
   }
 
   try {
-    // Ensure printerId is a number
+    // Convert printerId to number if it's a string
     const printerIdNum = typeof printerId === 'string' ? parseInt(printerId, 10) : printerId;
-    
-    console.log(`Sending print job to PrintNode printer: ${printerIdNum}`);
-    
-    const printData = {
-      printerId: printerIdNum,
-      title: 'Receipt Print Job',
-      contentType: 'raw_base64',
-      content: btoa(content),
-      source: 'POS System'
-    };
-    
-    console.log('Print job data prepared:', JSON.stringify({
-      ...printData,
-      content: '[CONTENT REDACTED]' // Don't log the actual content
-    }));
     
     const response = await fetch('https://api.printnode.com/printjobs', {
       method: 'POST',
@@ -71,26 +56,23 @@ export const sendToPrintNode = async (
         'Content-Type': 'application/json',
         'Authorization': `Basic ${btoa(apiKey + ':')}`
       },
-      body: JSON.stringify(printData)
+      body: JSON.stringify({
+        printerId: printerIdNum,
+        title: 'Receipt Print Job',
+        contentType: 'raw_base64',
+        content: btoa(content),
+        source: 'POS System'
+      })
     });
 
-    const responseText = await response.text();
-    console.log(`PrintNode API response status: ${response.status}, body:`, responseText);
-
     if (!response.ok) {
-      console.error('PrintNode API error:', responseText);
+      const errorData = await response.json();
+      console.error('PrintNode API error:', errorData);
       return false;
     }
 
-    // Try to parse JSON response
-    let result;
-    try {
-      result = JSON.parse(responseText);
-      console.log('PrintNode print job submitted successfully:', result);
-    } catch (e) {
-      console.log('Response is not JSON but the request was successful');
-      result = { id: 'unknown' };
-    }
+    const result = await response.json();
+    console.log('PrintNode print job submitted successfully:', result);
     
     // Log the print job to our database
     await logPrintJob(printerId.toString(), result.id || 0, content, true);
@@ -233,7 +215,6 @@ export const testPrintNodeConnection = async (
  */
 export const fetchPrintNodePrinters = async (apiKey: string): Promise<any[]> => {
   if (!apiKey) {
-    console.log('No PrintNode API key provided for fetching printers');
     return [];
   }
   
@@ -247,8 +228,7 @@ export const fetchPrintNodePrinters = async (apiKey: string): Promise<any[]> => 
     });
     
     if (!response.ok) {
-      const errorText = await response.text();
-      console.error(`Failed to fetch printers: ${response.status} ${response.statusText}`, errorText);
+      console.error('Failed to fetch printers:', await response.text());
       return [];
     }
     
@@ -271,15 +251,13 @@ export const fetchPrintNodePrinters = async (apiKey: string): Promise<any[]> => 
  */
 const logPrintJob = async (
   printerId: string,
-  jobId: number | string,
+  jobId: number,
   content: string,
   successful: boolean
 ): Promise<void> => {
   try {
-    console.log(`Logging print job: Printer ID ${printerId}, Job ID ${jobId}, Success: ${successful}`);
-    
     // Make sure field names match the database schema
-    const { error } = await supabase.from('print_jobs').insert({
+    await supabase.from('print_jobs').insert({
       printer_id: printerId,
       job_id: jobId.toString(), // Convert number to string as the schema expects string
       content_preview: content.substring(0, 255),
@@ -288,10 +266,6 @@ const logPrintJob = async (
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString()
     });
-    
-    if (error) {
-      console.error('Error logging print job to database:', error);
-    }
   } catch (error) {
     console.error('Error logging print job:', error);
   }
@@ -322,4 +296,3 @@ ${centerText('End of test', 42)}
 
   return await sendToPrintNode(testContent, apiKey, printerId);
 };
-
