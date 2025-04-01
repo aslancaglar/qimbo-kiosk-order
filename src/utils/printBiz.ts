@@ -1,6 +1,5 @@
-
 // This file is kept as a placeholder to avoid breaking imports but functionality is removed.
-// The PrintBiz integration has been replaced with PrintNode integration.
+// The PrintBiz integration has been removed from the application.
 
 export interface PrintBizConfig {
   enabled: boolean;
@@ -18,7 +17,7 @@ export interface PrintJob {
  * This function is a placeholder. PrintBiz integration has been removed.
  */
 export const sendPrintJob = async (): Promise<boolean> => {
-  console.log('PrintBiz integration has been removed, using PrintNode instead');
+  console.log('PrintBiz integration has been removed');
   return false;
 };
 
@@ -26,7 +25,7 @@ export const sendPrintJob = async (): Promise<boolean> => {
  * This function is a placeholder. PrintBiz integration has been removed.
  */
 export const fetchPrinters = async (): Promise<any[]> => {
-  console.log('PrintBiz integration has been removed, using PrintNode instead');
+  console.log('PrintBiz integration has been removed');
   return [];
 };
 
@@ -34,6 +33,6 @@ export const fetchPrinters = async (): Promise<any[]> => {
  * This function is a placeholder. PrintBiz integration has been removed.
  */
 export const testConnection = async (): Promise<boolean> => {
-  console.log('PrintBiz integration has been removed, using PrintNode instead');
+  console.log('PrintBiz integration has been removed');
   return false;
 };

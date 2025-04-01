@@ -1,14 +1,11 @@
-
 import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import Layout from '@/components/layout/Layout';
-import Button from '@/components/common/Button';
+import Layout from '../layout/Layout';
+import Button from '../common/Button';
 import { Check, Home, Printer, Plus } from 'lucide-react';
-import { CartItemType, PrintNodeSettings } from '@/components/cart/types';
-import { toast } from '@/hooks/use-toast';
-import { printReceipt } from '@/utils/printNode';
-import { supabase } from '@/integrations/supabase/client';
+import { CartItemType } from '../cart/types';
+import { toast } from '@/components/ui/use-toast';
 
 interface OrderConfirmationProps {}
 
@@ -22,22 +19,11 @@ const OrderConfirmation: React.FC<OrderConfirmationProps> = () => {
     subtotal: providedSubtotal, 
     taxAmount: providedTax, 
     total: providedTotal, 
-    orderId,
-    orderNumber
+    orderId 
   } = location.state || {};
   
   const [printed, setPrinted] = useState(false);
   const [redirecting, setRedirecting] = useState(false);
-  const [printing, setPrinting] = useState(false);
-  const [restaurantInfo, setRestaurantInfo] = useState({
-    name: 'Restaurant',
-    logo: '',
-  });
-  const [printNodeSettings, setPrintNodeSettings] = useState<PrintNodeSettings>({
-    apiKey: '',
-    enabled: false,
-    defaultPrinterId: '',
-  });
   
   const total = providedTotal || items?.reduce((sum: number, item: CartItemType) => {
     let itemTotal = item.product.price * item.quantity;
@@ -68,75 +54,19 @@ const OrderConfirmation: React.FC<OrderConfirmationProps> = () => {
   }, [navigate]);
   
   useEffect(() => {
-    const fetchSettings = async () => {
-      // Get restaurant info
-      try {
-        const { data: restaurantData, error: restaurantError } = await supabase
-          .from('restaurant_info')
-          .select('name, description')
-          .limit(1)
-          .single();
-
-        if (restaurantData) {
-          setRestaurantInfo(prev => ({ ...prev, name: restaurantData.name }));
-        }
-      } catch (error) {
-        console.error('Error fetching restaurant info:', error);
-      }
-
-      // Get appearance settings (for logo)
-      try {
-        const { data: appearanceData, error: appearanceError } = await supabase
-          .from('settings')
-          .select('value')
-          .eq('key', 'appearance_settings')
-          .single();
-
-        if (appearanceData?.value) {
-          const appearanceValue = appearanceData.value as { logo?: string };
-          if (appearanceValue.logo) {
-            setRestaurantInfo(prev => ({ ...prev, logo: appearanceValue.logo }));
-          }
-        }
-      } catch (error) {
-        console.error('Error fetching logo:', error);
-      }
-
-      // Get PrintNode settings
-      try {
-        const { data: printNodeData, error: printNodeError } = await supabase
-          .from('settings')
-          .select('value')
-          .eq('key', 'printnode_settings')
-          .single();
-
-        if (printNodeData?.value) {
-          const settings = printNodeData.value as PrintNodeSettings;
-          setPrintNodeSettings({
-            apiKey: settings.apiKey || '',
-            enabled: !!settings.enabled,
-            defaultPrinterId: settings.defaultPrinterId || '',
-          });
-        }
-      } catch (error) {
-        console.error('Error fetching PrintNode settings:', error);
-      }
-    };
-
-    fetchSettings();
-  }, []);
-  
-  useEffect(() => {
-    if (items && items.length > 0 && !printed && printNodeSettings.enabled && printNodeSettings.apiKey && printNodeSettings.defaultPrinterId) {
-      printOrder(true);
-    } else if (items && items.length > 0 && !printed) {
-      // Fall back to browser-based printing if PrintNode is not available
-      printBrowserOrder();
-      setPrinted(true);
+    if (items && items.length > 0 && !printed) {
+      const timer = setTimeout(() => {
+        printOrder();
+        setPrinted(true);
+      }, 1000);
+      
+      return () => clearTimeout(timer);
     }
-  }, [items, printed, printNodeSettings]);
+  }, [items, printed]);
   
-  const printBrowserOrder = () => {
+  const orderNumber = orderId;
+
+  const printOrder = () => {
     try {
       const iframe = document.createElement('iframe');
       iframe.style.display = 'none';
@@ -286,79 +216,6 @@ const OrderConfirmation: React.FC<OrderConfirmationProps> = () => {
       });
     }
   };
-
-  const printOrder = async (isAutomatic = false) => {
-    // Don't print if PrintNode is disabled
-    if (!printNodeSettings.enabled || !printNodeSettings.apiKey || !printNodeSettings.defaultPrinterId) {
-      toast({
-        title: "PrintNode not configured",
-        description: "PrintNode printing is not enabled or configured properly",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    try {
-      setPrinting(true);
-      
-      const result = await printReceipt(
-        printNodeSettings.apiKey,
-        printNodeSettings.defaultPrinterId,
-        restaurantInfo.name,
-        restaurantInfo.logo,
-        orderNumber || orderId,
-        items,
-        total,
-        subtotal,
-        taxAmount,
-        orderType,
-        tableNumber,
-        'Cash' // Default payment method, could be updated if payment info is available
-      );
-
-      if (result.success) {
-        setPrinted(true);
-        toast({
-          title: "Receipt printed",
-          description: isAutomatic ? "Order receipt sent to printer automatically" : "Order receipt sent to printer",
-        });
-        
-        // Log the print job
-        await supabase.from('print_jobs').insert({
-          order_id: orderId?.toString(),
-          job_id: result.jobId || '',
-          status: 'success',
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
-        });
-      } else {
-        toast({
-          title: "Print failed",
-          description: result.error || "Failed to send receipt to printer",
-          variant: "destructive",
-        });
-        
-        // Log the failed print job
-        await supabase.from('print_jobs').insert({
-          order_id: orderId?.toString(),
-          job_id: '',
-          status: 'failed',
-          error_message: result.error,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
-        });
-        
-        // Fall back to browser printing
-        printBrowserOrder();
-      }
-    } catch (error) {
-      console.error('Error during PrintNode printing:', error);
-      // Fall back to browser printing
-      printBrowserOrder();
-    } finally {
-      setPrinting(false);
-    }
-  };
   
   if (redirecting) {
     return null;
@@ -382,10 +239,9 @@ const OrderConfirmation: React.FC<OrderConfirmationProps> = () => {
           <Button
             variant="ghost"
             size="icon"
-            onClick={() => printOrder()}
+            onClick={printOrder}
             className="rounded-full"
             title="Print receipt"
-            disabled={printing}
           >
             <Printer size={24} />
           </Button>
@@ -423,7 +279,7 @@ const OrderConfirmation: React.FC<OrderConfirmationProps> = () => {
                 animate={{ y: 0, opacity: 1 }}
                 transition={{ delay: 0.4 }}
               >
-                Your order #{orderNumber || orderId} has been placed
+                Your order #{orderNumber} has been placed
               </motion.p>
               
               {orderType === 'eat-in' && tableNumber && (
@@ -443,7 +299,7 @@ const OrderConfirmation: React.FC<OrderConfirmationProps> = () => {
                 transition={{ delay: 0.6 }}
                 className="text-gray-500 mt-4"
               >
-                {printing ? 'Printing receipt...' : (printed ? 'Receipt sent to printer.' : 'Preparing your receipt...')}
+                Printing your receipt...
               </motion.p>
               
               <motion.p
