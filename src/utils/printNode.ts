@@ -56,8 +56,8 @@ export const sendToPrintNode = async (
       body: JSON.stringify({
         printerId: printerId,
         title: 'Receipt Print Job',
-        contentType: 'text/plain',
-        content: content,
+        contentType: 'raw_base64',
+        content: btoa(content),
         source: 'POS System'
       })
     });
