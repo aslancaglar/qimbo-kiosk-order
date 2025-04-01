@@ -339,7 +339,7 @@ export const printOrder = async (
 };
 
 // For direct browser printing
-export const printOrderBrowser = (
+export const printOrderBrowser = async (
   orderNumber: string | number,
   items: CartItemType[],
   orderType: string,
@@ -347,9 +347,9 @@ export const printOrderBrowser = (
   subtotal: number,
   tax: number,
   total: number
-): boolean => {
+): Promise<boolean> => {
   console.log('Direct browser printing requested');
-  return printOrder(
+  return await printOrder(
     orderNumber, 
     items, 
     orderType, 
