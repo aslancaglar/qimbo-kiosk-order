@@ -1,6 +1,6 @@
 
 // Cache version - increment this when deploying new versions
-const CACHE_NAME = 'restaurant-app-v3';
+const CACHE_NAME = 'restaurant-app-v4';
 
 // Assets to cache on install
 const CACHE_ASSETS = [
@@ -78,15 +78,16 @@ self.addEventListener('message', (event) => {
 
 // Fetch event - serve from cache, fall back to network, with network-first strategy for HTML
 self.addEventListener('fetch', (event) => {
-  // Skip for API requests, supabase calls, etc.
+  // Skip for API requests, supabase calls, and module scripts
   if (event.request.url.includes('/rest/v1/') || 
       event.request.url.includes('/auth/') ||
+      event.request.url.includes('cdn.gpteng.co') ||
       event.request.method !== 'GET') {
     return;
   }
   
   // For HTML pages, use network-first strategy to ensure fresh content
-  if (event.request.headers.get('accept').includes('text/html')) {
+  if (event.request.headers.get('accept')?.includes('text/html')) {
     event.respondWith(
       fetch(event.request)
         .then(response => {
@@ -137,7 +138,7 @@ self.addEventListener('fetch', (event) => {
           .catch(err => {
             console.error('[ServiceWorker] Fetch failed:', err);
             // Offline fallback if available
-            if (event.request.headers.get('accept').includes('text/html')) {
+            if (event.request.headers.get('accept')?.includes('text/html')) {
               return caches.match('/');
             }
           });
