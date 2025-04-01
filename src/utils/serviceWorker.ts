@@ -10,16 +10,8 @@ export const registerServiceWorker = async (): Promise<void> => {
   // Only register if service workers are supported
   if ('serviceWorker' in navigator) {
     try {
-      // Unregister any existing service workers first to avoid conflicts
-      await unregisterServiceWorker();
-      
       // Register the service worker
-      const registration = await navigator.serviceWorker.register('/sw.js', {
-        // Set up a wider scope and update on reload
-        scope: '/',
-        updateViaCache: 'none'
-      });
-      
+      const registration = await navigator.serviceWorker.register('/sw.js');
       console.log('ServiceWorker registration successful with scope:', registration.scope);
       
       // Set up periodic update checks in production
@@ -53,8 +45,6 @@ export const registerServiceWorker = async (): Promise<void> => {
       });
     } catch (error) {
       console.error('ServiceWorker registration failed:', error);
-      // On service worker error, make sure we can still run without it
-      console.warn('Continuing without service worker due to registration failure');
     }
   }
 };
@@ -62,11 +52,9 @@ export const registerServiceWorker = async (): Promise<void> => {
 export const unregisterServiceWorker = async (): Promise<void> => {
   if ('serviceWorker' in navigator) {
     try {
-      const registrations = await navigator.serviceWorker.getRegistrations();
-      for (const registration of registrations) {
-        await registration.unregister();
-      }
-      console.log('All ServiceWorkers unregistered successfully');
+      const registration = await navigator.serviceWorker.ready;
+      await registration.unregister();
+      console.log('ServiceWorker unregistered successfully');
     } catch (error) {
       console.error('Error unregistering ServiceWorker:', error);
     }
@@ -79,22 +67,15 @@ export const unregisterServiceWorker = async (): Promise<void> => {
 export const checkForUpdates = async (): Promise<boolean> => {
   if ('serviceWorker' in navigator) {
     try {
-      const registrations = await navigator.serviceWorker.getRegistrations();
+      const registration = await navigator.serviceWorker.ready;
       
-      if (registrations.length === 0) {
-        // No registered service worker, try to register again
-        await registerServiceWorker();
-        return true;
+      // Send message to service worker to check for updates
+      if (registration.active) {
+        registration.active.postMessage({ action: 'CHECK_UPDATE' });
       }
       
-      // Update all registered service workers
-      for (const registration of registrations) {
-        if (registration.active) {
-          registration.active.postMessage({ action: 'CHECK_UPDATE' });
-        }
-        await registration.update();
-      }
-      
+      // Trigger update check
+      await registration.update();
       console.log('Checked for service worker updates');
       return true;
     } catch (error) {
@@ -131,35 +112,33 @@ export const clearAppCache = async (): Promise<boolean> => {
       success = true;
     }
     
-    // 3. Clear module script cache by forcing a hard reload
-    // This is more aggressive but should fix module loading issues
-    const cacheBustUrl = new URL(window.location.href);
-    cacheBustUrl.searchParams.set('cache_bust', Date.now().toString());
-    
-    // Set a flag in sessionStorage to avoid infinite reload loop
-    if (!sessionStorage.getItem('cache_cleared')) {
-      sessionStorage.setItem('cache_cleared', 'true');
-      
-      console.log('Performing hard reload to clear module cache');
-      window.location.href = cacheBustUrl.toString();
-      return true;
-    } else {
-      // Reset flag after one reload
-      sessionStorage.removeItem('cache_cleared');
+    // 3. For Safari and other browsers that might handle caching differently
+    // Set no-cache headers for future requests
+    if ('fetch' in window) {
+      // Create a no-op fetch with cache-busting headers to update browser's notion of the resource
+      fetch(window.location.href, {
+        method: 'GET',
+        cache: 'no-cache',
+        headers: {
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Pragma': 'no-cache',
+          'Expires': '0'
+        }
+      }).catch(() => {}); // Ignore errors, this is just to help with cache busting
     }
+    
+    // 4. Force reload the page with cache bypass
+    setTimeout(() => {
+      window.location.reload();
+    }, 300);
     
     return success;
   } catch (error) {
     console.error('Failed to clear caches:', error);
     
     // As a last resort, try to force reload with cache busting
-    if (!sessionStorage.getItem('force_reload')) {
-      sessionStorage.setItem('force_reload', 'true');
-      window.location.reload();
-      return true;
-    } else {
-      sessionStorage.removeItem('force_reload');
-      return false;
-    }
+    window.location.href = window.location.href + (window.location.href.includes('?') ? '&' : '?') + 'nocache=' + Date.now();
+    
+    return false;
   }
 };

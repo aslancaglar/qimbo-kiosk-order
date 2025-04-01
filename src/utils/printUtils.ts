@@ -24,54 +24,48 @@ export const formatOrderReceipt = (
             padding: 20px;
             max-width: 400px;
             margin: 0 auto;
-            font-size: 6.4px; /* 60% reduction from default 16px */
           }
-          h1 {
+          h1, h2 {
             text-align: center;
-            font-size: 10px; /* 60% reduction from typical 25px */
-          }
-          h2 {
-            text-align: center;
-            font-size: 8px; /* 60% reduction from typical 20px */
           }
           .order-details {
-            margin-bottom: 16px;
+            margin-bottom: 20px;
           }
           .order-item {
             display: flex;
             justify-content: space-between;
-            margin-bottom: 6px;
+            margin-bottom: 8px;
           }
           .topping-item {
             display: flex;
             justify-content: space-between;
-            margin-left: 16px;
-            font-size: 5.6px; /* 60% reduction from 0.9em × 16px ≈ 14px */
+            margin-left: 20px;
+            font-size: 0.9em;
             color: #666;
           }
           .divider {
             border-top: 1px dashed #ccc;
-            margin: 12px 0;
+            margin: 15px 0;
           }
           .totals {
-            margin-top: 16px;
+            margin-top: 20px;
           }
           .total-row {
             display: flex;
             justify-content: space-between;
-            margin-bottom: 4px;
+            margin-bottom: 5px;
           }
           .final-total {
             font-weight: bold;
-            font-size: 7.7px; /* 60% reduction from 1.2em × 16px ≈ 19.2px */
-            margin-top: 8px;
+            font-size: 1.2em;
+            margin-top: 10px;
             border-top: 1px solid black;
-            padding-top: 8px;
+            padding-top: 10px;
           }
           .footer {
-            margin-top: 24px;
+            margin-top: 30px;
             text-align: center;
-            font-size: 5.6px; /* 60% reduction from 0.9em × 16px ≈ 14px */
+            font-size: 0.9em;
             color: #666;
           }
         </style>
