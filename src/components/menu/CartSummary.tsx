@@ -31,7 +31,9 @@ const CartSummary: React.FC<CartSummaryProps> = ({
   const isMobile = useIsMobile();
   const navigate = useNavigate();
   const totalItems = cartItems.reduce((sum, item) => sum + item.quantity, 0);
-  const subtotal = cartItems.reduce((sum, item) => {
+  
+  // Calculate total (tax-inclusive)
+  const total = cartItems.reduce((sum, item) => {
     let itemTotal = item.product.price * item.quantity;
     if (item.selectedToppings && item.selectedToppings.length > 0) {
       const toppingsPrice = item.selectedToppings.reduce((toppingSum, topping) => toppingSum + topping.price, 0);
@@ -39,8 +41,12 @@ const CartSummary: React.FC<CartSummaryProps> = ({
     }
     return sum + itemTotal;
   }, 0);
-  const tax = subtotal * 0.1;
-  const total = subtotal + tax;
+  
+  // Calculate the tax amount (already included in price)
+  // Assuming 10% tax rate: price includes tax, so tax = total - (total / 1.1)
+  const taxRate = 0.1; // 10% tax
+  const taxAmount = total - (total / (1 + taxRate));
+  const subtotal = total - taxAmount;
 
   // Function to handle "See Order" button click
   const handleSeeOrder = () => {
@@ -50,8 +56,9 @@ const CartSummary: React.FC<CartSummaryProps> = ({
         orderType,
         tableNumber,
         subtotal,
-        tax,
-        total
+        taxAmount,
+        total,
+        taxIncluded: true
       }
     });
   };
@@ -160,7 +167,7 @@ const CartSummary: React.FC<CartSummaryProps> = ({
         
         <div className="flex justify-between items-center mb-2">
           <span className="text-gray-600 text-sm">TVA (10%):</span>
-          <span>{tax.toFixed(2)} €</span>
+          <span>{taxAmount.toFixed(2)} €</span>
         </div>
         
         <div className="flex justify-between items-center mb-4">

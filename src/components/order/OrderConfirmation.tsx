@@ -12,10 +12,31 @@ interface OrderConfirmationProps {}
 const OrderConfirmation: React.FC<OrderConfirmationProps> = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  const { items, orderType, tableNumber, subtotal, tax, total, orderId } = location.state || {};
+  const { 
+    items, 
+    orderType, 
+    tableNumber, 
+    subtotal: providedSubtotal, 
+    taxAmount: providedTax, 
+    total: providedTotal, 
+    orderId 
+  } = location.state || {};
   
   const [printed, setPrinted] = useState(false);
   const [redirecting, setRedirecting] = useState(false);
+  
+  const total = providedTotal || items?.reduce((sum: number, item: CartItemType) => {
+    let itemTotal = item.product.price * item.quantity;
+    if (item.selectedToppings && item.selectedToppings.length > 0) {
+      const toppingsPrice = item.selectedToppings.reduce((toppingSum, topping) => toppingSum + topping.price, 0);
+      itemTotal += toppingsPrice * item.quantity;
+    }
+    return sum + itemTotal;
+  }, 0) || 0;
+  
+  const taxRate = 0.1; // 10% tax
+  const taxAmount = providedTax || total - (total / (1 + taxRate));
+  const subtotal = providedSubtotal || total - taxAmount;
   
   useEffect(() => {
     if (!items || items.length === 0) {
@@ -154,8 +175,8 @@ const OrderConfirmation: React.FC<OrderConfirmationProps> = () => {
                 <span>${subtotal?.toFixed(2) || '0.00'} €</span>
               </div>
               <div class="total-row">
-                <span>Tax:</span>
-                <span>${tax?.toFixed(2) || '0.00'} €</span>
+                <span>Tax (included):</span>
+                <span>${taxAmount?.toFixed(2) || '0.00'} €</span>
               </div>
               <div class="total-row final-total">
                 <span>Total:</span>
@@ -165,6 +186,7 @@ const OrderConfirmation: React.FC<OrderConfirmationProps> = () => {
             
             <div class="footer">
               <p>Thank you for your order!</p>
+              <p><small>All prices include 10% tax</small></p>
             </div>
             <script>
               window.onload = function() {
@@ -337,12 +359,12 @@ const OrderConfirmation: React.FC<OrderConfirmationProps> = () => {
               <div className="p-6 bg-gray-50">
                 <div className="space-y-2">
                   <div className="flex justify-between text-sm">
-                    <span className="text-gray-600">Subtotal</span>
+                    <span className="text-gray-600">Sous-total</span>
                     <span>{subtotal?.toFixed(2) || '0.00'} €</span>
                   </div>
                   <div className="flex justify-between text-sm">
-                    <span className="text-gray-600">Tax</span>
-                    <span>{tax?.toFixed(2) || '0.00'} €</span>
+                    <span className="text-gray-600">TVA (10%, incluse)</span>
+                    <span>{taxAmount?.toFixed(2) || '0.00'} €</span>
                   </div>
                   <div className="flex justify-between font-semibold text-base pt-2 border-t border-gray-200 mt-2">
                     <span>Total</span>

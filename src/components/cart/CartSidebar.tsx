@@ -35,8 +35,8 @@ const CartSidebar: React.FC<CartSidebarProps> = ({
   
   const totalItems = items.reduce((sum, item) => sum + item.quantity, 0);
   
-  // Calculate subtotal including toppings
-  const subtotal = items.reduce((sum, item) => {
+  // Calculate total (tax-inclusive)
+  const total = items.reduce((sum, item) => {
     // Base price of the product × quantity
     let itemTotal = item.product.price * item.quantity;
     
@@ -51,8 +51,11 @@ const CartSidebar: React.FC<CartSidebarProps> = ({
     return sum + itemTotal;
   }, 0);
   
-  const tax = subtotal * 0.1; // 10% tax rate
-  const total = subtotal + tax;
+  // Calculate the tax amount (already included in price)
+  // Assuming 10% tax rate: price includes tax, so tax = total - (total / 1.1)
+  const taxRate = 0.1; // 10% tax
+  const taxAmount = total - (total / (1 + taxRate));
+  const subtotal = total - taxAmount;
   
   const saveOrderToDatabase = async (orderData: any) => {
     try {
@@ -143,8 +146,9 @@ const CartSidebar: React.FC<CartSidebarProps> = ({
         orderType, 
         tableNumber,
         subtotal,
-        tax,
-        total
+        taxAmount,
+        total,
+        taxIncluded: true
       };
       
       console.log('Starting checkout process with order data:', orderData);
@@ -253,7 +257,7 @@ const CartSidebar: React.FC<CartSidebarProps> = ({
                   </div>
                   <div className="flex justify-between text-sm">
                     <span className="text-gray-600">TVA</span>
-                    <span>{tax.toFixed(2)} €</span>
+                    <span>{taxAmount.toFixed(2)} €</span>
                   </div>
                   <div className="flex justify-between font-semibold text-base pt-2">
                     <span>Total</span>

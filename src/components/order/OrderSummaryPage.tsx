@@ -8,31 +8,21 @@ import { CartItemType } from '../cart/types';
 import { useCart } from '@/hooks/use-cart';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+
 const OrderSummaryPage: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  const {
-    toast
-  } = useToast();
-  const {
-    items,
-    orderType,
-    tableNumber
-  } = location.state || {};
-  const {
-    handleConfirmOrder
-  } = useCart({
-    orderType,
-    tableNumber
-  });
+  const { toast } = useToast();
+  const { items, orderType, tableNumber, taxIncluded } = location.state || {};
+  const { handleConfirmOrder } = useCart({ orderType, tableNumber });
+  
   React.useEffect(() => {
     if (!items || items.length === 0) {
-      navigate('/', {
-        replace: true
-      });
+      navigate('/', { replace: true });
     }
   }, [items, navigate]);
-  const subtotal = items?.reduce((sum: number, item: CartItemType) => {
+  
+  const total = items?.reduce((sum: number, item: CartItemType) => {
     let itemTotal = item.product.price * item.quantity;
     if (item.selectedToppings && item.selectedToppings.length > 0) {
       const toppingsPrice = item.selectedToppings.reduce((toppingSum, topping) => toppingSum + topping.price, 0);
@@ -40,11 +30,15 @@ const OrderSummaryPage: React.FC = () => {
     }
     return sum + itemTotal;
   }, 0) || 0;
-  const tax = subtotal * 0.1;
-  const total = subtotal + tax;
+  
+  const taxRate = 0.1;
+  const taxAmount = total - (total / (1 + taxRate));
+  const subtotal = total - taxAmount;
+
   const handleGoBack = () => {
     navigate(-1);
   };
+
   const handleConfirmOrderClick = async () => {
     try {
       await handleConfirmOrder();
@@ -122,7 +116,9 @@ const OrderSummaryPage: React.FC = () => {
       });
     }
   };
-  return <Layout>
+
+  return (
+    <Layout>
       <div className="h-full flex flex-col">
         <header className="flex justify-between items-center p-6 border-b border-gray-100">
           <Button variant="ghost" size="icon" onClick={handleGoBack} className="rounded-full">
@@ -134,13 +130,12 @@ const OrderSummaryPage: React.FC = () => {
           <div className="w-10"></div>
         </header>
         
-        <motion.div className="flex-1 overflow-y-auto p-6 flex flex-col items-center" initial={{
-        opacity: 0
-      }} animate={{
-        opacity: 1
-      }} transition={{
-        duration: 0.4
-      }}>
+        <motion.div 
+          className="flex-1 overflow-y-auto p-6 flex flex-col items-center" 
+          initial={{ opacity: 0 }} 
+          animate={{ opacity: 1 }} 
+          transition={{ duration: 0.4 }}
+        >
           <div className="w-full max-w-2xl mx-auto">
             {orderType === 'eat-in' && tableNumber && <motion.div initial={{
             y: 20,
@@ -154,15 +149,12 @@ const OrderSummaryPage: React.FC = () => {
                 Table #{tableNumber} • Sur place
               </motion.div>}
             
-            <motion.div initial={{
-            y: 20,
-            opacity: 0
-          }} animate={{
-            y: 0,
-            opacity: 1
-          }} transition={{
-            delay: 0.3
-          }} className="bg-white rounded-xl shadow-lg overflow-hidden mb-8">
+            <motion.div 
+              initial={{ y: 20, opacity: 0 }} 
+              animate={{ y: 0, opacity: 1 }} 
+              transition={{ delay: 0.3 }} 
+              className="bg-white rounded-xl shadow-lg overflow-hidden mb-8"
+            >
               <div className="p-6 border-b border-gray-100">
                 <h3 className="font-semibold text-lg mb-4">Articles commandés</h3>
                 
@@ -198,7 +190,7 @@ const OrderSummaryPage: React.FC = () => {
                   </div>
                   <div className="flex justify-between text-sm">
                     <span className="text-gray-600">TVA (10%)</span>
-                    <span>{tax.toFixed(2)} €</span>
+                    <span>{taxAmount.toFixed(2)} €</span>
                   </div>
                   <div className="flex justify-between font-semibold text-base pt-2 border-t border-gray-200 mt-2">
                     <span>Total</span>
@@ -208,15 +200,12 @@ const OrderSummaryPage: React.FC = () => {
               </div>
             </motion.div>
             
-            <motion.div initial={{
-            y: 20,
-            opacity: 0
-          }} animate={{
-            y: 0,
-            opacity: 1
-          }} transition={{
-            delay: 0.4
-          }} className="fixed bottom-0 left-0 right-0 p-6 bg-white border-t border-gray-200 shadow-lg">
+            <motion.div 
+              initial={{ y: 20, opacity: 0 }} 
+              animate={{ y: 0, opacity: 1 }} 
+              transition={{ delay: 0.4 }} 
+              className="fixed bottom-0 left-0 right-0 p-6 bg-white border-t border-gray-200 shadow-lg"
+            >
               <Button size="full" onClick={handleConfirmOrderClick} className="text-white text-lg py-4 bg-green-900 hover:bg-green-800">
                 <Check className="w-5 h-5 mr-2" />
                 Confirmer la commande
@@ -225,6 +214,8 @@ const OrderSummaryPage: React.FC = () => {
           </div>
         </motion.div>
       </div>
-    </Layout>;
+    </Layout>
+  );
 };
+
 export default OrderSummaryPage;

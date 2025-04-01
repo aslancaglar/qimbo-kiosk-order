@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import AdminLayout from '../../components/admin/AdminLayout';
@@ -519,6 +518,12 @@ const Orders = () => {
                   ) : (
                     <p className="text-sm text-muted-foreground py-2">No items found.</p>
                   )}
+                </div>
+                
+                <Separator />
+                
+                <div className="text-xs text-center text-muted-foreground">
+                  <p>All prices include 10% tax</p>
                 </div>
                 
                 <Separator />

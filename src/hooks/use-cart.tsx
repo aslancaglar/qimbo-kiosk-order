@@ -107,7 +107,7 @@ export function useCart({ orderType, tableNumber }: UseCartOptions) {
     if (cartItems.length === 0) return;
     
     try {
-      const subtotal = cartItems.reduce((sum, item) => {
+      const total = cartItems.reduce((sum, item) => {
         let itemTotal = item.product.price * item.quantity;
         if (item.selectedToppings && item.selectedToppings.length > 0) {
           const toppingsPrice = item.selectedToppings.reduce(
@@ -118,16 +118,18 @@ export function useCart({ orderType, tableNumber }: UseCartOptions) {
         return sum + itemTotal;
       }, 0);
       
-      const tax = subtotal * 0.1;
-      const total = subtotal + tax;
+      const taxRate = 0.1;
+      const taxAmount = total - (total / (1 + taxRate));
+      const subtotal = total - taxAmount;
       
       const orderData = { 
         items: cartItems, 
         orderType, 
         tableNumber,
         subtotal,
-        tax,
-        total
+        taxAmount,
+        total,
+        taxIncluded: true
       };
       
       console.log('Starting checkout process with order data:', orderData);
