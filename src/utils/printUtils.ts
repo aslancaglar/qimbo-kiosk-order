@@ -252,7 +252,12 @@ export const isBrowserPrintingEnabled = async (): Promise<boolean> => {
       return true; // Default to enabled if there's an error
     }
 
-    return data?.value?.enabled ?? true;
+    if (data?.value && typeof data.value === 'object' && data.value !== null) {
+      const settings = data.value as Record<string, any>;
+      return settings.enabled ?? true;
+    }
+
+    return true; // Default to enabled if value is not an object
   } catch (error) {
     console.error('Error checking browser print settings:', error);
     return true; // Default to enabled if there's an exception
@@ -268,7 +273,7 @@ export const saveBrowserPrintSettings = async (enabled: boolean): Promise<boolea
       .from('settings')
       .upsert({
         key: 'browser_print_settings',
-        value: { enabled }
+        value: { enabled } as any
       });
 
     if (error) {
