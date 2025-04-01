@@ -1,10 +1,10 @@
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import Layout from '../layout/Layout';
 import Button from '../common/Button';
-import { Check, ArrowLeft, Printer } from 'lucide-react';
+import { Check, ArrowLeft } from 'lucide-react';
 import { CartItemType } from '../cart/types';
 import { useCart } from '@/hooks/use-cart';
 import { supabase } from '@/integrations/supabase/client';
@@ -102,7 +102,7 @@ const OrderSummaryPage: React.FC = () => {
           orderType,
           tableNumber,
           subtotal,
-          taxAmount, // Changed from 'tax' to 'taxAmount' to match the variable name
+          taxAmount,
           total,
           orderId: orderResult.id,
           orderNumber: orderResult.order_number
@@ -220,4 +220,3 @@ const OrderSummaryPage: React.FC = () => {
 };
 
 export default OrderSummaryPage;
-

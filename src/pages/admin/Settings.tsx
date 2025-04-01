@@ -9,11 +9,14 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
-import { Save, Settings2, RefreshCw, Upload, Bell, Volume2, Image, Images } from 'lucide-react';
+import { Save, Settings2, RefreshCw, Upload, Bell, Volume2, Image, Images, Printer, Check } from 'lucide-react';
 import { Switch } from "@/components/ui/switch";
 import { clearAppCache } from "../../utils/serviceWorker";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { uploadFile } from '@/utils/fileUpload';
+import { fetchPrinters, testPrintNodeConnection } from '@/utils/printNode';
+import { PrintNodeSettings } from '@/components/cart/types';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 interface OrderingSettings {
   requireTableSelection: boolean;
@@ -31,6 +34,13 @@ interface AppearanceSettings {
   slideshowImages: string[];
 }
 
+interface Printer {
+  id: string;
+  name: string;
+  description?: string;
+  state?: string;
+}
+
 const Settings = () => {
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
@@ -39,6 +49,9 @@ const Settings = () => {
   const [uploadingSound, setUploadingSound] = useState(false);
   const [uploadingImage, setUploadingImage] = useState(false);
   const [uploadingLogo, setUploadingLogo] = useState(false);
+  const [testingPrintNode, setTestingPrintNode] = useState(false);
+  const [fetchingPrinters, setFetchingPrinters] = useState(false);
+  const [printers, setPrinters] = useState<Printer[]>([]);
 
   const [restaurantInfo, setRestaurantInfo] = useState({
     id: 1,
@@ -80,12 +93,20 @@ const Settings = () => {
     ]
   });
 
+  const [printNodeSettings, setPrintNodeSettings] = useState<PrintNodeSettings>({
+    apiKey: '',
+    enabled: false,
+    defaultPrinterId: '',
+    printerName: '',
+  });
+
   useEffect(() => {
     fetchRestaurantInfo();
     fetchBusinessHours();
     fetchOrderingSettings();
     fetchNotificationSettings();
     fetchAppearanceSettings();
+    fetchPrintNodeSettings();
   }, []);
 
   const fetchRestaurantInfo = async () => {
@@ -277,6 +298,46 @@ const Settings = () => {
     }
   };
 
+  const fetchPrintNodeSettings = async () => {
+    try {
+      setLoading(true);
+      const { data, error } = await supabase
+        .from('settings')
+        .select('*')
+        .eq('key', 'printnode_settings')
+        .maybeSingle();
+        
+      if (error) {
+        console.error('Error fetching PrintNode settings:', error);
+        toast({
+          title: "Error",
+          description: "Failed to load PrintNode settings",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      if (data && data.value) {
+        const settings = data.value as Record<string, any>;
+        setPrintNodeSettings({
+          apiKey: settings.apiKey || '',
+          enabled: settings.enabled !== undefined ? !!settings.enabled : false,
+          defaultPrinterId: settings.defaultPrinterId || '',
+          printerName: settings.printerName || '',
+        });
+      }
+    } catch (error) {
+      console.error('Unexpected error:', error);
+      toast({
+        title: "Error",
+        description: "An unexpected error occurred",
+        variant: "destructive"
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleInfoChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { id, value } = e.target;
     setRestaurantInfo(prev => ({
@@ -304,6 +365,13 @@ const Settings = () => {
   
   const handleNotificationSettingChange = (field: string, value: any) => {
     setNotificationSettings(prev => ({
+      ...prev,
+      [field]: value
+    }));
+  };
+
+  const handlePrintNodeSettingChange = (field: string, value: any) => {
+    setPrintNodeSettings(prev => ({
       ...prev,
       [field]: value
     }));
@@ -619,6 +687,84 @@ const Settings = () => {
     }
   };
 
+  const savePrintNodeSettings = async () => {
+    try {
+      setLoading(true);
+      
+      const { data: existingData, error: checkError } = await supabase
+        .from('settings')
+        .select('id')
+        .eq('key', 'printnode_settings')
+        .maybeSingle();
+        
+      if (checkError) {
+        console.error('Error checking PrintNode settings:', checkError);
+        toast({
+          title: "Error",
+          description: "Failed to check if settings exist",
+          variant: "destructive"
+        });
+        return;
+      }
+      
+      let saveError;
+      
+      const settingsValue = {
+        apiKey: printNodeSettings.apiKey,
+        enabled: printNodeSettings.enabled,
+        defaultPrinterId: printNodeSettings.defaultPrinterId,
+        printerName: printNodeSettings.printerName
+      } as Json;
+      
+      if (existingData) {
+        const { error } = await supabase
+          .from('settings')
+          .update({
+            value: settingsValue,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', existingData.id);
+          
+        saveError = error;
+      } else {
+        const { error } = await supabase
+          .from('settings')
+          .insert({
+            key: 'printnode_settings',
+            value: settingsValue,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+          });
+          
+        saveError = error;
+      }
+
+      if (saveError) {
+        console.error('Error saving PrintNode settings:', saveError);
+        toast({
+          title: "Error",
+          description: "Failed to save PrintNode settings",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      toast({
+        title: "Success",
+        description: "PrintNode settings saved successfully"
+      });
+    } catch (error) {
+      console.error('Unexpected error:', error);
+      toast({
+        title: "Error",
+        description: "An unexpected error occurred",
+        variant: "destructive"
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleClearCache = async () => {
     try {
       setClearingCache(true);
@@ -880,6 +1026,94 @@ const Settings = () => {
     }
   };
 
+  const testPrintNodeAPI = async () => {
+    if (!printNodeSettings.apiKey) {
+      toast({
+        title: "API Key Required",
+        description: "Please enter a PrintNode API key first",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    try {
+      setTestingPrintNode(true);
+      const success = await testPrintNodeConnection(printNodeSettings.apiKey);
+      
+      if (success) {
+        toast({
+          title: "Connection Successful",
+          description: "PrintNode API connection verified"
+        });
+      } else {
+        toast({
+          title: "Connection Failed",
+          description: "Could not connect to PrintNode API. Please check your API key.",
+          variant: "destructive"
+        });
+      }
+    } catch (error) {
+      console.error('Error testing PrintNode connection:', error);
+      toast({
+        title: "Connection Error",
+        description: "An error occurred while testing the connection",
+        variant: "destructive"
+      });
+    } finally {
+      setTestingPrintNode(false);
+    }
+  };
+  
+  const loadPrinters = async () => {
+    if (!printNodeSettings.apiKey) {
+      toast({
+        title: "API Key Required",
+        description: "Please enter a PrintNode API key first",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    try {
+      setFetchingPrinters(true);
+      setPrinters([]);
+      
+      const printerList = await fetchPrinters(printNodeSettings.apiKey);
+      
+      if (printerList.length > 0) {
+        setPrinters(printerList);
+        toast({
+          title: "Printers Loaded",
+          description: `Found ${printerList.length} printer${printerList.length !== 1 ? 's' : ''}`
+        });
+      } else {
+        toast({
+          title: "No Printers Found",
+          description: "No printers are available in your PrintNode account",
+          variant: "destructive"
+        });
+      }
+    } catch (error) {
+      console.error('Error loading printers:', error);
+      toast({
+        title: "Printer Error",
+        description: "An error occurred while fetching printers",
+        variant: "destructive"
+      });
+    } finally {
+      setFetchingPrinters(false);
+    }
+  };
+  
+  const handlePrinterSelect = (printerId: string) => {
+    const printer = printers.find(p => p.id === printerId);
+    setPrintNodeSettings(prev => ({
+      ...prev,
+      defaultPrinterId: printerId,
+      printerName: printer?.name || ''
+    }));
+  };
+
   return (
     <AdminLayout>
       <div className="space-y-6">
@@ -889,6 +1123,7 @@ const Settings = () => {
             <TabsTrigger value="ordering">Ordering</TabsTrigger>
             <TabsTrigger value="appearance">Appearance</TabsTrigger>
             <TabsTrigger value="notifications">Notifications</TabsTrigger>
+            <TabsTrigger value="printing">Printing</TabsTrigger>
             <TabsTrigger value="system">System</TabsTrigger>
           </TabsList>
           
@@ -1226,6 +1461,127 @@ const Settings = () => {
                 >
                   <Save className="h-4 w-4 mr-2" />
                   {loading ? 'Saving...' : 'Save Notification Settings'}
+                </Button>
+              </CardContent>
+            </Card>
+          </TabsContent>
+          
+          <TabsContent value="printing" className="mt-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Printer className="h-5 w-5" />
+                  PrintNode Integration
+                </CardTitle>
+                <CardDescription>
+                  Configure automatic receipt printing via PrintNode
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="space-y-4">
+                  <h3 className="text-lg font-medium">PrintNode API Connection</h3>
+                  
+                  <div className="flex items-center space-x-2">
+                    <Switch 
+                      id="printnode-enabled"
+                      checked={printNodeSettings.enabled}
+                      onCheckedChange={(checked) => handlePrintNodeSettingChange('enabled', checked)}
+                    />
+                    <Label htmlFor="printnode-enabled">
+                      Enable PrintNode receipt printing
+                    </Label>
+                  </div>
+                  
+                  {printNodeSettings.enabled && (
+                    <div className="space-y-4 pl-7">
+                      <div className="space-y-2">
+                        <Label htmlFor="printnode-api-key">PrintNode API Key</Label>
+                        <div className="flex gap-2">
+                          <Input
+                            id="printnode-api-key"
+                            type="password"
+                            placeholder="Enter your PrintNode API key"
+                            value={printNodeSettings.apiKey}
+                            onChange={(e) => handlePrintNodeSettingChange('apiKey', e.target.value)}
+                            className="flex-1"
+                          />
+                          <Button
+                            variant="outline"
+                            onClick={testPrintNodeAPI}
+                            disabled={!printNodeSettings.apiKey || testingPrintNode}
+                          >
+                            {testingPrintNode ? 'Testing...' : 'Test Connection'}
+                          </Button>
+                        </div>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          Get your API key from the <a href="https://app.printnode.com/app/apikeys" target="_blank" rel="noopener noreferrer" className="text-primary underline">PrintNode dashboard</a>
+                        </p>
+                      </div>
+                      
+                      <div className="space-y-2 pt-4">
+                        <Label>Printer Selection</Label>
+                        <div className="flex gap-2 mb-4">
+                          <Button 
+                            variant="outline" 
+                            onClick={loadPrinters}
+                            disabled={!printNodeSettings.apiKey || fetchingPrinters}
+                            className="flex-shrink-0"
+                          >
+                            {fetchingPrinters ? 'Loading...' : printers.length > 0 ? 'Refresh Printers' : 'Load Printers'}
+                          </Button>
+                        </div>
+                        
+                        {printers.length > 0 ? (
+                          <div className="space-y-2">
+                            <Select 
+                              value={printNodeSettings.defaultPrinterId} 
+                              onValueChange={handlePrinterSelect}
+                            >
+                              <SelectTrigger className="w-full">
+                                <SelectValue placeholder="Select a printer" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {printers.map((printer) => (
+                                  <SelectItem key={printer.id} value={printer.id}>
+                                    {printer.name} {printer.state && `(${printer.state})`}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                            
+                            {printNodeSettings.defaultPrinterId && (
+                              <div className="flex items-center p-2 bg-green-50 text-green-800 rounded-md">
+                                <Check size={16} className="mr-2" />
+                                Selected printer: {printNodeSettings.printerName || 'Unknown printer'}
+                              </div>
+                            )}
+                          </div>
+                        ) : (
+                          <div className="text-sm text-muted-foreground">
+                            {fetchingPrinters ? 'Loading printers...' : 'No printers loaded. Click the button above to load your printers.'}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
+                
+                <Alert variant="info" className="bg-blue-50">
+                  <AlertDescription>
+                    <p>
+                      When enabled, order receipts will be automatically sent to the selected printer.
+                      Make sure your printer is properly connected and configured with PrintNode.
+                    </p>
+                  </AlertDescription>
+                </Alert>
+                
+                <Button 
+                  onClick={savePrintNodeSettings}
+                  disabled={loading}
+                  className="mt-4"
+                >
+                  <Save className="h-4 w-4 mr-2" />
+                  {loading ? 'Saving...' : 'Save Printing Settings'}
                 </Button>
               </CardContent>
             </Card>

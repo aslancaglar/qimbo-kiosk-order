@@ -17,3 +17,11 @@ export interface CartItemType {
   options?: { name: string; value: string }[];
   notes?: string;
 }
+
+export interface PrintNodeSettings {
+  apiKey: string;
+  enabled: boolean;
+  defaultPrinterId?: string;
+  printerName?: string;
+}
+
