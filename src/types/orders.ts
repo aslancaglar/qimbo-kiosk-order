@@ -8,8 +8,6 @@ export interface Order {
   status: string; // Now can include "New", "Pending", "In Progress", "Completed", "Cancelled"
   created_at: string;
   order_number: string; // Added the order_number field
-  print_status?: 'pending' | 'printed' | 'failed';
-  print_attempts?: number;
 }
 
 export interface OrderItem {
@@ -46,23 +44,4 @@ export interface Topping {
   category: string;
   price: number;
   available: boolean;
-}
-
-export interface PrinterSettings {
-  enabled: boolean;
-  apiKey: string;
-  printerId: number;
-  paperWidth: number; // in mm
-  charPerLine: number;
-  autoPrint: boolean;
-}
-
-export interface PrintJob {
-  id: number;
-  order_id: number;
-  status: 'pending' | 'processing' | 'completed' | 'failed';
-  attempts: number;
-  created_at: string;
-  completed_at?: string;
-  error_message?: string;
 }
