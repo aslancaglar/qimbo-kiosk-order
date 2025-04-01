@@ -1,7 +1,8 @@
-import { CartItemType } from "../components/cart/types";
-import { getPrintNodeCredentials, sendToPrintNode, formatTextReceipt } from "./printNode";
 
-// Format order for printing
+import { CartItemType } from "../components/cart/types";
+import { getPrintNodeCredentials, sendToPrintNode } from "./printNode";
+
+// Format order for printing - now used by both browser print and PrintNode
 export const formatOrderReceipt = (
   orderNumber: string | number,
   items: CartItemType[],
@@ -154,7 +155,8 @@ export const printToThermalPrinter = async (
     }
     
     console.log('PrintNode credentials found, formatting receipt...');
-    const textReceipt = formatTextReceipt(
+    // Use the HTML receipt format for PrintNode too
+    const receipt = formatOrderReceipt(
       orderNumber,
       items,
       orderType,
@@ -165,7 +167,7 @@ export const printToThermalPrinter = async (
     );
     
     console.log('Sending receipt to PrintNode...');
-    const result = await sendToPrintNode(textReceipt, credentials.apiKey, credentials.printerId);
+    const result = await sendToPrintNode(receipt, credentials.apiKey, credentials.printerId);
     console.log('PrintNode send result:', result);
     return result;
   } catch (error) {
@@ -362,7 +364,7 @@ export const printOrderBrowser = async (
 };
 
 // Print to both PrintNode and browser
-export const printOrderBoth = (
+export const printOrderBoth = async (
   orderNumber: string | number,
   items: CartItemType[],
   orderType: string,
@@ -372,7 +374,7 @@ export const printOrderBoth = (
   total: number
 ): Promise<boolean> => {
   console.log('Printing to both PrintNode and browser');
-  return printOrder(
+  return await printOrder(
     orderNumber, 
     items, 
     orderType, 
