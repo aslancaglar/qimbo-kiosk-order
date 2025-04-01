@@ -1,10 +1,11 @@
+
 import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import Layout from '../layout/Layout';
-import Button from '../common/Button';
+import Layout from '@/components/layout/Layout';
+import Button from '@/components/common/Button';
 import { Check, Home, Printer, Plus } from 'lucide-react';
-import { CartItemType } from '../cart/types';
+import { CartItemType, PrintNodeSettings } from '@/components/cart/types';
 import { toast } from '@/hooks/use-toast';
 import { printReceipt } from '@/utils/printNode';
 import { supabase } from '@/integrations/supabase/client';
@@ -32,7 +33,7 @@ const OrderConfirmation: React.FC<OrderConfirmationProps> = () => {
     name: 'Restaurant',
     logo: '',
   });
-  const [printNodeSettings, setPrintNodeSettings] = useState({
+  const [printNodeSettings, setPrintNodeSettings] = useState<PrintNodeSettings>({
     apiKey: '',
     enabled: false,
     defaultPrinterId: '',
@@ -92,7 +93,7 @@ const OrderConfirmation: React.FC<OrderConfirmationProps> = () => {
           .single();
 
         if (appearanceData?.value) {
-          const appearanceValue = appearanceData.value as Record<string, any>;
+          const appearanceValue = appearanceData.value as { logo?: string };
           if (appearanceValue.logo) {
             setRestaurantInfo(prev => ({ ...prev, logo: appearanceValue.logo }));
           }
@@ -110,7 +111,7 @@ const OrderConfirmation: React.FC<OrderConfirmationProps> = () => {
           .single();
 
         if (printNodeData?.value) {
-          const settings = printNodeData.value as Record<string, any>;
+          const settings = printNodeData.value as PrintNodeSettings;
           setPrintNodeSettings({
             apiKey: settings.apiKey || '',
             enabled: !!settings.enabled,
