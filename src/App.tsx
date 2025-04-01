@@ -1,5 +1,5 @@
 
-import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, useLocation, Outlet } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import WelcomePage from './components/welcome/WelcomePage';
 import WhereYouEat from './pages/WhereYouEat';
@@ -42,12 +42,12 @@ function App() {
     <QueryClientProvider client={queryClient}>
       <Router>
         <Routes>
-          <Route path="/" element={<WelcomePage />} />
+          <Route path="/" element={<WhereYouEat />} />
           <Route path="/where-you-eat" element={<WhereYouEat />} />
           <Route path="/menu" element={<MenuPage />} />
           <Route path="/summary" element={<OrderSummaryPage />} />
           <Route path="/confirmation" element={<OrderConfirmation />} />
-          <Route path="/admin" element={<AdminLayout />}>
+          <Route path="/admin" element={<AdminLayout><Outlet /></AdminLayout>}>
             <Route index element={<Dashboard />} />
             <Route path="orders" element={<Orders />} />
             <Route path="kitchen-display" element={<KitchenDisplay />} />
