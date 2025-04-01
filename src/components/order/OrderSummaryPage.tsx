@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
@@ -101,7 +102,7 @@ const OrderSummaryPage: React.FC = () => {
           orderType,
           tableNumber,
           subtotal,
-          tax,
+          taxAmount, // Changed from 'tax' to 'taxAmount' to match the variable name
           total,
           orderId: orderResult.id,
           orderNumber: orderResult.order_number
@@ -219,3 +220,4 @@ const OrderSummaryPage: React.FC = () => {
 };
 
 export default OrderSummaryPage;
+
