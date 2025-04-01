@@ -116,7 +116,7 @@ export const formatTextReceipt = (
   total: number
 ): string => {
   const orderDate = new Date().toLocaleString();
-  const lineWidth = 50; // Characters per line on most thermal printers
+  const lineWidth = 48; // Characters per line on most thermal printers
   const separator = '-'.repeat(lineWidth);
   
   // Use the Euro symbol with appropriate encoding for thermal printers
@@ -136,8 +136,7 @@ export const formatTextReceipt = (
   receipt += centerText('ITEMS', lineWidth) + '\n\n';
   
   items.forEach(item => {
-    receipt += `${item.quantity}x ${item.product.name}\n`;
-    receipt += `${' '.repeat(4)}${(item.product.price * item.quantity).toFixed(2)} ${currencySymbol}\n`;
+    receipt += `${item.quantity}x ${item.product.name}`; receipt += `${' '.repeat(4)}${(item.product.price * item.quantity).toFixed(2)} ${currencySymbol}\n`;
     
     if (item.options && item.options.length > 0) {
       receipt += `${' '.repeat(2)}${item.options.map(o => o.value).join(', ')}\n`;
