@@ -47,6 +47,9 @@ export const sendToPrintNode = async (
   }
 
   try {
+    // Convert printerId to number if it's a string
+    const printerIdNum = typeof printerId === 'string' ? parseInt(printerId, 10) : printerId;
+    
     const response = await fetch('https://api.printnode.com/printjobs', {
       method: 'POST',
       headers: {
@@ -54,7 +57,7 @@ export const sendToPrintNode = async (
         'Authorization': `Basic ${btoa(apiKey + ':')}`
       },
       body: JSON.stringify({
-        printerId: printerId,
+        printerId: printerIdNum,
         title: 'Receipt Print Job',
         contentType: 'raw_base64',
         content: btoa(content),
@@ -181,7 +184,10 @@ export const testPrintNodeConnection = async (
     
     // If printerId is provided, also test that specific printer
     if (printerId) {
-      const printerResponse = await fetch(`https://api.printnode.com/printers/${printerId}`, {
+      // Convert printerId to number if it's a string
+      const printerIdNum = typeof printerId === 'string' ? parseInt(printerId, 10) : printerId;
+      
+      const printerResponse = await fetch(`https://api.printnode.com/printers/${printerIdNum}`, {
         method: 'GET',
         headers: {
           'Authorization': `Basic ${btoa(apiKey + ':')}`
@@ -213,6 +219,7 @@ export const fetchPrintNodePrinters = async (apiKey: string): Promise<any[]> => 
   }
   
   try {
+    console.log('Fetching PrintNode printers...');
     const response = await fetch('https://api.printnode.com/printers', {
       method: 'GET',
       headers: {
@@ -221,10 +228,12 @@ export const fetchPrintNodePrinters = async (apiKey: string): Promise<any[]> => 
     });
     
     if (!response.ok) {
+      console.error('Failed to fetch printers:', await response.text());
       return [];
     }
     
     const printers = await response.json();
+    console.log(`Found ${printers.length} printers`);
     return printers.map((printer: any) => ({
       id: printer.id,
       name: printer.name,

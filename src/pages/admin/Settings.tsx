@@ -63,6 +63,7 @@ const Settings = () => {
   const [fetchingPrinters, setFetchingPrinters] = useState(false);
   const [testingPrinter, setTestingPrinter] = useState(false);
   const [availablePrinters, setAvailablePrinters] = useState<PrinterOption[]>([]);
+  const [initialPrinterLoad, setInitialPrinterLoad] = useState(false);
 
   const [restaurantInfo, setRestaurantInfo] = useState({
     id: 1,
@@ -330,12 +331,44 @@ const Settings = () => {
 
       if (data && data.value) {
         const settings = data.value as Record<string, any>;
-        setPrintSettings({
+        const newSettings = {
           enabled: settings.enabled !== undefined ? !!settings.enabled : false,
           apiKey: settings.apiKey || '',
           printerId: settings.printerId || '',
           printerName: settings.printerName || ''
-        });
+        };
+        
+        setPrintSettings(newSettings);
+        
+        // If we have an API key, auto-fetch printers on initial load
+        if (newSettings.apiKey && !initialPrinterLoad) {
+          console.log('Auto-fetching printers on initial load');
+          setInitialPrinterLoad(true);
+          
+          // We need to wait for the state to update
+          setTimeout(async () => {
+            try {
+              setFetchingPrinters(true);
+              const printers = await fetchPrintNodePrinters(newSettings.apiKey);
+              setAvailablePrinters(printers);
+              
+              if (printers.length === 0 && newSettings.printerId) {
+                console.log('No printers found but printerId exists in settings, trying again...');
+                // Try once more after a short delay
+                setTimeout(async () => {
+                  const retryPrinters = await fetchPrintNodePrinters(newSettings.apiKey);
+                  setAvailablePrinters(retryPrinters);
+                  setFetchingPrinters(false);
+                }, 1000);
+              } else {
+                setFetchingPrinters(false);
+              }
+            } catch (error) {
+              console.error('Error auto-fetching printers:', error);
+              setFetchingPrinters(false);
+            }
+          }, 500);
+        }
       }
     } catch (error) {
       console.error('Unexpected error:', error);
@@ -718,13 +751,20 @@ const Settings = () => {
         return;
       }
       
+      // Make sure we're saving both printerId and printerName
+      const selectedPrinter = availablePrinters.find(
+        printer => printer.id.toString() === printSettings.printerId.toString()
+      );
+      
+      const printerName = selectedPrinter?.name || printSettings.printerName;
+      
       let saveError;
       
       const settingsValue = {
         enabled: printSettings.enabled,
         apiKey: printSettings.apiKey,
         printerId: printSettings.printerId,
-        printerName: printSettings.printerName
+        printerName: printerName
       } as Json;
       
       if (existingData) {
@@ -1097,6 +1137,20 @@ const Settings = () => {
           title: "Printers Found",
           description: `Found ${printers.length} printer(s) on your account.`
         });
+        
+        // If we have a saved printer ID but no printer selected yet, auto-select it
+        if (printSettings.printerId && !printSettings.printerName) {
+          const savedPrinter = printers.find(
+            printer => printer.id.toString() === printSettings.printerId.toString()
+          );
+          
+          if (savedPrinter) {
+            setPrintSettings(prev => ({
+              ...prev,
+              printerName: savedPrinter.name
+            }));
+          }
+        }
       }
     } catch (error) {
       console.error('Error fetching printers:', error);
@@ -1151,6 +1205,49 @@ const Settings = () => {
         printerName: selectedPrinter.name
       }));
     }
+  };
+
+  // Render the printer selection with the proper printer selection
+  const renderPrinterSelection = () => {
+    if (fetchingPrinters) {
+      return (
+        <div className="p-4 border rounded-md bg-muted/50 text-center">
+          <p className="text-sm text-muted-foreground">
+            Searching for printers...
+          </p>
+        </div>
+      );
+    }
+    
+    if (availablePrinters.length > 0) {
+      return (
+        <Select
+          value={printSettings.printerId.toString()}
+          onValueChange={handlePrinterSelect}
+        >
+          <SelectTrigger className="w-full">
+            <SelectValue placeholder="Select a printer">
+              {printSettings.printerName || "Select a printer"}
+            </SelectValue>
+          </SelectTrigger>
+          <SelectContent>
+            {availablePrinters.map((printer) => (
+              <SelectItem key={printer.id} value={printer.id.toString()}>
+                {printer.name} {printer.state ? `(${printer.state})` : ''}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      );
+    }
+    
+    return (
+      <div className="p-4 border rounded-md bg-muted/50 text-center">
+        <p className="text-sm text-muted-foreground">
+          No printers found. Click "Refresh Printers" to fetch available printers.
+        </p>
+      </div>
+    );
   };
 
   return (
@@ -1576,31 +1673,7 @@ const Settings = () => {
                           </Button>
                         </div>
                         
-                        {availablePrinters.length > 0 ? (
-                          <Select
-                            value={printSettings.printerId.toString()}
-                            onValueChange={handlePrinterSelect}
-                          >
-                            <SelectTrigger className="w-full">
-                              <SelectValue placeholder="Select a printer" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {availablePrinters.map((printer) => (
-                                <SelectItem key={printer.id} value={printer.id.toString()}>
-                                  {printer.name} {printer.state ? `(${printer.state})` : ''}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        ) : (
-                          <div className="p-4 border rounded-md bg-muted/50 text-center">
-                            <p className="text-sm text-muted-foreground">
-                              {fetchingPrinters 
-                                ? 'Searching for printers...'
-                                : 'No printers found. Click "Refresh Printers" to fetch available printers.'}
-                            </p>
-                          </div>
-                        )}
+                        {renderPrinterSelection()}
                         
                         {printSettings.printerId && (
                           <div className="mt-4">
