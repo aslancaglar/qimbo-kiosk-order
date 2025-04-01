@@ -92,6 +92,7 @@ export const sendToPrintNode = async (content: string, apiKey: string, printerId
     const printJob: PrintJob = {
       printer_id: printerId,
       content: content,
+      contentType: 'raw_text',
       type: 'receipt',
       copies: 1,
       metadata: {
@@ -181,9 +182,25 @@ export const fetchPrintNodePrinters = async (apiKey: string): Promise<any[]> => 
  */
 export const sendTestPrint = async (apiKey: string, printerId: string): Promise<boolean> => {
   try {
+    const testContent = `
+---------------------------------------
+           TEST RECEIPT
+---------------------------------------
+
+This is a test receipt from your POS system.
+The thermal printer integration is working!
+
+Date: ${new Date().toLocaleString()}
+
+---------------------------------------
+          END OF TEST
+---------------------------------------
+`;
+
     const printJob: PrintJob = {
       printer_id: printerId,
-      content: 'This is a test receipt from Lovable.',
+      content: testContent,
+      contentType: 'raw_text',
       type: 'receipt',
       copies: 1,
       metadata: {
