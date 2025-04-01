@@ -1,4 +1,3 @@
-
 import { CartItemType } from "../components/cart/types";
 import { getPrintNodeCredentials, sendToPrintNode, formatTextReceipt } from "./printNode";
 
@@ -175,8 +174,10 @@ export const printToThermalPrinter = async (
   }
 };
 
-// Print order - use only PrintNode
-export const printOrder = async (
+/**
+ * Print to browser
+ */
+export const printToBrowser = (
   orderNumber: string | number,
   items: CartItemType[],
   orderType: string,
@@ -184,27 +185,133 @@ export const printOrder = async (
   subtotal: number,
   tax: number,
   total: number
-): Promise<void> => {
-  console.log('Print order function called with order #:', orderNumber);
-  const printed = await printToThermalPrinter(
-    orderNumber, 
-    items, 
-    orderType, 
-    tableNumber, 
-    subtotal, 
-    tax, 
-    total
-  );
-  
-  if (!printed) {
-    console.warn('Failed to print receipt to PrintNode. No fallback to browser printing.');
-    throw new Error('Failed to print receipt to PrintNode');
-  } else {
-    console.log('Order receipt successfully sent to PrintNode.');
+): boolean => {
+  try {
+    console.log('Printing receipt in browser...');
+    const receipt = formatOrderReceipt(
+      orderNumber,
+      items,
+      orderType,
+      tableNumber,
+      subtotal,
+      tax,
+      total
+    );
+    
+    // Create a hidden iframe for printing
+    const iframe = document.createElement('iframe');
+    iframe.style.position = 'fixed';
+    iframe.style.right = '0';
+    iframe.style.bottom = '0';
+    iframe.style.width = '0';
+    iframe.style.height = '0';
+    iframe.style.border = 'none';
+    
+    document.body.appendChild(iframe);
+    
+    // Write receipt HTML to iframe and print it
+    if (iframe.contentWindow) {
+      iframe.contentWindow.document.open();
+      iframe.contentWindow.document.write(receipt);
+      iframe.contentWindow.document.close();
+      
+      iframe.contentWindow.onafterprint = () => {
+        document.body.removeChild(iframe);
+      };
+      
+      setTimeout(() => {
+        iframe.contentWindow?.print();
+      }, 500);
+      
+      return true;
+    } else {
+      console.error('Failed to access iframe content window');
+      document.body.removeChild(iframe);
+      return false;
+    }
+  } catch (error) {
+    console.error('Error printing to browser:', error);
+    return false;
   }
 };
 
-// Keep this for backward compatibility but remove browser fallback
+// Print order - Use PrintNode first, fall back to browser if needed
+export const printOrder = async (
+  orderNumber: string | number,
+  items: CartItemType[],
+  orderType: string,
+  tableNumber: string | number | undefined,
+  subtotal: number,
+  tax: number,
+  total: number,
+  fallbackToBrowser = true
+): Promise<boolean> => {
+  console.log('Print order function called with order #:', orderNumber);
+  try {
+    // First try PrintNode
+    const printed = await printToThermalPrinter(
+      orderNumber, 
+      items, 
+      orderType, 
+      tableNumber, 
+      subtotal, 
+      tax, 
+      total
+    );
+    
+    if (printed) {
+      console.log('Order receipt successfully sent to PrintNode.');
+      return true;
+    }
+    
+    // If PrintNode fails and fallback is enabled, try browser printing
+    if (fallbackToBrowser) {
+      console.log('PrintNode printing failed. Falling back to browser printing.');
+      const browserPrinted = printToBrowser(
+        orderNumber,
+        items,
+        orderType,
+        tableNumber,
+        subtotal,
+        tax,
+        total
+      );
+      
+      if (browserPrinted) {
+        console.log('Order receipt successfully sent to browser printing.');
+        return true;
+      }
+    }
+    
+    console.warn('Failed to print receipt via any method.');
+    return false;
+  } catch (error) {
+    console.error('Error in printOrder:', error);
+    
+    // Last resort fallback to browser if an exception occurred
+    if (fallbackToBrowser) {
+      try {
+        console.log('Error occurred with PrintNode. Attempting browser printing as last resort.');
+        return printToBrowser(
+          orderNumber, 
+          items, 
+          orderType, 
+          tableNumber, 
+          subtotal, 
+          tax, 
+          total
+        );
+      } catch (browserError) {
+        console.error('Browser printing also failed:', browserError);
+        return false;
+      }
+    }
+    
+    return false;
+  }
+};
+
+// For direct browser printing
 export const printOrderBrowser = (
   orderNumber: string | number,
   items: CartItemType[],
@@ -213,7 +320,7 @@ export const printOrderBrowser = (
   subtotal: number,
   tax: number,
   total: number
-): void => {
-  console.log('Browser printing is disabled. Using PrintNode instead.');
-  printOrder(orderNumber, items, orderType, tableNumber, subtotal, tax, total);
+): boolean => {
+  console.log('Direct browser printing requested');
+  return printToBrowser(orderNumber, items, orderType, tableNumber, subtotal, tax, total);
 };
