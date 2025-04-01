@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "../../integrations/supabase/client";
@@ -20,6 +21,7 @@ import {
   sendTestPrint 
 } from '@/utils/printNode';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { testConnection, fetchPrinters, sendPrintJob } from '@/utils/printBiz';
 
 interface OrderingSettings {
   requireTableSelection: boolean;
@@ -336,6 +338,11 @@ const Settings = () => {
           printerId: settings.printerId || '',
           printerName: settings.printerName || ''
         });
+
+        // Fetch printers if we have API key and printer ID
+        if (settings.apiKey && settings.enabled) {
+          handleFetchPrinters(settings.apiKey);
+        }
       }
     } catch (error) {
       console.error('Unexpected error:', error);
@@ -1053,7 +1060,7 @@ const Settings = () => {
         return;
       }
       
-      const success = await testPrintNodeConnection(printSettings.apiKey, printSettings.printerId);
+      const success = await testPrintNodeConnection(printSettings.apiKey);
       
       if (success) {
         toast({
@@ -1079,10 +1086,22 @@ const Settings = () => {
     }
   };
 
-  const handleFetchPrinters = async () => {
+  const handleFetchPrinters = async (apiKeyOverride?: string) => {
     setFetchingPrinters(true);
     try {
-      const printers = await fetchPrintNodePrinters(printSettings.apiKey);
+      const apiKey = apiKeyOverride || printSettings.apiKey;
+      
+      if (!apiKey) {
+        toast({
+          title: "Missing API Key",
+          description: "Please enter your PrintNode API key",
+          variant: "destructive"
+        });
+        setFetchingPrinters(false);
+        return;
+      }
+      
+      const printers = await fetchPrintNodePrinters(apiKey);
       
       setAvailablePrinters(printers);
       
@@ -1569,7 +1588,7 @@ const Settings = () => {
                           <Button
                             variant="outline"
                             size="sm"
-                            onClick={handleFetchPrinters}
+                            onClick={() => handleFetchPrinters()}
                             disabled={!printSettings.apiKey || fetchingPrinters}
                           >
                             {fetchingPrinters ? 'Loading...' : 'Refresh Printers'}
@@ -1595,9 +1614,13 @@ const Settings = () => {
                         ) : (
                           <div className="p-4 border rounded-md bg-muted/50 text-center">
                             <p className="text-sm text-muted-foreground">
-                              {fetchingPrinters 
-                                ? 'Searching for printers...'
-                                : 'No printers found. Click "Refresh Printers" to fetch available printers.'}
+                              {printSettings.printerName ? (
+                                <>Selected printer: <strong>{printSettings.printerName}</strong> (Click "Refresh Printers" to view all printers)</>
+                              ) : (
+                                fetchingPrinters 
+                                  ? 'Searching for printers...'
+                                  : 'No printers found. Click "Refresh Printers" to fetch available printers.'
+                              )}
                             </p>
                           </div>
                         )}
