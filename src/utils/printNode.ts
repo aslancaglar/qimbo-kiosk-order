@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { CartItemType } from "../components/cart/types";
 
@@ -219,13 +218,15 @@ const logPrintJob = async (
   successful: boolean
 ): Promise<void> => {
   try {
-    // Fix the table name to match what's available in the database
+    // Make sure field names match the database schema
     await supabase.from('print_jobs').insert({
       printer_id: printerId,
-      print_job_id: jobId,
+      job_id: jobId.toString(), // Convert number to string as the schema expects string
       content_preview: content.substring(0, 255),
       successful: successful,
-      created_at: new Date().toISOString()
+      status: successful ? 'completed' : 'failed',
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
     });
   } catch (error) {
     console.error('Error logging print job:', error);
