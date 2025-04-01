@@ -1,3 +1,4 @@
+
 import { CartItemType } from "../components/cart/types";
 import { getPrintNodeCredentials, sendToPrintNode, formatTextReceipt } from "./printNode";
 
@@ -174,6 +175,39 @@ export const printToThermalPrinter = async (
   }
 };
 
+// Browser printing settings
+let _browserPrintingEnabled = true;
+
+/**
+ * Enable or disable browser printing
+ */
+export const saveBrowserPrintSettings = async (enabled: boolean): Promise<boolean> => {
+  try {
+    _browserPrintingEnabled = enabled;
+    
+    // Store this in database
+    const { error } = await getPrintNodeCredentials();
+    
+    if (error) {
+      console.error('Error saving browser print settings:', error);
+      return false;
+    }
+    
+    console.log('Browser printing settings updated:', { enabled });
+    return true;
+  } catch (error) {
+    console.error('Error saving browser print settings:', error);
+    return false;
+  }
+};
+
+/**
+ * Check if browser printing is enabled
+ */
+export const isBrowserPrintingEnabled = async (): Promise<boolean> => {
+  return _browserPrintingEnabled;
+};
+
 /**
  * Print to browser
  */
@@ -187,6 +221,12 @@ export const printToBrowser = (
   total: number
 ): boolean => {
   try {
+    // Check if browser printing is enabled
+    if (!_browserPrintingEnabled) {
+      console.log('Browser printing is disabled');
+      return false;
+    }
+    
     console.log('Printing receipt in browser...');
     const receipt = formatOrderReceipt(
       orderNumber,

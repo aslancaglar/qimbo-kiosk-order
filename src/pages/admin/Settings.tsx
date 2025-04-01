@@ -19,6 +19,7 @@ import {
   fetchPrintNodePrinters, 
   sendTestPrint 
 } from '@/utils/printNode';
+import { saveBrowserPrintSettings as saveBrowserPrintSettingsUtil, isBrowserPrintingEnabled } from '@/utils/printUtils';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 interface OrderingSettings {
@@ -42,6 +43,7 @@ interface PrintSettings {
   apiKey: string;
   printerId: string;
   printerName?: string;
+  browserPrintingEnabled: boolean;
 }
 
 interface PrinterOption {
@@ -64,6 +66,7 @@ const Settings = () => {
   const [testingPrinter, setTestingPrinter] = useState(false);
   const [availablePrinters, setAvailablePrinters] = useState<PrinterOption[]>([]);
   const [initialPrinterLoad, setInitialPrinterLoad] = useState(false);
+  const [savingBrowserPrint, setSavingBrowserPrint] = useState(false);
 
   const [restaurantInfo, setRestaurantInfo] = useState({
     id: 1,
@@ -109,7 +112,8 @@ const Settings = () => {
     enabled: false,
     apiKey: '',
     printerId: '',
-    printerName: ''
+    printerName: '',
+    browserPrintingEnabled: true
   });
 
   useEffect(() => {
@@ -313,6 +317,8 @@ const Settings = () => {
   const fetchPrintSettings = async () => {
     try {
       setLoading(true);
+      
+      // Fetch PrintNode settings
       const { data, error } = await supabase
         .from('settings')
         .select('*')
@@ -329,13 +335,17 @@ const Settings = () => {
         return;
       }
 
+      // Get browser printing settings
+      const browserPrintingEnabled = await isBrowserPrintingEnabled();
+
       if (data && data.value) {
         const settings = data.value as Record<string, any>;
         const newSettings = {
           enabled: settings.enabled !== undefined ? !!settings.enabled : false,
           apiKey: settings.apiKey || '',
           printerId: settings.printerId || '',
-          printerName: settings.printerName || ''
+          printerName: settings.printerName || '',
+          browserPrintingEnabled
         };
         
         setPrintSettings(newSettings);
@@ -369,6 +379,12 @@ const Settings = () => {
             }
           }, 500);
         }
+      } else {
+        // If no settings found, still set browser printing from result
+        setPrintSettings(prev => ({
+          ...prev,
+          browserPrintingEnabled
+        }));
       }
     } catch (error) {
       console.error('Unexpected error:', error);
@@ -728,6 +744,35 @@ const Settings = () => {
       });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const saveBrowserPrintSettings = async () => {
+    try {
+      setSavingBrowserPrint(true);
+      const success = await saveBrowserPrintSettingsUtil(printSettings.browserPrintingEnabled);
+      
+      if (success) {
+        toast({
+          title: "Settings Saved",
+          description: "Browser printing settings have been updated"
+        });
+      } else {
+        toast({
+          title: "Error",
+          description: "Failed to save browser printing settings",
+          variant: "destructive"
+        });
+      }
+    } catch (error) {
+      console.error('Error saving browser print settings:', error);
+      toast({
+        title: "Error",
+        description: "An unexpected error occurred while saving browser print settings",
+        variant: "destructive"
+      });
+    } finally {
+      setSavingBrowserPrint(false);
     }
   };
 
@@ -1627,8 +1672,30 @@ const Settings = () => {
                   </div>
                   <p className="text-sm text-muted-foreground pl-7">
                     When enabled, order receipts will be sent to your thermal printer via PrintNode.
-                    When disabled, receipts will use browser printing.
                   </p>
+
+                  <div className="flex items-center space-x-2 pt-4 border-t">
+                    <Switch 
+                      id="enable-browser-printing"
+                      checked={printSettings.browserPrintingEnabled}
+                      onCheckedChange={(checked) => handlePrintSettingChange('browserPrintingEnabled', checked)}
+                    />
+                    <Label htmlFor="enable-browser-printing">
+                      Enable browser printing
+                    </Label>
+                  </div>
+                  <p className="text-sm text-muted-foreground pl-7">
+                    When enabled, the browser print dialog will appear for receipts regardless of thermal printer status.
+                  </p>
+
+                  <Button 
+                    onClick={saveBrowserPrintSettings}
+                    disabled={savingBrowserPrint}
+                    className="mt-2"
+                  >
+                    <Save className="h-4 w-4 mr-2" />
+                    {savingBrowserPrint ? 'Saving...' : 'Save Browser Print Settings'}
+                  </Button>
                 </div>
                 
                 {printSettings.enabled && (
