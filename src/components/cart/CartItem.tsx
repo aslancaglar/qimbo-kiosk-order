@@ -65,9 +65,6 @@ const CartItem: React.FC<CartItemProps> = ({
           <div className="flex justify-between items-center mt-2">
             <span className="font-medium">
               {(item.product.price * item.quantity).toFixed(2)} €
-              <span className="text-xs text-gray-500 ml-1">
-                (TVA: {item.taxPercentage || 10}%)
-              </span>
               {isTablet && item.quantity > 1 && ` (x${item.quantity})`}
             </span>
             

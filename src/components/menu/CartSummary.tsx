@@ -31,8 +31,6 @@ const CartSummary: React.FC<CartSummaryProps> = ({
   const isMobile = useIsMobile();
   const navigate = useNavigate();
   const totalItems = cartItems.reduce((sum, item) => sum + item.quantity, 0);
-  
-  // Calculate subtotal (pre-tax)
   const subtotal = cartItems.reduce((sum, item) => {
     let itemTotal = item.product.price * item.quantity;
     if (item.selectedToppings && item.selectedToppings.length > 0) {
@@ -41,21 +39,7 @@ const CartSummary: React.FC<CartSummaryProps> = ({
     }
     return sum + itemTotal;
   }, 0);
-  
-  // Calculate tax using each product's tax percentage
-  const tax = cartItems.reduce((taxTotal, item) => {
-    let itemPrice = item.product.price * item.quantity;
-    if (item.selectedToppings && item.selectedToppings.length > 0) {
-      const toppingsPrice = item.selectedToppings.reduce(
-        (toppingSum, topping) => toppingSum + topping.price, 0
-      );
-      itemPrice += toppingsPrice * item.quantity;
-    }
-    
-    const taxRate = item.taxPercentage || 10; // Default to 10% if not specified
-    return taxTotal + (itemPrice * (taxRate / 100));
-  }, 0);
-  
+  const tax = subtotal * 0.1;
   const total = subtotal + tax;
 
   // Function to handle "See Order" button click
@@ -91,87 +75,80 @@ const CartSummary: React.FC<CartSummaryProps> = ({
         {cartItems.length > 0 && (
           <div className="mb-4 max-h-48 overflow-y-auto">
             <AnimatePresence>
-              {cartItems.map((item, index) => {
-                const taxPercent = item.taxPercentage || 10;
-                
-                return (
-                  <motion.div 
-                    key={`${item.product.id}-${index}`}
-                    className="flex items-center justify-between py-2 border-b"
-                    initial={{ opacity: 0, scale: 0.8 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    transition={{ duration: 0.3 }}
-                    layout
-                  >
-                    <div className="flex items-center">
-                      {!isMobile && window.innerWidth >= 1025 && (
-                        <img 
-                          src={item.product.image} 
-                          alt={item.product.name} 
-                          className="h-12 w-12 object-cover rounded mr-3" 
-                        />
-                      )}
-                      <div>
-                        <p className="font-medium">{item.product.name}</p>
-                        <p className="text-sm text-gray-600">
-                          {item.product.price.toFixed(2)} € 
-                          <span className="text-xs ml-1">
-                            (TVA: {taxPercent}%)
-                          </span>
-                          {item.quantity > 1 && !isMobile && window.innerWidth < 1025 && ` × ${item.quantity}`}
-                        </p>
-                        
-                        {item.selectedToppings && item.selectedToppings.length > 0 && (
-                          <div className="text-xs text-gray-500 mt-1">
-                            {item.selectedToppings.map(topping => (
-                              <span key={topping.id} className="mr-1">
-                                +{topping.name} ({topping.price.toFixed(2)} €)
-                              </span>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                    
-                    <div className="flex items-center gap-2">
-                      {isMobile || window.innerWidth >= 1025 ? (
-                        <>
-                          <button 
-                            onClick={() => onDecrementItem(index)} 
-                            className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 hover:bg-gray-200"
-                            disabled={item.quantity <= 1}
-                          >
-                            <Minus className="h-4 w-4" />
-                          </button>
-                          <span className="w-6 text-center font-medium">{item.quantity}</span>
-                          <button 
-                            onClick={() => onIncrementItem(index)} 
-                            className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 hover:bg-gray-200"
-                          >
-                            <Plus className="h-4 w-4" />
-                          </button>
-                        </>
-                      ) : (
-                        <button 
-                          onClick={() => onRemoveItem(index)} 
-                          className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 hover:bg-gray-200 ml-2"
-                        >
-                          <Trash className="h-4 w-4 text-red-500" />
-                        </button>
-                      )}
+              {cartItems.map((item, index) => (
+                <motion.div 
+                  key={`${item.product.id}-${index}`}
+                  className="flex items-center justify-between py-2 border-b"
+                  initial={{ opacity: 0, scale: 0.8 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ duration: 0.3 }}
+                  layout
+                >
+                  <div className="flex items-center">
+                    {!isMobile && window.innerWidth >= 1025 && (
+                      <img 
+                        src={item.product.image} 
+                        alt={item.product.name} 
+                        className="h-12 w-12 object-cover rounded mr-3" 
+                      />
+                    )}
+                    <div>
+                      <p className="font-medium">{item.product.name}</p>
+                      <p className="text-sm text-gray-600">
+                        {item.product.price.toFixed(2)} €
+                        {item.quantity > 1 && !isMobile && window.innerWidth < 1025 && ` × ${item.quantity}`}
+                      </p>
                       
-                      {(isMobile || window.innerWidth >= 1025) && (
-                        <button 
-                          onClick={() => onRemoveItem(index)} 
-                          className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 hover:bg-gray-200 ml-2"
-                        >
-                          <Trash className="h-4 w-4 text-red-500" />
-                        </button>
+                      {item.selectedToppings && item.selectedToppings.length > 0 && (
+                        <div className="text-xs text-gray-500 mt-1">
+                          {item.selectedToppings.map(topping => (
+                            <span key={topping.id} className="mr-1">
+                              +{topping.name} ({topping.price.toFixed(2)} €)
+                            </span>
+                          ))}
+                        </div>
                       )}
                     </div>
-                  </motion.div>
-                );
-              })}
+                  </div>
+                  
+                  <div className="flex items-center gap-2">
+                    {isMobile || window.innerWidth >= 1025 ? (
+                      <>
+                        <button 
+                          onClick={() => onDecrementItem(index)} 
+                          className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 hover:bg-gray-200"
+                          disabled={item.quantity <= 1}
+                        >
+                          <Minus className="h-4 w-4" />
+                        </button>
+                        <span className="w-6 text-center font-medium">{item.quantity}</span>
+                        <button 
+                          onClick={() => onIncrementItem(index)} 
+                          className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 hover:bg-gray-200"
+                        >
+                          <Plus className="h-4 w-4" />
+                        </button>
+                      </>
+                    ) : (
+                      <button 
+                        onClick={() => onRemoveItem(index)} 
+                        className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 hover:bg-gray-200 ml-2"
+                      >
+                        <Trash className="h-4 w-4 text-red-500" />
+                      </button>
+                    )}
+                    
+                    {(isMobile || window.innerWidth >= 1025) && (
+                      <button 
+                        onClick={() => onRemoveItem(index)} 
+                        className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 hover:bg-gray-200 ml-2"
+                      >
+                        <Trash className="h-4 w-4 text-red-500" />
+                      </button>
+                    )}
+                  </div>
+                </motion.div>
+              ))}
             </AnimatePresence>
           </div>
         )}
@@ -182,7 +159,7 @@ const CartSummary: React.FC<CartSummaryProps> = ({
         </div>
         
         <div className="flex justify-between items-center mb-2">
-          <span className="text-gray-600 text-sm">TVA:</span>
+          <span className="text-gray-600 text-sm">TVA (10%):</span>
           <span>{tax.toFixed(2)} €</span>
         </div>
         
