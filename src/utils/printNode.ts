@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { CartItemType } from "../components/cart/types";
 
@@ -115,25 +116,25 @@ export const formatTextReceipt = (
   tax: number,
   total: number
 ): string => {
-  const orderDate = new Date().toLocaleString();
+  const orderDate = new Date().toLocaleString('fr-FR');
   const lineWidth = 48; // Characters per line on most thermal printers
   const separator = '-'.repeat(lineWidth);
   
   // Use the Euro symbol with appropriate encoding for thermal printers
   // Most thermal printers use code page 858 or similar where Euro is represented
-  const currencySymbol = "";
+  const currencySymbol = "€";
   
   let receipt = '\n';
-  receipt += centerText('ORDER RECEIPT', lineWidth) + '\n\n';
-  receipt += `Order #: ${orderNumber}\n`;
+  receipt += centerText('REÇU DE COMMANDE', lineWidth) + '\n\n';
+  receipt += `Commande #: ${orderNumber}\n`;
   receipt += `Date: ${orderDate}\n`;
-  receipt += `Type: ${orderType === 'eat-in' ? 'Eat In' : 'Takeaway'}\n`;
+  receipt += `Type: ${orderType === 'eat-in' ? 'Sur place' : 'À emporter'}\n`;
   if (orderType === 'eat-in' && tableNumber) {
     receipt += `Table #: ${tableNumber}\n`;
   }
   receipt += separator + '\n\n';
   
-  receipt += centerText('ITEMS', lineWidth) + '\n\n';
+  receipt += centerText('ARTICLES', lineWidth) + '\n\n';
   
   items.forEach(item => {
     receipt += `${item.quantity}x ${item.product.name}`; receipt += `${' '.repeat(4)}${(item.product.price * item.quantity).toFixed(2)} ${currencySymbol}\n`;
@@ -152,9 +153,9 @@ export const formatTextReceipt = (
   
   receipt += separator + '\n\n';
   
-  receipt += `Subtotal:${' '.repeat(lineWidth - 10 - subtotal.toFixed(2).length - currencySymbol.length - 1)}${subtotal.toFixed(2)} ${currencySymbol}\n`;
-  receipt += `Tax:${' '.repeat(lineWidth - 5 - tax.toFixed(2).length - currencySymbol.length - 1)}${tax.toFixed(2)} ${currencySymbol}\n`;
-  receipt += `TOTAL:${' '.repeat(lineWidth - 7 - total.toFixed(2).length - currencySymbol.length - 1)}${total.toFixed(2)} ${currencySymbol}\n\n`;
+  receipt += `Sous-total:${' '.repeat(lineWidth - 11 - subtotal.toFixed(2).length - currencySymbol.length - 1)}${subtotal.toFixed(2)} ${currencySymbol}\n`;
+  receipt += `TVA:${' '.repeat(lineWidth - 4 - tax.toFixed(2).length - currencySymbol.length - 1)}${tax.toFixed(2)} ${currencySymbol}\n`;
+  receipt += `TOTAL:${' '.repeat(lineWidth - 6 - total.toFixed(2).length - currencySymbol.length - 1)}${total.toFixed(2)} ${currencySymbol}\n\n`;
   
   receipt += centerText('Merci!', lineWidth) + '\n';
   
@@ -303,7 +304,7 @@ This is a test receipt from your
 Point of Sale system.
 
 Printer: ${printerId}
-Time: ${new Date().toLocaleString()}
+Time: ${new Date().toLocaleString('fr-FR')}
 
 Sample price: 10.00 €
 
@@ -318,3 +319,4 @@ ${centerText('End of test', 42)}
 
   return await sendToPrintNode(testContent, apiKey, printerId);
 };
+
