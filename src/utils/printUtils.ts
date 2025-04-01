@@ -1,6 +1,5 @@
 import { CartItemType } from "../components/cart/types";
 import { getPrintNodeCredentials, sendToPrintNode, formatTextReceipt } from "./printNode";
-import { supabase } from "@/integrations/supabase/client";
 
 // Format order for printing
 export const formatOrderReceipt = (
@@ -125,88 +124,6 @@ export const formatOrderReceipt = (
       </body>
     </html>
   `;
-};
-
-/**
- * Check if browser printing is enabled in settings
- */
-export const isBrowserPrintingEnabled = async (): Promise<boolean> => {
-  try {
-    const { data, error } = await supabase
-      .from('settings')
-      .select('value')
-      .eq('key', 'browser_print_settings')
-      .maybeSingle();
-
-    if (error || !data) {
-      console.error('Error fetching browser print settings:', error);
-      return true; // Default to enabled if error
-    }
-
-    // Make sure we validate the type correctly
-    const settings = data.value;
-    if (typeof settings === 'object' && settings !== null && 'enabled' in settings) {
-      return !!settings.enabled;
-    }
-    
-    return true; // Default to enabled
-  } catch (error) {
-    console.error('Unexpected error fetching browser print settings:', error);
-    return true; // Default to enabled
-  }
-};
-
-/**
- * Save browser printing settings to database
- */
-export const saveBrowserPrintSettings = async (enabled: boolean): Promise<boolean> => {
-  try {
-    const { data: existingData, error: checkError } = await supabase
-      .from('settings')
-      .select('id')
-      .eq('key', 'browser_print_settings')
-      .maybeSingle();
-      
-    if (checkError) {
-      console.error('Error checking browser print settings:', checkError);
-      return false;
-    }
-    
-    let saveError;
-    
-    if (existingData) {
-      const { error } = await supabase
-        .from('settings')
-        .update({
-          value: { enabled },
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', existingData.id);
-        
-      saveError = error;
-    } else {
-      const { error } = await supabase
-        .from('settings')
-        .insert({
-          key: 'browser_print_settings',
-          value: { enabled },
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
-        });
-        
-      saveError = error;
-    }
-
-    if (saveError) {
-      console.error('Error saving browser print settings:', saveError);
-      return false;
-    }
-
-    return true;
-  } catch (error) {
-    console.error('Unexpected error saving browser print settings:', error);
-    return false;
-  }
 };
 
 /**
