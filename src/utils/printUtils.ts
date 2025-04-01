@@ -1,4 +1,3 @@
-
 import { CartItemType } from "../components/cart/types";
 import { getPrintNodeCredentials, sendToPrintNode, formatTextReceipt } from "./printNode";
 
@@ -127,52 +126,6 @@ export const formatOrderReceipt = (
   `;
 };
 
-// Print order using browser's print functionality
-export const printOrderBrowser = (
-  orderNumber: string | number,
-  items: CartItemType[],
-  orderType: string,
-  tableNumber: string | number | undefined,
-  subtotal: number,
-  tax: number,
-  total: number
-): void => {
-  try {
-    const iframe = document.createElement('iframe');
-    iframe.style.display = 'none';
-    document.body.appendChild(iframe);
-    
-    if (!iframe.contentDocument) {
-      console.error("Could not access iframe document");
-      return;
-    }
-    
-    iframe.contentDocument.write(formatOrderReceipt(
-      orderNumber,
-      items,
-      orderType,
-      tableNumber,
-      subtotal,
-      tax,
-      total
-    ));
-    
-    iframe.contentDocument.close();
-    
-    // Print using browser
-    setTimeout(() => {
-      iframe.contentWindow?.print();
-      
-      // Remove the iframe after printing
-      setTimeout(() => {
-        iframe.remove();
-      }, 2000);
-    }, 500);
-  } catch (error) {
-    console.error('Error printing order:', error);
-  }
-};
-
 /**
  * Print to thermal printer via PrintNode
  */
@@ -186,13 +139,15 @@ export const printToThermalPrinter = async (
   total: number
 ): Promise<boolean> => {
   try {
+    console.log('Attempting to print receipt to PrintNode...');
     const credentials = await getPrintNodeCredentials();
     
     if (!credentials.enabled || !credentials.apiKey || !credentials.printerId) {
-      console.log('PrintNode is not enabled or configured. Falling back to browser printing.');
+      console.error('PrintNode is not enabled or configured correctly:', credentials);
       return false;
     }
     
+    console.log('PrintNode credentials found, formatting receipt...');
     const textReceipt = formatTextReceipt(
       orderNumber,
       items,
@@ -203,6 +158,7 @@ export const printToThermalPrinter = async (
       total
     );
     
+    console.log('Sending receipt to PrintNode...');
     return await sendToPrintNode(textReceipt, credentials.apiKey, credentials.printerId);
   } catch (error) {
     console.error('Error printing to thermal printer:', error);
@@ -210,7 +166,7 @@ export const printToThermalPrinter = async (
   }
 };
 
-// Print order - try thermal printer first, fallback to browser
+// Print order - use only PrintNode
 export const printOrder = async (
   orderNumber: string | number,
   items: CartItemType[],
@@ -220,7 +176,8 @@ export const printOrder = async (
   tax: number,
   total: number
 ): Promise<void> => {
-  const thermalPrinted = await printToThermalPrinter(
+  console.log('Print order function called with order #:', orderNumber);
+  const printed = await printToThermalPrinter(
     orderNumber, 
     items, 
     orderType, 
@@ -230,8 +187,23 @@ export const printOrder = async (
     total
   );
   
-  if (!thermalPrinted) {
-    console.log('Falling back to browser printing');
-    printOrderBrowser(orderNumber, items, orderType, tableNumber, subtotal, tax, total);
+  if (!printed) {
+    console.warn('Failed to print receipt to PrintNode. No fallback to browser printing.');
+  } else {
+    console.log('Order receipt successfully sent to PrintNode.');
   }
+};
+
+// Keep this for backward compatibility but remove browser fallback
+export const printOrderBrowser = (
+  orderNumber: string | number,
+  items: CartItemType[],
+  orderType: string,
+  tableNumber: string | number | undefined,
+  subtotal: number,
+  tax: number,
+  total: number
+): void => {
+  console.log('Browser printing is disabled. Using PrintNode instead.');
+  printOrder(orderNumber, items, orderType, tableNumber, subtotal, tax, total);
 };
