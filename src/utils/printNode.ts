@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { CartItemType } from "../components/cart/types";
 
@@ -119,6 +120,9 @@ export const formatTextReceipt = (
   const lineWidth = 42; // Characters per line on most thermal printers
   const separator = '-'.repeat(lineWidth);
   
+  // Using "EUR" currency code instead of € symbol for compatibility
+  const currencySymbol = "EUR";
+  
   let receipt = '\n';
   receipt += centerText('ORDER RECEIPT', lineWidth) + '\n\n';
   receipt += `Order #: ${orderNumber}\n`;
@@ -133,7 +137,7 @@ export const formatTextReceipt = (
   
   items.forEach(item => {
     receipt += `${item.quantity}x ${item.product.name}\n`;
-    receipt += `${' '.repeat(4)}${(item.product.price * item.quantity).toFixed(2)} €\n`;
+    receipt += `${' '.repeat(4)}${(item.product.price * item.quantity).toFixed(2)} ${currencySymbol}\n`;
     
     if (item.options && item.options.length > 0) {
       receipt += `${' '.repeat(2)}${item.options.map(o => o.value).join(', ')}\n`;
@@ -141,7 +145,7 @@ export const formatTextReceipt = (
     
     if (item.selectedToppings && item.selectedToppings.length > 0) {
       item.selectedToppings.forEach(topping => {
-        receipt += `${' '.repeat(2)}+ ${topping.name} ${topping.price.toFixed(2)} €\n`;
+        receipt += `${' '.repeat(2)}+ ${topping.name} ${topping.price.toFixed(2)} ${currencySymbol}\n`;
       });
     }
     receipt += '\n';
@@ -149,9 +153,9 @@ export const formatTextReceipt = (
   
   receipt += separator + '\n\n';
   
-  receipt += `Subtotal:${' '.repeat(lineWidth - 10 - subtotal.toFixed(2).length - 2)}${subtotal.toFixed(2)} €\n`;
-  receipt += `Tax:${' '.repeat(lineWidth - 5 - tax.toFixed(2).length - 2)}${tax.toFixed(2)} €\n`;
-  receipt += `TOTAL:${' '.repeat(lineWidth - 7 - total.toFixed(2).length - 2)}${total.toFixed(2)} €\n\n`;
+  receipt += `Subtotal:${' '.repeat(lineWidth - 10 - subtotal.toFixed(2).length - currencySymbol.length - 1)}${subtotal.toFixed(2)} ${currencySymbol}\n`;
+  receipt += `Tax:${' '.repeat(lineWidth - 5 - tax.toFixed(2).length - currencySymbol.length - 1)}${tax.toFixed(2)} ${currencySymbol}\n`;
+  receipt += `TOTAL:${' '.repeat(lineWidth - 7 - total.toFixed(2).length - currencySymbol.length - 1)}${total.toFixed(2)} ${currencySymbol}\n\n`;
   
   receipt += centerText('Thank you for your order!', lineWidth) + '\n';
   receipt += centerText('All prices include 10% tax', lineWidth) + '\n\n\n\n';
@@ -302,6 +306,8 @@ Point of Sale system.
 
 Printer: ${printerId}
 Time: ${new Date().toLocaleString()}
+
+Sample price: 10.00 EUR
 
 ${centerText('If you can read this, your printer', 42)}
 ${centerText('is correctly configured!', 42)}
