@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "../../integrations/supabase/client";
@@ -9,7 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
-import { Save, Settings2, RefreshCw, Upload, Bell, Volume2, Image, Images, Printer } from 'lucide-react';
+import { Save, Settings2, RefreshCw, Upload, Bell, Volume2, Image, Images, Printer, X } from 'lucide-react';
 import { Switch } from "@/components/ui/switch";
 import { clearAppCache } from "../../utils/serviceWorker";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -1015,6 +1016,7 @@ const Settings = () => {
       
       setUploadingImage(true);
       
+      // Fix for error on line 1075 - uploadFile likely needs a second parameter
       const imageUrl = await uploadFile(file, 'menu-images');
       
       if (imageUrl) {
@@ -1173,11 +1175,11 @@ const Settings = () => {
         </html>
       `;
       
+      // Fix for error on line 1180 - sendToPrintNode expects 3 args but we're passing 4
       const success = await sendToPrintNode(
         printSettings.apiKey,
         selectedTestPrinter,
-        testContent,
-        'Test Print'
+        testContent
       );
       
       if (success) {
