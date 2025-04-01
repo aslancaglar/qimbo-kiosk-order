@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { CartItemType } from "../components/cart/types";
 
@@ -156,19 +157,47 @@ export const testPrintNodeConnection = async (
   apiKey: string,
   printerId: string | number
 ): Promise<boolean> => {
-  if (!apiKey || !printerId) {
+  if (!apiKey) {
+    console.error('PrintNode API key is missing');
     return false;
   }
   
   try {
-    const response = await fetch(`https://api.printnode.com/printers/${printerId}`, {
+    // First, test if the API key is valid by getting whoami info
+    const whoamiResponse = await fetch('https://api.printnode.com/whoami', {
       method: 'GET',
       headers: {
         'Authorization': `Basic ${btoa(apiKey + ':')}`
       }
     });
     
-    return response.ok;
+    if (!whoamiResponse.ok) {
+      const errorData = await whoamiResponse.text();
+      console.error('PrintNode API key validation failed:', errorData);
+      return false;
+    }
+    
+    console.log('PrintNode API key is valid');
+    
+    // If printerId is provided, also test that specific printer
+    if (printerId) {
+      const printerResponse = await fetch(`https://api.printnode.com/printers/${printerId}`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Basic ${btoa(apiKey + ':')}`
+        }
+      });
+      
+      if (!printerResponse.ok) {
+        const errorData = await printerResponse.text();
+        console.error('PrintNode printer check failed:', errorData);
+        return false;
+      }
+      
+      console.log('PrintNode printer is accessible');
+    }
+    
+    return true;
   } catch (error) {
     console.error('Error testing PrintNode connection:', error);
     return false;

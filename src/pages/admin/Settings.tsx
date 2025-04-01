@@ -1040,6 +1040,19 @@ const Settings = () => {
   const handleTestConnection = async () => {
     setTestingConnection(true);
     try {
+      console.log('Testing PrintNode connection with API key:', 
+        printSettings.apiKey ? `${printSettings.apiKey.substring(0, 5)}...` : 'missing');
+      
+      if (!printSettings.apiKey) {
+        toast({
+          title: "Missing API Key",
+          description: "Please enter your PrintNode API key",
+          variant: "destructive"
+        });
+        setTestingConnection(false);
+        return;
+      }
+      
       const success = await testPrintNodeConnection(printSettings.apiKey, printSettings.printerId);
       
       if (success) {
@@ -1050,7 +1063,7 @@ const Settings = () => {
       } else {
         toast({
           title: "Connection Failed",
-          description: "Could not connect to PrintNode. Please check your API key and try again.",
+          description: "Could not connect to PrintNode. Please verify your API key is correct and try again.",
           variant: "destructive"
         });
       }
@@ -1058,7 +1071,7 @@ const Settings = () => {
       console.error('Error testing connection:', error);
       toast({
         title: "Error",
-        description: "An error occurred while testing the connection",
+        description: "An error occurred while testing the connection: " + (error instanceof Error ? error.message : String(error)),
         variant: "destructive"
       });
     } finally {
