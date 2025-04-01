@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { CartItemType } from "../components/cart/types";
 
@@ -69,7 +70,7 @@ export const convertHtmlToPdf = async (htmlContent: string): Promise<string> => 
  * Now supports HTML content directly
  */
 export const sendToPrintNode = async (
-  content: string | Buffer,
+  content: string | Uint8Array,
   apiKey: string,
   printerId: string | number,
   contentType: 'raw_base64' | 'pdf_base64' | 'html_base64' = 'raw_base64'
@@ -87,9 +88,11 @@ export const sendToPrintNode = async (
     let encodedContent: string;
     let contentPreview: string;
     
-    if (content instanceof Buffer) {
-      // For PDF buffer, convert to base64
-      encodedContent = content.toString('base64');
+    if (content instanceof Uint8Array) {
+      // For PDF data, convert to base64 using browser-compatible approach
+      encodedContent = btoa(Array.from(content)
+        .map(byte => String.fromCharCode(byte))
+        .join(''));
       contentPreview = 'PDF Document';
       contentType = 'pdf_base64';
     } else {
