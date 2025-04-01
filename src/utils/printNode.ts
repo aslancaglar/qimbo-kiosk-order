@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { CartItemType } from "../components/cart/types";
 
@@ -48,94 +49,6 @@ const safeBase64Encode = (str: string): string => {
 };
 
 /**
- * Converts HTML to plain text for thermal printers
- */
-const convertHtmlToPlainTextForPrinter = (htmlContent: string): string => {
-  // Create a simple parser to extract text content
-  const stripTags = (html: string) => {
-    // Remove all HTML tags
-    let text = html.replace(/<[^>]*>/g, '');
-    // Replace HTML entities
-    text = text.replace(/&nbsp;/g, ' ')
-              .replace(/&amp;/g, '&')
-              .replace(/&lt;/g, '<')
-              .replace(/&gt;/g, '>')
-              .replace(/&quot;/g, '"')
-              .replace(/&#39;/g, "'");
-    // Trim whitespace
-    return text.trim();
-  };
-  
-  // Extract main sections from the HTML receipt
-  const extractSection = (html: string, startMarker: string, endMarker: string): string => {
-    const startIdx = html.indexOf(startMarker);
-    const endIdx = html.indexOf(endMarker, startIdx + startMarker.length);
-    if (startIdx >= 0 && endIdx >= 0) {
-      return html.substring(startIdx + startMarker.length, endIdx);
-    }
-    return '';
-  };
-  
-  const lineWidth = 42; // Standard width for thermal printers
-  const separator = '-'.repeat(lineWidth);
-  let plainText = '\n';
-  
-  // Create header
-  plainText += centerText('ORDER RECEIPT', lineWidth) + '\n\n';
-  
-  // Extract order details
-  const orderSection = extractSection(htmlContent, '<div class="order-details">', '</div>');
-  const orderLines = stripTags(orderSection).split('\n')
-    .map(line => line.trim())
-    .filter(line => line.length > 0);
-  
-  orderLines.forEach(line => {
-    plainText += line + '\n';
-  });
-  
-  plainText += separator + '\n\n';
-  plainText += centerText('ITEMS', lineWidth) + '\n\n';
-  
-  // Extract items
-  const itemsSection = extractSection(htmlContent, '<h2>Items</h2>', '<div class="divider"></div>');
-  const itemBlocks = itemsSection.split('<div class="order-item">');
-  
-  // Skip the first empty element
-  for (let i = 1; i < itemBlocks.length; i++) {
-    const itemBlock = itemBlocks[i];
-    const itemLines = stripTags(itemBlock).split('\n')
-      .map(line => line.trim())
-      .filter(line => line.length > 0);
-    
-    itemLines.forEach(line => {
-      plainText += line + '\n';
-    });
-    plainText += '\n';
-  }
-  
-  plainText += separator + '\n\n';
-  
-  // Extract totals
-  const totalsSection = extractSection(htmlContent, '<div class="totals">', '</div>');
-  const totalLines = stripTags(totalsSection).split('\n')
-    .map(line => line.trim())
-    .filter(line => line.length > 0);
-  
-  totalLines.forEach(line => {
-    plainText += line + '\n';
-  });
-  
-  plainText += '\n';
-  plainText += centerText('Thank you for your order!', lineWidth) + '\n';
-  plainText += centerText('All prices include 10% tax', lineWidth) + '\n\n\n';
-  
-  // Add cut command for thermal printers
-  plainText += '\x1D\x56\x41\x03'; // GS V A - Paper cut
-  
-  return plainText;
-};
-
-/**
  * Sends a text receipt to PrintNode printer
  */
 export const sendToPrintNode = async (
@@ -149,17 +62,11 @@ export const sendToPrintNode = async (
   }
 
   try {
-    // Check if content appears to be HTML
-    const isHtml = content.trim().startsWith('<html') || content.includes('<body');
-    
-    // If it's HTML, convert it to plain text for thermal printer
-    const printerContent = isHtml ? convertHtmlToPlainTextForPrinter(content) : content;
-    
     // Convert printerId to number if it's a string
     const printerIdNum = typeof printerId === 'string' ? parseInt(printerId, 10) : printerId;
     
     // Use our safe encoding method instead of direct btoa
-    const encodedContent = safeBase64Encode(printerContent);
+    const encodedContent = safeBase64Encode(content);
     console.log('Content encoded successfully');
     
     const response = await fetch('https://api.printnode.com/printjobs', {
@@ -198,8 +105,7 @@ export const sendToPrintNode = async (
 };
 
 /**
- * Formats order details for text receipt - DEPRECATED, keeping for backward compatibility
- * Now we use the HTML format for both PrintNode and browser
+ * Formats order details for text receipt
  */
 export const formatTextReceipt = (
   orderNumber: string | number,
@@ -210,11 +116,55 @@ export const formatTextReceipt = (
   tax: number,
   total: number
 ): string => {
-  const { formatOrderReceipt } = require('./printUtils');
-  const htmlReceipt = formatOrderReceipt(orderNumber, items, orderType, tableNumber, subtotal, tax, total);
+  const orderDate = new Date().toLocaleString();
+  const lineWidth = 42; // Characters per line on most thermal printers
+  const separator = '-'.repeat(lineWidth);
   
-  // Add printer cut command at the end
-  return htmlReceipt + '\x1D\x56\x41\x03'; // GS V A - Paper cut
+  // Use the Euro symbol with appropriate encoding for thermal printers
+  // Most thermal printers use code page 858 or similar where Euro is represented
+  const currencySymbol = "€";
+  
+  let receipt = '\n';
+  receipt += centerText('ORDER RECEIPT', lineWidth) + '\n\n';
+  receipt += `Order #: ${orderNumber}\n`;
+  receipt += `Date: ${orderDate}\n`;
+  receipt += `Type: ${orderType === 'eat-in' ? 'Eat In' : 'Takeaway'}\n`;
+  if (orderType === 'eat-in' && tableNumber) {
+    receipt += `Table #: ${tableNumber}\n`;
+  }
+  receipt += separator + '\n\n';
+  
+  receipt += centerText('ITEMS', lineWidth) + '\n\n';
+  
+  items.forEach(item => {
+    receipt += `${item.quantity}x ${item.product.name}\n`;
+    receipt += `${' '.repeat(4)}${(item.product.price * item.quantity).toFixed(2)} ${currencySymbol}\n`;
+    
+    if (item.options && item.options.length > 0) {
+      receipt += `${' '.repeat(2)}${item.options.map(o => o.value).join(', ')}\n`;
+    }
+    
+    if (item.selectedToppings && item.selectedToppings.length > 0) {
+      item.selectedToppings.forEach(topping => {
+        receipt += `${' '.repeat(2)}+ ${topping.name} ${topping.price.toFixed(2)} ${currencySymbol}\n`;
+      });
+    }
+    receipt += '\n';
+  });
+  
+  receipt += separator + '\n\n';
+  
+  receipt += `Subtotal:${' '.repeat(lineWidth - 10 - subtotal.toFixed(2).length - currencySymbol.length - 1)}${subtotal.toFixed(2)} ${currencySymbol}\n`;
+  receipt += `Tax:${' '.repeat(lineWidth - 5 - tax.toFixed(2).length - currencySymbol.length - 1)}${tax.toFixed(2)} ${currencySymbol}\n`;
+  receipt += `TOTAL:${' '.repeat(lineWidth - 7 - total.toFixed(2).length - currencySymbol.length - 1)}${total.toFixed(2)} ${currencySymbol}\n\n`;
+  
+  receipt += centerText('Thank you for your order!', lineWidth) + '\n';
+  receipt += centerText('All prices include 10% tax', lineWidth) + '\n\n\n\n';
+  
+  // Add cut command for thermal printers
+  receipt += '\x1D\x56\x41\x03'; // GS V A - Paper cut
+  
+  return receipt;
 };
 
 /**
