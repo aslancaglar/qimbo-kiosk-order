@@ -93,16 +93,26 @@ export const sendToPrintNode = async (content: string, apiKey: string, printerId
     // For plain text receipts, we should use raw_base64
     const contentBase64 = btoa(content);
     
+    // Convert printerId to integer as required by PrintNode API
+    const printerIdInt = parseInt(printerId, 10);
+    
+    if (isNaN(printerIdInt)) {
+      console.error('Invalid printer ID:', printerId);
+      return false;
+    }
+    
     const printJob: PrintJob = {
-      printer_id: printerId,
+      printer_id: printerIdInt, // Use integer printer ID
       content: contentBase64,
-      contentType: 'raw_base64', // Changed from raw_text to raw_base64
+      contentType: 'raw_base64',
       type: 'receipt',
       copies: 1,
       metadata: {
         source: 'POS System'
       }
     };
+    
+    console.log('Sending print job to PrintNode:', JSON.stringify(printJob, null, 2));
     
     const response = await fetch('https://api.printnode.com/printjobs', {
       method: 'POST',
@@ -205,16 +215,26 @@ Date: ${new Date().toLocaleString()}
     // Convert plain text to base64 for PrintNode API
     const contentBase64 = btoa(testContent);
     
+    // Convert printerId to integer as required by PrintNode API
+    const printerIdInt = parseInt(printerId, 10);
+    
+    if (isNaN(printerIdInt)) {
+      console.error('Invalid printer ID:', printerId);
+      return false;
+    }
+    
     const printJob: PrintJob = {
-      printer_id: printerId,
+      printer_id: printerIdInt, // Use integer printer ID
       content: contentBase64,
-      contentType: 'raw_base64', // Changed from raw_text to raw_base64
+      contentType: 'raw_base64',
       type: 'receipt',
       copies: 1,
       metadata: {
         test: true
       }
     };
+    
+    console.log('Sending test print to PrintNode:', JSON.stringify(printJob, null, 2));
     
     const response = await fetch('https://api.printnode.com/printjobs', {
       method: 'POST',
