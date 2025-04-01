@@ -49,7 +49,8 @@ const TestPrintButton = ({ disabled = false }: TestPrintButtonProps) => {
     <Button 
       onClick={handleTestPrint} 
       disabled={disabled || loading}
-      variant="secondary"
+      variant="outline"
+      className="w-full md:w-auto bg-blue-50 hover:bg-blue-100 border-blue-200"
     >
       {loading ? (
         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
