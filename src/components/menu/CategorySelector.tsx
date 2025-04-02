@@ -9,7 +9,6 @@ interface CategorySelectorProps {
   activeCategory: string;
   onChange: (category: string) => void;
   orientation?: 'horizontal' | 'vertical';
-  hideIcons?: boolean;
 }
 
 const CategorySelector: React.FC<CategorySelectorProps> = ({
@@ -18,7 +17,6 @@ const CategorySelector: React.FC<CategorySelectorProps> = ({
   activeCategory,
   onChange,
   orientation = 'horizontal',
-  hideIcons = false,
 }) => {
   const isVertical = orientation === 'vertical';
   
@@ -26,17 +24,11 @@ const CategorySelector: React.FC<CategorySelectorProps> = ({
     <motion.div
       initial={{ opacity: 0, y: -10 }}
       animate={{ opacity: 1, y: 0 }}
-      className={`w-full ${
-        isVertical 
-          ? 'h-full py-2' 
-          : 'overflow-x-auto py-2 px-4'
-      }`}
+      className={`w-full ${isVertical ? 'h-full py-2' : 'overflow-x-auto py-4 px-6'}`}
     >
-      <div className={`${
-        isVertical 
-          ? 'flex flex-col gap-1 items-center' 
-          : 'flex gap-2 min-w-max'
-      }`}>
+      <div className={`${isVertical 
+        ? 'flex flex-col gap-1 items-center' 
+        : 'flex gap-4 min-w-max'}`}>
         
         {categories.map((category) => (
           <CategoryButton
@@ -46,7 +38,6 @@ const CategorySelector: React.FC<CategorySelectorProps> = ({
             isActive={activeCategory === category}
             onChange={onChange}
             isVertical={isVertical}
-            hideIcon={hideIcons}
           />
         ))}
       </div>
@@ -60,7 +51,6 @@ interface CategoryButtonProps {
   isActive: boolean;
   onChange: (category: string) => void;
   isVertical: boolean;
-  hideIcon?: boolean;
 }
 
 const CategoryButton: React.FC<CategoryButtonProps> = ({
@@ -69,7 +59,6 @@ const CategoryButton: React.FC<CategoryButtonProps> = ({
   isActive,
   onChange,
   isVertical,
-  hideIcon = false,
 }) => {
   // Helper function to get emoji based on category name
   const getCategoryEmoji = (category: string) => {
@@ -88,26 +77,22 @@ const CategoryButton: React.FC<CategoryButtonProps> = ({
   return (
     <button
       onClick={() => onChange(category)}
-      className={`relative ${
-        isVertical 
-          ? 'px-2 py-3 w-full text-center flex flex-col items-center justify-center' 
-          : 'px-3 py-2 rounded-md text-sm min-w-[80px] whitespace-nowrap'
-      } font-medium transition-colors`}
+      className={`relative ${isVertical 
+        ? 'px-2 py-3 w-full text-center flex flex-col items-center justify-center' 
+        : 'px-5 py-2 rounded-md'} text-base font-medium transition-colors`}
     >
       {isActive && (
         <motion.div
           layoutId={`activeCategory-${isVertical ? 'vertical' : 'horizontal'}`}
-          className={`absolute ${
-            isVertical 
-              ? 'left-0 w-1 h-full bg-red-600' 
-              : 'bottom-0 h-0.5 w-full bg-red-600'
-          } z-0`}
+          className={`absolute ${isVertical 
+            ? 'left-0 w-1 h-full bg-red-600' 
+            : 'inset-0 bg-gray-100 rounded-md'} z-0`}
           transition={{ type: 'spring', duration: 0.5 }}
         />
       )}
       
-      {/* Icon for categories - show only in vertical mode or if not hidden */}
-      {(isVertical && !hideIcon) && (
+      {/* Icon for categories - use uploaded icon or fallback to emoji */}
+      {isVertical && (
         <div className="mb-1 text-2xl">
           {icon ? (
             <div className="h-14 w-14 rounded-full overflow-hidden flex items-center justify-center">
@@ -134,12 +119,12 @@ const CategoryButton: React.FC<CategoryButtonProps> = ({
         </div>
       )}
       
-      <span className={`relative z-10 ${isVertical ? 'text-sm font-bold' : 'text-sm font-medium'} ${
+      <span className={`relative z-10 ${isVertical ? 'text-sm font-bold' : ''} ${
         isActive
-          ? isVertical ? 'text-red-600 font-bold' : 'text-red-600 font-bold' 
+          ? isVertical ? 'text-red-600 font-bold' : 'text-primary' 
           : 'text-gray-600 hover:text-gray-900'
       }`}>
-        {category}
+        {isVertical ? category : category}
       </span>
     </button>
   );
