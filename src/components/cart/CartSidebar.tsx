@@ -1,4 +1,5 @@
-import React from 'react';
+
+import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Button from '../common/Button';
 import CartItem from './CartItem';
@@ -107,7 +108,7 @@ const CartSidebar: React.FC<CartSidebarProps> = ({
         </div>
       ) : (
         <>
-          <div className="flex-1 overflow-y-auto p-6">
+          <div className={`flex-1 overflow-y-auto p-6 ${isMobile ? 'pb-[230px]' : ''}`}>
             <AnimatePresence initial={false}>
               {items.map((item, index) => (
                 <motion.div
@@ -129,26 +130,49 @@ const CartSidebar: React.FC<CartSidebarProps> = ({
             </AnimatePresence>
           </div>
           
-          <div className="p-6 border-t border-gray-100">
-            <div className="mb-4 space-y-2">
-              <div className="flex justify-between text-sm">
-                <span className="text-gray-600">Sous-total</span>
-                <span>{subtotal.toFixed(2)} €</span>
+          {isMobile ? (
+            <div className="absolute bottom-0 left-0 right-0 p-6 border-t border-gray-100 bg-white z-10">
+              <div className="mb-4 space-y-2">
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-600">Sous-total</span>
+                  <span>{subtotal.toFixed(2)} €</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-600">TVA</span>
+                  <span>{taxAmount.toFixed(2)} €</span>
+                </div>
+                <div className="flex justify-between font-semibold text-base pt-2">
+                  <span>Total</span>
+                  <span>{total.toFixed(2)} €</span>
+                </div>
               </div>
-              <div className="flex justify-between text-sm">
-                <span className="text-gray-600">TVA</span>
-                <span>{taxAmount.toFixed(2)} €</span>
-              </div>
-              <div className="flex justify-between font-semibold text-base pt-2">
-                <span>Total</span>
-                <span>{total.toFixed(2)} €</span>
-              </div>
+              
+              <Button size="full" onClick={handleSeeOrder} disabled={items.length === 0}>
+                Voir Ma Commande
+              </Button>
             </div>
-            
-            <Button size="full" onClick={handleSeeOrder} disabled={items.length === 0}>
-              Voir Ma Commande
-            </Button>
-          </div>
+          ) : (
+            <div className="p-6 border-t border-gray-100">
+              <div className="mb-4 space-y-2">
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-600">Sous-total</span>
+                  <span>{subtotal.toFixed(2)} €</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-600">TVA</span>
+                  <span>{taxAmount.toFixed(2)} €</span>
+                </div>
+                <div className="flex justify-between font-semibold text-base pt-2">
+                  <span>Total</span>
+                  <span>{total.toFixed(2)} €</span>
+                </div>
+              </div>
+              
+              <Button size="full" onClick={handleSeeOrder} disabled={items.length === 0}>
+                Voir Ma Commande
+              </Button>
+            </div>
+          )}
         </>
       )}
     </div>
