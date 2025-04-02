@@ -28,7 +28,6 @@ const CartItem: React.FC<CartItemProps> = ({
       className="py-4 border-b border-gray-100 last:border-0"
     >
       <div className="flex items-start gap-3">
-        {/* We hide the image when isTablet is true */}
         {!isTablet && (
           <div className="w-16 h-16 rounded-md overflow-hidden flex-shrink-0">
             <img
