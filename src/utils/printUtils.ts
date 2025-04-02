@@ -267,9 +267,15 @@ export const isBrowserPrintingEnabled = async (): Promise<boolean> => {
       return _browserPrintingEnabled; // Fall back to in-memory value
     }
     
-    if (data && data.value && typeof data.value.enabled === 'boolean') {
-      _browserPrintingEnabled = data.value.enabled; // Update local cache
-      return data.value.enabled;
+    // Check if data exists and has the right structure
+    if (data && data.value && typeof data.value === 'object') {
+      // Type-safe way to access the 'enabled' property
+      const settingsObj = data.value as Record<string, any>;
+      if ('enabled' in settingsObj && typeof settingsObj.enabled === 'boolean') {
+        _browserPrintingEnabled = settingsObj.enabled; // Update local cache
+        console.log('Retrieved browser printing setting from database:', settingsObj.enabled);
+        return settingsObj.enabled;
+      }
     }
     
     return _browserPrintingEnabled; // Fall back to in-memory value
