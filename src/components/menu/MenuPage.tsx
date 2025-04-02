@@ -9,12 +9,16 @@ import MenuContent from './MenuContent';
 import CartSummary from './CartSummary';
 import { useMenuData } from '@/hooks/use-menu-data';
 import { useCart } from '@/hooks/use-cart';
-import { ToppingItem } from '../cart/types';
+import { useIsMobile } from '@/hooks/use-mobile';
+import { Sheet, SheetContent } from '@/components/ui/sheet';
+import CartSidebar from '../cart/CartSidebar';
 
 const MenuPage: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const { orderType, tableNumber } = location.state || {};
+  const isMobile = useIsMobile();
+  const [isCartSheetOpen, setIsCartSheetOpen] = useState(false);
   
   // Custom hooks for data fetching and cart management
   const { products, isLoading, categoryNames, categoryIcons } = useMenuData();
@@ -47,11 +51,20 @@ const MenuPage: React.FC = () => {
       navigate('/');
     }
   }, [orderType, navigate]);
+
+  // Toggle cart sheet
+  const toggleCartSheet = () => {
+    setIsCartSheetOpen(!isCartSheetOpen);
+  };
   
   return (
     <Layout>
       <div className="flex flex-col h-screen">
-        <MenuHeader />
+        <MenuHeader 
+          showCartIcon={isMobile}
+          cartItemsCount={cartItems.length}
+          onCartClick={toggleCartSheet}
+        />
         
         <MenuContent 
           products={products}
@@ -64,7 +77,7 @@ const MenuPage: React.FC = () => {
         />
         
         <AnimatePresence>
-          {isCartOpen && (
+          {isCartOpen && !isMobile && (
             <CartSummary 
               cartItems={cartItems}
               onRemoveItem={handleRemoveItem}
@@ -77,6 +90,22 @@ const MenuPage: React.FC = () => {
             />
           )}
         </AnimatePresence>
+        
+        {/* Mobile Cart Sheet */}
+        <Sheet open={isMobile && isCartSheetOpen} onOpenChange={setIsCartSheetOpen}>
+          <SheetContent side="right" className="p-0">
+            <CartSidebar
+              isOpen={true}
+              onClose={() => setIsCartSheetOpen(false)}
+              items={cartItems}
+              onRemoveItem={handleRemoveItem}
+              onIncrementItem={handleIncrementItem}
+              onDecrementItem={handleDecrementItem}
+              orderType={orderType}
+              tableNumber={tableNumber}
+            />
+          </SheetContent>
+        </Sheet>
         
         <CancelOrderDialog 
           isOpen={showCancelDialog}
