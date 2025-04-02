@@ -335,7 +335,9 @@ const WaiterOrder: React.FC = () => {
         </div>
       </div>
 
-      <div className="flex flex-1 overflow-hidden">
+      {/* Main content area - modified to fix mobile layout */}
+      <div className="flex flex-col flex-1 overflow-hidden">
+        {/* Desktop categories - hidden on mobile */}
         <ScrollArea className="hidden md:block w-32 border-r border-gray-200">
           <div className="p-2 space-y-2">
             {categories.map((category) => (
@@ -354,98 +356,102 @@ const WaiterOrder: React.FC = () => {
           </div>
         </ScrollArea>
 
-        {/* Mobile categories */}
-        <div className="md:hidden border-b border-gray-200">
-          <ScrollArea className="py-2 px-2">
-            <div className="flex gap-2 pb-1">
-              {categories.map((category) => (
-                <button
-                  key={category.id}
-                  onClick={() => setActiveCategory(category.name)}
-                  className={`px-3 py-1.5 rounded-full text-sm whitespace-nowrap transition-colors ${
-                    activeCategory === category.name
-                      ? "bg-red-600 text-white"
-                      : "bg-gray-100 hover:bg-gray-200"
-                  }`}
-                >
-                  {category.name}
-                </button>
-              ))}
-            </div>
-          </ScrollArea>
-        </div>
-
-        {/* Products area */}
-        <div className="w-full flex-1 flex flex-col">
-          <div className="p-4">
-            <input
-              type="text"
-              placeholder="Search menu..."
-              className="w-full p-2 border rounded-lg mb-4"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-            />
+        {/* Mobile view content area - modified structure */}
+        <div className="flex-1 flex flex-col overflow-hidden">
+          {/* Mobile categories */}
+          <div className="md:hidden border-b border-gray-200">
+            <ScrollArea className="py-2 px-2">
+              <div className="flex gap-2 pb-1">
+                {categories.map((category) => (
+                  <button
+                    key={category.id}
+                    onClick={() => setActiveCategory(category.name)}
+                    className={`px-3 py-1.5 rounded-full text-sm whitespace-nowrap transition-colors ${
+                      activeCategory === category.name
+                        ? "bg-red-600 text-white"
+                        : "bg-gray-100 hover:bg-gray-200"
+                    }`}
+                  >
+                    {category.name}
+                  </button>
+                ))}
+              </div>
+            </ScrollArea>
           </div>
 
-          <ScrollArea className="flex-1">
-            <div className="p-4 pt-0">
-              {isLoading ? (
-                <div className="flex justify-center py-12">
-                  <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-red-600"></div>
-                </div>
-              ) : filteredProducts.length > 0 ? (
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
-                  {filteredProducts.map((product) => (
-                    <div 
-                      key={product.id}
-                      className="bg-white rounded-lg border border-gray-200 p-3 cursor-pointer hover:shadow-md transition-shadow flex flex-col h-full"
-                      onClick={() => handleProductSelect(product)}
-                    >
-                      {product.image && (
-                        <div className="mb-2 w-full">
-                          <img 
-                            src={product.image} 
-                            alt={product.name}
-                            className="w-full h-24 object-cover rounded-md"
-                          />
+          {/* Products area - fixed for mobile */}
+          <div className="flex-1 flex flex-col overflow-hidden">
+            <div className="p-4">
+              <input
+                type="text"
+                placeholder="Search menu..."
+                className="w-full p-2 border rounded-lg mb-4"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
+            </div>
+
+            <ScrollArea className="flex-1">
+              <div className="p-4 pt-0 pb-20">
+                {isLoading ? (
+                  <div className="flex justify-center py-12">
+                    <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-red-600"></div>
+                  </div>
+                ) : filteredProducts.length > 0 ? (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+                    {filteredProducts.map((product) => (
+                      <div 
+                        key={product.id}
+                        className="bg-white rounded-lg border border-gray-200 p-3 cursor-pointer hover:shadow-md transition-shadow flex flex-col h-full"
+                        onClick={() => handleProductSelect(product)}
+                      >
+                        {product.image && (
+                          <div className="mb-2 w-full">
+                            <img 
+                              src={product.image} 
+                              alt={product.name}
+                              className="w-full h-24 object-cover rounded-md"
+                            />
+                          </div>
+                        )}
+                        <div className="flex-1">
+                          <h3 className="font-medium text-sm">{product.name}</h3>
+                          {product.description && (
+                            <p className="text-xs text-gray-500 mt-1 line-clamp-2">{product.description}</p>
+                          )}
                         </div>
-                      )}
-                      <div className="flex-1">
-                        <h3 className="font-medium text-sm">{product.name}</h3>
-                        {product.description && (
-                          <p className="text-xs text-gray-500 mt-1 line-clamp-2">{product.description}</p>
+                        <div className="flex justify-between items-center mt-2 pt-1">
+                          <span className="text-sm font-bold">{product.price.toFixed(2)} €</span>
+                          <button 
+                            className="bg-red-600 text-white p-1 rounded-full"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleProductSelect(product);
+                            }}
+                          >
+                            <Plus className="h-4 w-4" />
+                          </button>
+                        </div>
+                        {product.hasToppings && (
+                          <div className="text-xs text-blue-600 mt-1">
+                            + Has options
+                          </div>
                         )}
                       </div>
-                      <div className="flex justify-between items-center mt-2 pt-1">
-                        <span className="text-sm font-bold">{product.price.toFixed(2)} €</span>
-                        <button 
-                          className="bg-red-600 text-white p-1 rounded-full"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleProductSelect(product);
-                          }}
-                        >
-                          <Plus className="h-4 w-4" />
-                        </button>
-                      </div>
-                      {product.hasToppings && (
-                        <div className="text-xs text-blue-600 mt-1">
-                          + Has options
-                        </div>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="py-12 text-center">
-                  <p className="text-gray-500">No products found</p>
-                </div>
-              )}
-            </div>
-          </ScrollArea>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="py-12 text-center">
+                    <p className="text-gray-500">No products found</p>
+                  </div>
+                )}
+              </div>
+            </ScrollArea>
+          </div>
         </div>
       </div>
 
+      {/* Cart section */}
       {cartItems.length > 0 && (
         <div className="border-t border-gray-200 bg-gray-50">
           <div className="p-4 max-h-48 overflow-y-auto">
