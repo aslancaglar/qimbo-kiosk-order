@@ -375,7 +375,8 @@ const WaiterOrder: React.FC = () => {
           </ScrollArea>
         </div>
 
-        <div className="flex-1 flex flex-col">
+        {/* Modified: Ensuring products are visible on mobile by changing the structure */}
+        <div className="w-full flex-1 flex flex-col">
           <div className="p-4">
             <input
               type="text"
