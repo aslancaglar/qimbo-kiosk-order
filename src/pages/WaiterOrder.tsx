@@ -354,7 +354,7 @@ const WaiterOrder: React.FC = () => {
           </div>
         </ScrollArea>
 
-        {/* Fixed: Using ScrollArea for the mobile categories to prevent horizontal scrolling */}
+        {/* Mobile categories */}
         <div className="md:hidden border-b border-gray-200">
           <ScrollArea className="py-2 px-2">
             <div className="flex gap-2 pb-1">
@@ -375,7 +375,7 @@ const WaiterOrder: React.FC = () => {
           </ScrollArea>
         </div>
 
-        {/* Modified: Ensuring products are visible on mobile by changing the structure */}
+        {/* Products area */}
         <div className="w-full flex-1 flex flex-col">
           <div className="p-4">
             <input

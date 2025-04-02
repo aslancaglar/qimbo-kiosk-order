@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import Button from './Button';
+import { Button } from "@/components/ui/button";
 
 interface TableSelectorProps {
   onSelectTable: (tableNumber: number) => void;
@@ -43,13 +43,13 @@ const TableSelector: React.FC<TableSelectorProps> = ({ onSelectTable, onCancel }
       <div className="flex gap-4">
         <Button 
           variant="outline" 
-          size="full" 
+          className="w-full" 
           onClick={onCancel}
         >
           Cancel
         </Button>
         <Button 
-          size="full" 
+          className="w-full" 
           disabled={tableNumber === null}
           onClick={() => tableNumber !== null && onSelectTable(tableNumber)}
         >
