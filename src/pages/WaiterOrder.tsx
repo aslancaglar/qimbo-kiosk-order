@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
@@ -389,25 +390,29 @@ const WaiterOrder: React.FC = () => {
                   <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-red-600"></div>
                 </div>
               ) : filteredProducts.length > 0 ? (
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
                   {filteredProducts.map((product) => (
                     <div 
                       key={product.id}
-                      className="bg-white rounded-lg border border-gray-200 p-3 cursor-pointer hover:shadow-md transition-shadow"
+                      className="bg-white rounded-lg border border-gray-200 p-3 cursor-pointer hover:shadow-md transition-shadow flex flex-col h-full"
                       onClick={() => handleProductSelect(product)}
                     >
                       {product.image && (
-                        <img 
-                          src={product.image} 
-                          alt={product.name}
-                          className="w-full h-24 object-cover rounded-md mb-2"
-                        />
+                        <div className="mb-2 w-full">
+                          <img 
+                            src={product.image} 
+                            alt={product.name}
+                            className="w-full h-24 object-cover rounded-md"
+                          />
+                        </div>
                       )}
-                      <h3 className="font-medium text-sm">{product.name}</h3>
-                      {product.description && (
-                        <p className="text-xs text-gray-500 mt-1 line-clamp-2">{product.description}</p>
-                      )}
-                      <div className="flex justify-between items-center mt-2">
+                      <div className="flex-1">
+                        <h3 className="font-medium text-sm">{product.name}</h3>
+                        {product.description && (
+                          <p className="text-xs text-gray-500 mt-1 line-clamp-2">{product.description}</p>
+                        )}
+                      </div>
+                      <div className="flex justify-between items-center mt-2 pt-1">
                         <span className="text-sm font-bold">{product.price.toFixed(2)} €</span>
                         <button 
                           className="bg-red-600 text-white p-1 rounded-full"
