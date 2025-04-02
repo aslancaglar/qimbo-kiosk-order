@@ -15,6 +15,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Input } from "@/components/ui/input";
+import { useIsMobile } from '@/hooks/use-mobile';
 
 export interface Product {
   id: string;
@@ -71,6 +72,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
   const [toppingCategories, setToppingCategories] = useState<ToppingCategory[]>([]);
   const [showAddedAnimation, setShowAddedAnimation] = useState(false);
   const { toast } = useToast();
+  const isMobile = useIsMobile();
 
   const form = useForm<ToppingsFormValues>({
     resolver: zodResolver(toppingsFormSchema),
@@ -351,7 +353,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
                             )}
                           </div>
                           
-                          <div className="grid grid-cols-2 gap-2">
+                          <div className={`grid ${isMobile ? 'grid-cols-1' : 'grid-cols-2'} gap-2`}>
                             {category.toppings.map(topping => {
                               const toppingInForm = form.watch('selectedToppings').find(t => t.id === topping.id);
                               const quantity = toppingInForm ? toppingInForm.quantity : 0;
