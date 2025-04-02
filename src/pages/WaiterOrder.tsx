@@ -235,14 +235,19 @@ const WaiterOrder: React.FC = () => {
     }
 
     try {
-      // Insert order into database
+      // Generate a simple order number (timestamp + random digits)
+      const orderNumber = `W${Date.now().toString().substring(8)}${Math.floor(Math.random() * 1000)}`;
+      
+      // Insert order into database with all required fields
       const { data: order, error: orderError } = await supabase
         .from('orders')
         .insert({
           customer_type: 'Dine-in',
           table_number: tableNumber,
           status: 'New',
-          total_amount: totalPrice
+          total_amount: totalPrice,
+          items_count: totalItems,
+          order_number: orderNumber
         })
         .select()
         .single();
