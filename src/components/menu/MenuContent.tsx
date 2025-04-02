@@ -5,6 +5,7 @@ import CategorySelector from './CategorySelector';
 import ProductCard from './ProductCard';
 import { Product } from './ProductCard';
 import { ToppingItem } from '../cart/types';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 interface MenuContentProps {
   products: Product[];
@@ -28,24 +29,40 @@ const MenuContent: React.FC<MenuContentProps> = ({
   isLoading,
   onProductSelect
 }) => {
+  const isMobile = useIsMobile();
+  
   // Memoize filtered products to prevent recalculation on every render
   const filteredProducts = useMemo(() => {
     return products.filter(product => product.category === activeCategory);
   }, [products, activeCategory]);
 
   return (
-    <div className="flex flex-1 overflow-hidden bg-amber-50">
-      <div className="w-32 md:w-36 bg-gradient-to-b from-yellow-400 to-yellow-500 overflow-y-auto">
-        <CategorySelector 
-          categories={categories} 
-          categoryIcons={categoryIcons}
-          activeCategory={activeCategory} 
-          onChange={setActiveCategory}
-          orientation="vertical"
-        />
-      </div>
+    <div className="flex flex-1 flex-col overflow-hidden bg-amber-50">
+      {/* Show horizontal categories on mobile, vertical sidebar on desktop */}
+      {isMobile ? (
+        <div className="w-full border-b border-amber-200 shadow-sm">
+          <CategorySelector 
+            categories={categories}
+            categoryIcons={categoryIcons}
+            activeCategory={activeCategory} 
+            onChange={setActiveCategory}
+            orientation="horizontal"
+            hideIcons={true}
+          />
+        </div>
+      ) : (
+        <div className="w-32 md:w-36 bg-gradient-to-b from-yellow-400 to-yellow-500 overflow-y-auto">
+          <CategorySelector 
+            categories={categories} 
+            categoryIcons={categoryIcons}
+            activeCategory={activeCategory} 
+            onChange={setActiveCategory}
+            orientation="vertical"
+          />
+        </div>
+      )}
       
-      <div className="flex-1 overflow-y-auto p-4 md:pb-[60px]">
+      <div className={`flex-1 overflow-y-auto p-4 md:pb-[60px] ${isMobile ? 'w-full' : ''}`}>
         <div className="mb-4">
           <h2 className="text-xl font-bold text-red-700">{activeCategory}</h2>
         </div>
