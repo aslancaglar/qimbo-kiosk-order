@@ -24,11 +24,11 @@ const CategorySelector: React.FC<CategorySelectorProps> = ({
     <motion.div
       initial={{ opacity: 0, y: -10 }}
       animate={{ opacity: 1, y: 0 }}
-      className={`w-full ${isVertical ? 'h-full py-2' : 'overflow-x-auto py-4 px-6'}`}
+      className={`w-full ${isVertical ? 'h-full py-2' : 'py-2 px-3'}`}
     >
       <div className={`${isVertical 
         ? 'flex flex-col gap-1 items-center' 
-        : 'flex gap-4 min-w-max'}`}>
+        : 'flex flex-nowrap gap-2 overflow-x-auto pb-1 hide-scrollbar'}`}>
         
         {categories.map((category) => (
           <CategoryButton
@@ -79,19 +79,19 @@ const CategoryButton: React.FC<CategoryButtonProps> = ({
       onClick={() => onChange(category)}
       className={`relative ${isVertical 
         ? 'px-2 py-3 w-full text-center flex flex-col items-center justify-center' 
-        : 'px-5 py-2 rounded-md'} text-base font-medium transition-colors`}
+        : 'px-4 py-2 flex-none rounded-md whitespace-nowrap text-center'} text-base font-medium transition-colors`}
     >
       {isActive && (
         <motion.div
           layoutId={`activeCategory-${isVertical ? 'vertical' : 'horizontal'}`}
           className={`absolute ${isVertical 
             ? 'left-0 w-1 h-full bg-red-600' 
-            : 'inset-0 bg-gray-100 rounded-md'} z-0`}
+            : 'inset-0 bg-red-100 rounded-md'} z-0`}
           transition={{ type: 'spring', duration: 0.5 }}
         />
       )}
       
-      {/* Icon for categories - use uploaded icon or fallback to emoji */}
+      {/* Icon for categories - only show in vertical mode */}
       {isVertical && (
         <div className="mb-1 text-2xl">
           {icon ? (
@@ -121,10 +121,10 @@ const CategoryButton: React.FC<CategoryButtonProps> = ({
       
       <span className={`relative z-10 ${isVertical ? 'text-sm font-bold' : ''} ${
         isActive
-          ? isVertical ? 'text-red-600 font-bold' : 'text-primary' 
+          ? isVertical ? 'text-red-600 font-bold' : 'text-red-700 font-bold' 
           : 'text-gray-600 hover:text-gray-900'
       }`}>
-        {isVertical ? category : category}
+        {category}
       </span>
     </button>
   );
