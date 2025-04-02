@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
@@ -26,7 +25,6 @@ function useWaiterCart() {
   const [isTableSelectorOpen, setIsTableSelectorOpen] = useState(false);
   const { toast } = useToast();
 
-  // Load cart from localStorage
   useEffect(() => {
     const savedCart = localStorage.getItem('waiterCart');
     const savedTable = localStorage.getItem('waiterTable');
@@ -48,12 +46,10 @@ function useWaiterCart() {
     }
   }, []);
 
-  // Save cart to localStorage whenever it changes
   useEffect(() => {
     localStorage.setItem('waiterCart', JSON.stringify(cartItems));
   }, [cartItems]);
 
-  // Save table to localStorage whenever it changes
   useEffect(() => {
     if (tableNumber !== null) {
       localStorage.setItem('waiterTable', JSON.stringify(tableNumber));
@@ -63,19 +59,14 @@ function useWaiterCart() {
   const addItem = (product: Product, selectedToppings?: ToppingItem[]) => {
     setCartItems(prev => {
       const existingItemIndex = prev.findIndex(item => {
-        // Check if item ID matches and topping selection matches
         if (item.id !== product.id) return false;
         
-        // If neither item has toppings, they match
         if (!selectedToppings?.length && !item.toppings?.length) return true;
         
-        // If only one has toppings, they don't match
         if ((selectedToppings?.length && !item.toppings?.length) || (!selectedToppings?.length && item.toppings?.length)) return false;
         
-        // If toppings counts don't match, they don't match
         if (selectedToppings?.length !== item.toppings?.length) return false;
         
-        // Compare each topping
         const allToppingsMatch = selectedToppings.every(selectedTopping => 
           item.toppings?.some(itemTopping => 
             itemTopping.id === selectedTopping.id && 
@@ -89,13 +80,11 @@ function useWaiterCart() {
       const newCart = [...prev];
       
       if (existingItemIndex !== -1) {
-        // Increment existing item quantity
         newCart[existingItemIndex] = {
           ...newCart[existingItemIndex],
           quantity: newCart[existingItemIndex].quantity + 1
         };
       } else {
-        // Add new item
         newCart.push({
           id: product.id,
           name: product.name,
@@ -119,13 +108,11 @@ function useWaiterCart() {
       const newCart = [...prev];
       
       if (newCart[index].quantity > 1) {
-        // Decrement quantity
         newCart[index] = {
           ...newCart[index],
           quantity: newCart[index].quantity - 1
         };
       } else {
-        // Remove item completely
         newCart.splice(index, 1);
       }
       
@@ -178,7 +165,6 @@ const WaiterOrder: React.FC = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   
-  // State for topping selection
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [isToppingSelectorOpen, setIsToppingSelectorOpen] = useState(false);
   
@@ -195,15 +181,12 @@ const WaiterOrder: React.FC = () => {
     totalPrice
   } = useWaiterCart();
 
-  // Set initial active category once categories are loaded
   useEffect(() => {
     if (categories.length > 0 && activeCategory === "") {
-      // Access the 'name' property of the first category
       setActiveCategory(categories[0]?.name || "");
     }
   }, [categories, activeCategory]);
 
-  // Filter products based on active category and search query
   const filteredProducts = products.filter(product => {
     const matchesCategory = activeCategory === "" || product.category === activeCategory;
     const matchesSearch = searchQuery === "" || 
@@ -214,12 +197,10 @@ const WaiterOrder: React.FC = () => {
   });
 
   const handleProductSelect = (product: Product) => {
-    // Check if product has toppings
-    if (product.has_toppings && product.available_topping_categories?.length > 0) {
+    if (product.hasToppings && product.availableToppingCategories?.length > 0) {
       setSelectedProduct(product);
       setIsToppingSelectorOpen(true);
     } else {
-      // If no toppings, add directly to cart
       addItem(product);
     }
   };
@@ -242,7 +223,6 @@ const WaiterOrder: React.FC = () => {
   };
 
   const submitOrder = async () => {
-    // Table is optional now, so we don't check for it
     if (cartItems.length === 0) {
       toast({
         title: "Empty order",
@@ -253,10 +233,8 @@ const WaiterOrder: React.FC = () => {
     }
 
     try {
-      // Generate a simple order number (timestamp + random digits)
       const orderNumber = `W${Date.now().toString().substring(8)}${Math.floor(Math.random() * 1000)}`;
       
-      // Insert order into database with all required fields
       const { data: order, error: orderError } = await supabase
         .from('orders')
         .insert({
@@ -272,7 +250,6 @@ const WaiterOrder: React.FC = () => {
 
       if (orderError) throw orderError;
 
-      // Insert order items
       const orderItemPromises = cartItems.map(async (item) => {
         const { data: orderItem, error: itemError } = await supabase
           .from('order_items')
@@ -288,7 +265,6 @@ const WaiterOrder: React.FC = () => {
 
         if (itemError) throw itemError;
 
-        // If item has toppings, insert them
         if (item.toppings && item.toppings.length > 0) {
           const toppingPromises = item.toppings.map(topping => {
             return supabase
@@ -309,10 +285,8 @@ const WaiterOrder: React.FC = () => {
 
       await Promise.all(orderItemPromises);
 
-      // Clear cart after successful order
       clearCart();
 
-      // Show success toast
       toast({
         title: "Order submitted",
         description: tableNumber 
@@ -337,7 +311,6 @@ const WaiterOrder: React.FC = () => {
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
     >
-      {/* Header */}
       <div className="bg-red-600 text-white py-4 px-4 flex items-center justify-between">
         <h1 className="text-lg font-bold">Waiter Order</h1>
         <div className="flex items-center gap-2">
@@ -361,9 +334,7 @@ const WaiterOrder: React.FC = () => {
         </div>
       </div>
 
-      {/* Main content area */}
       <div className="flex flex-1 overflow-hidden">
-        {/* Categories sidebar */}
         <ScrollArea className="hidden md:block w-32 border-r border-gray-200">
           <div className="p-2 space-y-2">
             {categories.map((category) => (
@@ -382,7 +353,6 @@ const WaiterOrder: React.FC = () => {
           </div>
         </ScrollArea>
 
-        {/* Mobile Categories horizontal scroll */}
         <div className="md:hidden overflow-x-auto whitespace-nowrap border-b border-gray-200 px-2">
           <div className="inline-flex py-2 gap-2">
             {categories.map((category) => (
@@ -401,7 +371,6 @@ const WaiterOrder: React.FC = () => {
           </div>
         </div>
 
-        {/* Products grid - We're using flex-1 for both mobile and desktop to fix the display issue */}
         <div className="flex-1 flex flex-col">
           <div className="p-4">
             <input
@@ -450,7 +419,7 @@ const WaiterOrder: React.FC = () => {
                           <Plus className="h-4 w-4" />
                         </button>
                       </div>
-                      {product.has_toppings && (
+                      {product.hasToppings && (
                         <div className="text-xs text-blue-600 mt-1">
                           + Has options
                         </div>
@@ -468,7 +437,6 @@ const WaiterOrder: React.FC = () => {
         </div>
       </div>
 
-      {/* Cart summary */}
       {cartItems.length > 0 && (
         <div className="border-t border-gray-200 bg-gray-50">
           <div className="p-4 max-h-48 overflow-y-auto">
@@ -522,7 +490,6 @@ const WaiterOrder: React.FC = () => {
         </div>
       )}
 
-      {/* Table selector dialog */}
       {isTableSelectorOpen && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
           <TableSelector 
@@ -532,7 +499,6 @@ const WaiterOrder: React.FC = () => {
         </div>
       )}
 
-      {/* Topping selector dialog */}
       {selectedProduct && (
         <ToppingSelector
           productId={selectedProduct.id}

@@ -58,7 +58,7 @@ const ToppingSelector: React.FC<ToppingSelectorProps> = ({
       const { data: productData } = await supabase
         .from('menu_items')
         .select('available_topping_categories')
-        .eq('id', productId)
+        .eq('id', parseInt(productId))
         .single();
 
       if (!productData?.available_topping_categories?.length) {
