@@ -799,7 +799,7 @@ const Settings = () => {
         enabled: printSettings.enabled,
         apiKey: printSettings.apiKey,
         printers: printSettings.printers
-      } as Json;
+      } as unknown as Json;
       
       if (existingData) {
         const { error } = await supabase
@@ -1068,7 +1068,10 @@ const Settings = () => {
 
   return (
     <AdminLayout>
-      {/* Add your UI components here */}
+      <div className="space-y-6">
+        <h2 className="text-xl font-bold">Settings</h2>
+        <p className="text-muted-foreground">Configure your application settings here.</p>
+      </div>
     </AdminLayout>
   );
 };
