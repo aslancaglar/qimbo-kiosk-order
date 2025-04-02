@@ -4,14 +4,12 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from '@/hooks/use-toast';
 import { Product } from '@/components/menu/ProductCard';
 
-export interface Category {
+interface Category {
   id: number;
   name: string;
   description: string | null;
   display_order: number;
   icon_url: string | null;
-  created_at?: string;
-  updated_at?: string;
 }
 
 export function useMenuData() {

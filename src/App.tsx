@@ -18,7 +18,6 @@ const NotFound = lazy(() => import("./pages/NotFound"));
 const MenuPage = lazy(() => import("./components/menu/MenuPage"));
 const OrderConfirmation = lazy(() => import("./components/order/OrderConfirmation"));
 const OrderSummaryPage = lazy(() => import("./components/order/OrderSummaryPage"));
-const WaiterOrder = lazy(() => import("./pages/WaiterOrder")); // Add new waiter order page
 
 // Lazy load admin pages
 const Dashboard = lazy(() => import("./pages/admin/Dashboard"));
@@ -114,7 +113,6 @@ const App = () => {
                 <Route path="/menu" element={<MenuPage />} />
                 <Route path="/order-summary" element={<OrderSummaryPage />} />
                 <Route path="/confirmation" element={<OrderConfirmation />} />
-                <Route path="/waiter" element={<WaiterOrder />} /> {/* Add waiter order route */}
                 
                 {/* Admin routes */}
                 <Route path="/admin" element={<Dashboard />} />
