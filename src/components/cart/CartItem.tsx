@@ -28,15 +28,13 @@ const CartItem: React.FC<CartItemProps> = ({
       className="py-4 border-b border-gray-100 last:border-0"
     >
       <div className="flex items-start gap-3">
-        {!isTablet && (
-          <div className="w-16 h-16 rounded-md overflow-hidden flex-shrink-0">
-            <img
-              src={item.product.image}
-              alt={item.product.name}
-              className="w-full h-full object-cover"
-            />
-          </div>
-        )}
+        <div className="w-16 h-16 rounded-md overflow-hidden flex-shrink-0">
+          <img
+            src={item.product.image}
+            alt={item.product.name}
+            className="w-full h-full object-cover"
+          />
+        </div>
         
         <div className="flex-1 min-w-0">
           <div className="flex justify-between items-start">
