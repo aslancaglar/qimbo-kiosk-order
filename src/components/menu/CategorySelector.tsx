@@ -35,7 +35,7 @@ const CategorySelector: React.FC<CategorySelectorProps> = ({
       <div className={`${
         isVertical 
           ? 'flex flex-col gap-1 items-center' 
-          : 'flex gap-2 min-w-max flex-wrap'
+          : 'flex gap-2 min-w-max'
       }`}>
         
         {categories.map((category) => (
@@ -91,7 +91,7 @@ const CategoryButton: React.FC<CategoryButtonProps> = ({
       className={`relative ${
         isVertical 
           ? 'px-2 py-3 w-full text-center flex flex-col items-center justify-center' 
-          : 'px-3 py-2 rounded-md text-sm'
+          : 'px-3 py-2 rounded-md text-sm min-w-[80px] whitespace-nowrap'
       } font-medium transition-colors`}
     >
       {isActive && (
@@ -134,7 +134,7 @@ const CategoryButton: React.FC<CategoryButtonProps> = ({
         </div>
       )}
       
-      <span className={`relative z-10 ${isVertical ? 'text-sm font-bold' : ''} ${
+      <span className={`relative z-10 ${isVertical ? 'text-sm font-bold' : 'text-sm font-medium'} ${
         isActive
           ? isVertical ? 'text-red-600 font-bold' : 'text-red-600 font-bold' 
           : 'text-gray-600 hover:text-gray-900'
