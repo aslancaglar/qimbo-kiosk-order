@@ -322,7 +322,6 @@ const Settings = () => {
     try {
       setLoading(true);
       
-      // Fetch PrintNode settings
       const { data, error } = await supabase
         .from('settings')
         .select('*')
@@ -339,7 +338,6 @@ const Settings = () => {
         return;
       }
 
-      // Get browser printing settings
       const browserPrintingEnabled = await isBrowserPrintingEnabled();
 
       if (data && data.value) {
@@ -353,12 +351,10 @@ const Settings = () => {
         
         setPrintSettings(newSettings);
         
-        // If we have an API key, auto-fetch printers on initial load
         if (newSettings.apiKey && !initialPrinterLoad) {
           console.log('Auto-fetching printers on initial load');
           setInitialPrinterLoad(true);
           
-          // We need to wait for the state to update
           setTimeout(async () => {
             try {
               setFetchingPrinters(true);
@@ -367,7 +363,6 @@ const Settings = () => {
               
               if (printers.length === 0 && newSettings.printers.length > 0) {
                 console.log('No printers found but printers exist in settings, trying again...');
-                // Try once more after a short delay
                 setTimeout(async () => {
                   const retryPrinters = await fetchPrintNodePrinters(newSettings.apiKey);
                   setAvailablePrinters(retryPrinters);
@@ -383,7 +378,6 @@ const Settings = () => {
           }, 500);
         }
       } else {
-        // If no settings found, still set browser printing from result
         setPrintSettings(prev => ({
           ...prev,
           browserPrintingEnabled
@@ -1053,3 +1047,30 @@ const Settings = () => {
           description: "Slideshow image uploaded successfully"
         });
       } else {
+        toast({
+          title: "Upload failed",
+          description: "Failed to upload slideshow image",
+          variant: "destructive"
+        });
+      }
+    } catch (error) {
+      console.error('Error uploading slideshow image:', error);
+      toast({
+        title: "Upload failed",
+        description: "Failed to upload slideshow image",
+        variant: "destructive"
+      });
+    } finally {
+      setUploadingImage(false);
+      if (e.target) e.target.value = '';
+    }
+  };
+
+  return (
+    <AdminLayout>
+      {/* Add your UI components here */}
+    </AdminLayout>
+  );
+};
+
+export default Settings;
