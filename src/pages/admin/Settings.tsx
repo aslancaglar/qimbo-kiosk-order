@@ -322,14 +322,14 @@ const Settings = () => {
     try {
       setLoading(true);
       
-      const { data, error } = await supabase
+      const { data: existingData, error: checkError } = await supabase
         .from('settings')
         .select('*')
         .eq('key', 'print_settings')
         .maybeSingle();
         
-      if (error) {
-        console.error('Error fetching print settings:', error);
+      if (checkError) {
+        console.error('Error checking print settings:', checkError);
         toast({
           title: "Error",
           description: "Failed to load printer settings",
@@ -340,8 +340,8 @@ const Settings = () => {
 
       const browserPrintingEnabled = await isBrowserPrintingEnabled();
 
-      if (data && data.value) {
-        const settings = data.value as Record<string, any>;
+      if (existingData && existingData.value) {
+        const settings = existingData.value as Record<string, any>;
         const newSettings = {
           enabled: settings.enabled !== undefined ? !!settings.enabled : false,
           apiKey: settings.apiKey || '',
