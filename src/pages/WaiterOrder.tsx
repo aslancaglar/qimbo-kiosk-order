@@ -193,7 +193,8 @@ const WaiterOrder: React.FC = () => {
   // Set initial active category once categories are loaded
   useEffect(() => {
     if (categories.length > 0 && activeCategory === "") {
-      setActiveCategory(categories[0]);
+      // Access the 'name' property of the first category
+      setActiveCategory(categories[0]?.name || "");
     }
   }, [categories, activeCategory]);
 
@@ -347,15 +348,15 @@ const WaiterOrder: React.FC = () => {
           <div className="p-2 space-y-2">
             {categories.map((category) => (
               <button
-                key={category}
-                onClick={() => setActiveCategory(category)}
+                key={category.id}
+                onClick={() => setActiveCategory(category.name)}
                 className={`w-full text-left p-2 rounded text-sm transition-colors ${
-                  activeCategory === category
+                  activeCategory === category.name
                     ? "bg-red-600 text-white"
                     : "hover:bg-gray-100"
                 }`}
               >
-                {category}
+                {category.name}
               </button>
             ))}
           </div>
@@ -366,15 +367,15 @@ const WaiterOrder: React.FC = () => {
           <div className="inline-flex py-2 gap-2">
             {categories.map((category) => (
               <button
-                key={category}
-                onClick={() => setActiveCategory(category)}
+                key={category.id}
+                onClick={() => setActiveCategory(category.name)}
                 className={`px-3 py-1.5 rounded-full text-sm whitespace-nowrap transition-colors ${
-                  activeCategory === category
+                  activeCategory === category.name
                     ? "bg-red-600 text-white"
                     : "bg-gray-100 hover:bg-gray-200"
                 }`}
               >
-                {category}
+                {category.name}
               </button>
             ))}
           </div>
