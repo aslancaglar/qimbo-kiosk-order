@@ -67,7 +67,7 @@ const CartSidebar: React.FC<CartSidebarProps> = ({
     onClose();
   };
   
-  const containerClassName = "h-full flex flex-col bg-white relative";
+  const containerClassName = "h-full flex flex-col bg-white";
   
   return (
     <div className={containerClassName}>
@@ -107,7 +107,7 @@ const CartSidebar: React.FC<CartSidebarProps> = ({
         </div>
       ) : (
         <>
-          <div className="flex-1 overflow-y-auto p-6 pb-48">
+          <div className="flex-1 overflow-y-auto p-6">
             <AnimatePresence initial={false}>
               {items.map((item, index) => (
                 <motion.div
@@ -129,7 +129,7 @@ const CartSidebar: React.FC<CartSidebarProps> = ({
             </AnimatePresence>
           </div>
           
-          <div className="p-6 border-t border-gray-100 bg-white absolute bottom-0 left-0 right-0 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)]">
+          <div className="p-6 border-t border-gray-100">
             <div className="mb-4 space-y-2">
               <div className="flex justify-between text-sm">
                 <span className="text-gray-600">Sous-total</span>
