@@ -129,7 +129,7 @@ const CartSidebar: React.FC<CartSidebarProps> = ({
                     onRemove={() => onRemoveItem(index)}
                     onIncrement={() => onIncrementItem(index)}
                     onDecrement={() => onDecrementItem(index)}
-                    isTablet={false}
+                    isTablet={isMobile}
                   />
                   
                   {/* Display toppings if any */}
