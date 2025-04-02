@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Button from '../common/Button';
@@ -8,6 +9,7 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/components/ui/use-toast';
 import { useIsMobile } from '@/hooks/use-mobile';
+
 interface CartSidebarProps {
   isOpen: boolean;
   onClose: () => void;
@@ -18,6 +20,7 @@ interface CartSidebarProps {
   orderType: 'takeaway' | 'eat-in';
   tableNumber?: number;
 }
+
 const CartSidebar: React.FC<CartSidebarProps> = ({
   isOpen,
   onClose,
@@ -30,6 +33,7 @@ const CartSidebar: React.FC<CartSidebarProps> = ({
 }) => {
   const navigate = useNavigate();
   const isMobile = useIsMobile();
+  
   const totalItems = items.reduce((sum, item) => sum + item.quantity, 0);
   const total = items.reduce((sum, item) => {
     let itemTotal = item.product.price * item.quantity;
@@ -39,9 +43,11 @@ const CartSidebar: React.FC<CartSidebarProps> = ({
     }
     return sum + itemTotal;
   }, 0);
+  
   const taxRate = 0.1;
   const taxAmount = total - total / (1 + taxRate);
   const subtotal = total - taxAmount;
+
   const handleSeeOrder = () => {
     navigate('/order-summary', {
       state: {
@@ -56,7 +62,9 @@ const CartSidebar: React.FC<CartSidebarProps> = ({
     });
     onClose();
   };
+
   const containerClassName = "h-full flex flex-col bg-white";
+
   return <div className={containerClassName}>
       <div className="p-6 border-b border-gray-100 flex justify-between items-center">
         <div className="flex items-center gap-2">
@@ -82,63 +90,74 @@ const CartSidebar: React.FC<CartSidebarProps> = ({
           <h3 className="text-xl font-medium text-gray-900 mb-1">Your cart is empty</h3>
           <p className="text-gray-500 mb-6">Add some delicious items to get started</p>
         </div> : <>
-          <div className={`flex-1 overflow-y-auto p-6 ${isMobile ? 'pb-[230px]' : ''}`}>
-            <AnimatePresence initial={false}>
-              {items.map((item, index) => <motion.div key={`${item.product.id}-${index}`} initial={{
-            opacity: 0,
-            height: 0
-          }} animate={{
-            opacity: 1,
-            height: 'auto'
-          }} exit={{
-            opacity: 0,
-            height: 0
-          }} className="mb-4 border-b pb-4 last:border-0 last:pb-0">
-                  <CartItem item={item} onRemove={() => onRemoveItem(index)} onIncrement={() => onIncrementItem(index)} onDecrement={() => onDecrementItem(index)} isTablet={isMobile} />
-                </motion.div>)}
-            </AnimatePresence>
+          <div className={`flex-1 overflow-y-auto ${isMobile ? 'pb-[180px]' : ''}`}>
+            <div className="p-6">
+              <AnimatePresence initial={false}>
+                {items.map((item, index) => <motion.div key={`${item.product.id}-${index}`} initial={{
+              opacity: 0,
+              height: 0
+            }} animate={{
+              opacity: 1,
+              height: 'auto'
+            }} exit={{
+              opacity: 0,
+              height: 0
+            }} className="mb-4 border-b pb-4 last:border-0 last:pb-0">
+                    <CartItem item={item} onRemove={() => onRemoveItem(index)} onIncrement={() => onIncrementItem(index)} onDecrement={() => onDecrementItem(index)} isTablet={isMobile} />
+                  </motion.div>)}
+              </AnimatePresence>
+            </div>
           </div>
           
-          {isMobile ? <div className="absolute bottom-0 left-0 right-0 p-6 border-t border-gray-100 bg-white z-10 px-[20px] py-[10px]">
-              <div className="mb-4 space-y-2">
-                <div className="flex justify-between text-sm">
-                  <span className="text-gray-600">Sous-total</span>
-                  <span>{subtotal.toFixed(2)} €</span>
+          {isMobile ? <div className="absolute bottom-0 left-0 right-0 bg-white z-10 border-t border-gray-100">
+              <div className="px-6 pt-4">
+                <div className="space-y-2 mb-4">
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-600">Sous-total</span>
+                    <span>{subtotal.toFixed(2)} €</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-600">TVA</span>
+                    <span>{taxAmount.toFixed(2)} €</span>
+                  </div>
+                  <div className="flex justify-between font-semibold text-base pt-2">
+                    <span>Total</span>
+                    <span>{total.toFixed(2)} €</span>
+                  </div>
                 </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-gray-600">TVA</span>
-                  <span>{taxAmount.toFixed(2)} €</span>
-                </div>
-                <div className="flex justify-between font-semibold text-base pt-2">
-                  <span>Total</span>
-                  <span>{total.toFixed(2)} €</span>
-                </div>
-              </div>
-              
-              <Button size="full" onClick={handleSeeOrder} disabled={items.length === 0}>
-                Voir Ma Commande
-              </Button>
-            </div> : <div className="p-6 border-t border-gray-100">
-              <div className="mb-4 space-y-2">
-                <div className="flex justify-between text-sm">
-                  <span className="text-gray-600">Sous-total</span>
-                  <span>{subtotal.toFixed(2)} €</span>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-gray-600">TVA</span>
-                  <span>{taxAmount.toFixed(2)} €</span>
-                </div>
-                <div className="flex justify-between font-semibold text-base pt-2">
-                  <span>Total</span>
-                  <span>{total.toFixed(2)} €</span>
+                
+                <div className="pb-4">
+                  <Button size="full" onClick={handleSeeOrder} disabled={items.length === 0}>
+                    Voir Ma Commande
+                  </Button>
                 </div>
               </div>
-              
-              <Button size="full" onClick={handleSeeOrder} disabled={items.length === 0}>
-                Voir Ma Commande
-              </Button>
+            </div> : <div className="bg-white border-t border-gray-100">
+              <div className="px-6 pt-4">
+                <div className="space-y-2 mb-4">
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-600">Sous-total</span>
+                    <span>{subtotal.toFixed(2)} €</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-600">TVA</span>
+                    <span>{taxAmount.toFixed(2)} €</span>
+                  </div>
+                  <div className="flex justify-between font-semibold text-base pt-2">
+                    <span>Total</span>
+                    <span>{total.toFixed(2)} €</span>
+                  </div>
+                </div>
+                
+                <div className="pb-4">
+                  <Button size="full" onClick={handleSeeOrder} disabled={items.length === 0}>
+                    Voir Ma Commande
+                  </Button>
+                </div>
+              </div>
             </div>}
         </>}
     </div>;
 };
+
 export default CartSidebar;
