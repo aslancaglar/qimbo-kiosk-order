@@ -49,7 +49,7 @@ const CartItem: React.FC<CartItemProps> = ({
             </button>
           </div>
           
-          {item.options && item.options.length > 0 && (
+          {!isTablet && item.options && item.options.length > 0 && (
             <div className="mt-1 mb-2">
               {item.options.map((option, index) => (
                 <span 
@@ -62,14 +62,37 @@ const CartItem: React.FC<CartItemProps> = ({
             </div>
           )}
           
-          <div className="flex justify-between items-center mt-2">
+          <div className="flex flex-col mt-2">
             <span className="font-medium">
               {(item.product.price * item.quantity).toFixed(2)} €
               {isTablet && item.quantity > 1 && ` (x${item.quantity})`}
             </span>
             
+            {isTablet && (
+              <div className="flex items-center gap-3 mt-2">
+                <button
+                  className="w-7 h-7 rounded-full bg-gray-100 flex items-center justify-center text-gray-600 hover:bg-gray-200"
+                  onClick={onDecrement}
+                  disabled={item.quantity <= 1}
+                >
+                  <Minus size={16} />
+                </button>
+                
+                <span className="text-sm font-medium w-4 text-center">
+                  {item.quantity}
+                </span>
+                
+                <button
+                  className="w-7 h-7 rounded-full bg-gray-100 flex items-center justify-center text-gray-600 hover:bg-gray-200"
+                  onClick={onIncrement}
+                >
+                  <Plus size={16} />
+                </button>
+              </div>
+            )}
+            
             {!isTablet && (
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-3 mt-2">
                 <button
                   className="w-7 h-7 rounded-full bg-gray-100 flex items-center justify-center text-gray-600 hover:bg-gray-200"
                   onClick={onDecrement}

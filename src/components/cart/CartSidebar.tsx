@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Button from '../common/Button';
@@ -36,12 +35,9 @@ const CartSidebar: React.FC<CartSidebarProps> = ({
   
   const totalItems = items.reduce((sum, item) => sum + item.quantity, 0);
   
-  // Calculate total (tax-inclusive)
   const total = items.reduce((sum, item) => {
-    // Base price of the product × quantity
     let itemTotal = item.product.price * item.quantity;
     
-    // Add cost of toppings × quantity
     if (item.selectedToppings && item.selectedToppings.length > 0) {
       const toppingsPrice = item.selectedToppings.reduce(
         (toppingSum, topping) => toppingSum + topping.price, 0
@@ -52,9 +48,7 @@ const CartSidebar: React.FC<CartSidebarProps> = ({
     return sum + itemTotal;
   }, 0);
   
-  // Calculate the tax amount (already included in price)
-  // Assuming 10% tax rate: price includes tax, so tax = total - (total / 1.1)
-  const taxRate = 0.1; // 10% tax
+  const taxRate = 0.1;
   const taxAmount = total - (total / (1 + taxRate));
   const subtotal = total - taxAmount;
   
@@ -73,7 +67,6 @@ const CartSidebar: React.FC<CartSidebarProps> = ({
     onClose();
   };
   
-  // If we're using this inside a Sheet, we don't need the fixed positioning
   const containerClassName = "h-full flex flex-col bg-white";
   
   return (
@@ -129,20 +122,8 @@ const CartSidebar: React.FC<CartSidebarProps> = ({
                     onRemove={() => onRemoveItem(index)}
                     onIncrement={() => onIncrementItem(index)}
                     onDecrement={() => onDecrementItem(index)}
-                    isTablet={false}
+                    isTablet={isMobile}
                   />
-                  
-                  {/* Display toppings if any */}
-                  {item.selectedToppings && item.selectedToppings.length > 0 && (
-                    <div className="pl-3 mt-2 space-y-1">
-                      {item.selectedToppings.map((topping) => (
-                        <div key={topping.id} className="flex justify-between text-sm text-gray-600">
-                          <span>+ {topping.name}</span>
-                          <span>{topping.price.toFixed(2)} €</span>
-                        </div>
-                      ))}
-                    </div>
-                  )}
                 </motion.div>
               ))}
             </AnimatePresence>
