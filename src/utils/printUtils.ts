@@ -1,4 +1,3 @@
-
 import { CartItemType } from "../components/cart/types";
 import { getPrintNodeCredentials, sendToPrintNode, formatTextReceipt } from "./printNode";
 
@@ -146,10 +145,10 @@ export const printToThermalPrinter = async (
     console.log('PrintNode credentials:', {
       enabled: credentials.enabled,
       hasApiKey: !!credentials.apiKey,
-      hasPrinters: Array.isArray(credentials.printers) && credentials.printers.length > 0
+      hasPrinterId: !!credentials.printerId
     });
     
-    if (!credentials.enabled || !credentials.apiKey || !credentials.printers || credentials.printers.length === 0) {
+    if (!credentials.enabled || !credentials.apiKey || !credentials.printerId) {
       console.error('PrintNode is not enabled or configured correctly:', credentials);
       return false;
     }
@@ -166,19 +165,9 @@ export const printToThermalPrinter = async (
     );
     
     console.log('Sending receipt to PrintNode...');
-    
-    // Send to all configured printers
-    const printResults = await Promise.all(
-      credentials.printers.map(printer => 
-        sendToPrintNode(textReceipt, credentials.apiKey, printer.id)
-      )
-    );
-    
-    // At least one printer must succeed
-    const finalResult = printResults.some(result => result === true);
-    console.log('PrintNode send results:', printResults, 'Final result:', finalResult);
-    
-    return finalResult;
+    const result = await sendToPrintNode(textReceipt, credentials.apiKey, credentials.printerId);
+    console.log('PrintNode send result:', result);
+    return result;
   } catch (error) {
     console.error('Error printing to thermal printer:', error);
     return false;

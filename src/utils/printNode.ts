@@ -1,15 +1,9 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { CartItemType } from "../components/cart/types";
 
-interface PrinterConfig {
-  id: string;
-  name: string;
-}
-
 interface PrintNodeCredentials {
   apiKey: string;
-  printers: PrinterConfig[];
+  printerId: string | number;
   enabled: boolean;
 }
 
@@ -25,7 +19,7 @@ export const getPrintNodeCredentials = async (): Promise<PrintNodeCredentials> =
 
   if (error || !data) {
     console.error('Error fetching PrintNode credentials:', error);
-    return { apiKey: '', printers: [], enabled: false };
+    return { apiKey: '', printerId: '', enabled: false };
   }
 
   // Fix type issue by safely accessing properties
@@ -33,7 +27,7 @@ export const getPrintNodeCredentials = async (): Promise<PrintNodeCredentials> =
   
   return {
     apiKey: settings?.apiKey || '',
-    printers: settings?.printers || [],
+    printerId: settings?.printerId || '',
     enabled: !!settings?.enabled
   };
 };
@@ -184,7 +178,7 @@ function centerText(text: string, width: number): string {
  */
 export const testPrintNodeConnection = async (
   apiKey: string,
-  printerId?: string | number
+  printerId: string | number
 ): Promise<boolean> => {
   if (!apiKey) {
     console.error('PrintNode API key is missing');
