@@ -131,7 +131,7 @@ const CartSidebar: React.FC<CartSidebarProps> = ({
           </div>
           
           {isMobile ? (
-            <div className="fixed bottom-0 left-0 right-0 p-6 border-t border-gray-100 bg-white shadow-[0_-4px_10px_rgba(0,0,0,0.05)] max-h-[180px] z-10">
+            <div className="fixed inset-x-0 bottom-0 w-full max-w-[inherit] p-6 border-t border-gray-100 bg-white shadow-[0_-4px_10px_rgba(0,0,0,0.05)] max-h-[180px] z-10">
               <div className="space-y-2 mb-4">
                 <div className="flex justify-between text-sm">
                   <span className="text-gray-600">Sous-total</span>
