@@ -322,7 +322,6 @@ const Settings = () => {
     try {
       setLoading(true);
       
-      // Fetch PrintNode settings
       const { data, error } = await supabase
         .from('settings')
         .select('*')
@@ -339,7 +338,6 @@ const Settings = () => {
         return;
       }
 
-      // Get browser printing settings
       const browserPrintingEnabled = await isBrowserPrintingEnabled();
 
       if (data && data.value) {
@@ -353,12 +351,10 @@ const Settings = () => {
         
         setPrintSettings(newSettings);
         
-        // If we have an API key, auto-fetch printers on initial load
         if (newSettings.apiKey && !initialPrinterLoad) {
           console.log('Auto-fetching printers on initial load');
           setInitialPrinterLoad(true);
           
-          // We need to wait for the state to update
           setTimeout(async () => {
             try {
               setFetchingPrinters(true);
@@ -367,7 +363,6 @@ const Settings = () => {
               
               if (printers.length === 0 && newSettings.printers.length > 0) {
                 console.log('No printers found but printers exist in settings, trying again...');
-                // Try once more after a short delay
                 setTimeout(async () => {
                   const retryPrinters = await fetchPrintNodePrinters(newSettings.apiKey);
                   setAvailablePrinters(retryPrinters);
@@ -383,7 +378,6 @@ const Settings = () => {
           }, 500);
         }
       } else {
-        // If no settings found, still set browser printing from result
         setPrintSettings(prev => ({
           ...prev,
           browserPrintingEnabled
@@ -1050,4 +1044,776 @@ const Settings = () => {
         
         toast({
           title: "Image uploaded",
-          description: "Slideshow image
+          description: "Slideshow image uploaded successfully"
+        });
+      } else {
+        toast({
+          title: "Upload failed",
+          description: "Failed to upload slideshow image",
+          variant: "destructive"
+        });
+      }
+    } catch (error) {
+      console.error('Error uploading slideshow image:', error);
+      toast({
+        title: "Upload failed",
+        description: "Failed to upload slideshow image",
+        variant: "destructive"
+      });
+    } finally {
+      setUploadingImage(false);
+      if (e.target) e.target.value = '';
+    }
+  };
+
+  const handleRemoveSlideImage = (index: number) => {
+    setAppearanceSettings(prev => ({
+      ...prev,
+      slideshowImages: prev.slideshowImages.filter((_, i) => i !== index)
+    }));
+  };
+
+  const handleTestSound = () => {
+    if (!notificationSettings.soundUrl) {
+      toast({
+        title: "No sound selected",
+        description: "Please upload a notification sound first",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    setTestingSound(true);
+    
+    try {
+      const audio = new Audio(notificationSettings.soundUrl);
+      audio.volume = notificationSettings.volume;
+      audio.play().catch(error => {
+        console.error('Error playing test sound:', error);
+        toast({
+          title: "Playback failed",
+          description: "Failed to play notification sound",
+          variant: "destructive"
+        });
+      }).finally(() => {
+        setTestingSound(false);
+      });
+    } catch (error) {
+      console.error('Error setting up audio:', error);
+      setTestingSound(false);
+      toast({
+        title: "Playback failed",
+        description: "Failed to play notification sound",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const handleTestConnection = async () => {
+    setTestingConnection(true);
+    try {
+      const success = await testPrintNodeConnection(printSettings.apiKey);
+      
+      if (success) {
+        toast({
+          title: "Connection successful",
+          description: "PrintNode API connection test passed"
+        });
+      } else {
+        toast({
+          title: "Connection failed",
+          description: "PrintNode API connection test failed",
+          variant: "destructive"
+        });
+      }
+    } catch (error) {
+      console.error('Error testing PrintNode connection:', error);
+      toast({
+        title: "Test failed",
+        description: "Failed to test PrintNode connection",
+        variant: "destructive"
+      });
+    } finally {
+      setTestingConnection(false);
+    }
+  };
+
+  const handleFetchPrinters = async () => {
+    setFetchingPrinters(true);
+    try {
+      const printers = await fetchPrintNodePrinters(printSettings.apiKey);
+      setAvailablePrinters(printers);
+      
+      if (printers.length === 0) {
+        toast({
+          title: "No printers found",
+          description: "No printers were found with your PrintNode account"
+        });
+      } else {
+        toast({
+          title: "Printers fetched",
+          description: `Found ${printers.length} printer${printers.length === 1 ? '' : 's'}`
+        });
+      }
+    } catch (error) {
+      console.error('Error fetching PrintNode printers:', error);
+      toast({
+        title: "Fetch failed",
+        description: "Failed to fetch PrintNode printers",
+        variant: "destructive"
+      });
+    } finally {
+      setFetchingPrinters(false);
+    }
+  };
+
+  const handleTogglePrinter = (printerId: string, printerName: string) => {
+    setPrintSettings(prev => {
+      const existingPrinterIndex = prev.printers.findIndex(p => p.id === printerId);
+      
+      if (existingPrinterIndex >= 0) {
+        return {
+          ...prev,
+          printers: prev.printers.filter((_, index) => index !== existingPrinterIndex)
+        };
+      } else {
+        if (prev.printers.length < 2) {
+          return {
+            ...prev,
+            printers: [...prev.printers, { id: printerId, name: printerName }]
+          };
+        } else {
+          toast({
+            title: "Printer limit reached",
+            description: "You can select a maximum of 2 printers"
+          });
+          return prev;
+        }
+      }
+    });
+  };
+
+  const handleTestPrinter = async (printerId: string) => {
+    setTestingPrinter(true);
+    try {
+      const success = await sendTestPrint(printSettings.apiKey, printerId);
+      
+      if (success) {
+        toast({
+          title: "Test print sent",
+          description: "Test print job was sent successfully"
+        });
+      } else {
+        toast({
+          title: "Print failed",
+          description: "Failed to send test print job",
+          variant: "destructive"
+        });
+      }
+    } catch (error) {
+      console.error('Error sending test print:', error);
+      toast({
+        title: "Print failed",
+        description: "Failed to send test print job",
+        variant: "destructive"
+      });
+    } finally {
+      setTestingPrinter(false);
+    }
+  };
+
+  return (
+    <AdminLayout>
+      <div className="p-6">
+        <div className="flex justify-between items-center mb-6">
+          <h1 className="text-3xl font-bold">Settings</h1>
+          <Button
+            variant="outline"
+            onClick={handleClearCache}
+            disabled={clearingCache}
+          >
+            {clearingCache ? (
+              <>
+                <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+                Clearing...
+              </>
+            ) : (
+              <>
+                <RefreshCw className="mr-2 h-4 w-4" />
+                Clear App Cache
+              </>
+            )}
+          </Button>
+        </div>
+
+        <Tabs defaultValue="restaurant">
+          <TabsList className="mb-6">
+            <TabsTrigger value="restaurant">Restaurant Info</TabsTrigger>
+            <TabsTrigger value="hours">Business Hours</TabsTrigger>
+            <TabsTrigger value="ordering">Ordering</TabsTrigger>
+            <TabsTrigger value="notifications">Notifications</TabsTrigger>
+            <TabsTrigger value="appearance">Appearance</TabsTrigger>
+            <TabsTrigger value="printing">Printing</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="restaurant">
+            <Card>
+              <CardHeader>
+                <CardTitle>Restaurant Information</CardTitle>
+                <CardDescription>
+                  Edit your restaurant's basic information
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <div className="grid gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="restaurant-name">Restaurant Name</Label>
+                      <Input
+                        id="restaurant-name"
+                        placeholder="Restaurant Name"
+                        value={restaurantInfo.name}
+                        onChange={handleInfoChange}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="restaurant-phone">Phone Number</Label>
+                      <Input
+                        id="restaurant-phone"
+                        placeholder="Phone Number"
+                        value={restaurantInfo.phone}
+                        onChange={handleInfoChange}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="restaurant-address">Address</Label>
+                      <Input
+                        id="restaurant-address"
+                        placeholder="Restaurant Address"
+                        value={restaurantInfo.address}
+                        onChange={handleInfoChange}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="restaurant-description">Description</Label>
+                      <Textarea
+                        id="restaurant-description"
+                        placeholder="A brief description of your restaurant"
+                        value={restaurantInfo.description}
+                        onChange={handleInfoChange}
+                        rows={4}
+                      />
+                    </div>
+                  </div>
+                  
+                  <Button 
+                    onClick={saveRestaurantInfo} 
+                    disabled={loading}
+                    className="w-full"
+                  >
+                    {loading ? (
+                      <>
+                        <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+                        Saving...
+                      </>
+                    ) : (
+                      <>
+                        <Save className="mr-2 h-4 w-4" />
+                        Save Information
+                      </>
+                    )}
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+          
+          <TabsContent value="hours">
+            <Card>
+              <CardHeader>
+                <CardTitle>Business Hours</CardTitle>
+                <CardDescription>
+                  Set your restaurant's operating hours
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  {businessHours.map((day) => (
+                    <div key={day.day_of_week} className="grid grid-cols-3 gap-4 items-center">
+                      <div className="font-medium">{day.day_of_week}</div>
+                      <div>
+                        <Input 
+                          type="time" 
+                          value={day.open_time}
+                          onChange={(e) => handleHoursChange(day.day_of_week, 'open_time', e.target.value)}
+                        />
+                      </div>
+                      <div>
+                        <Input 
+                          type="time" 
+                          value={day.close_time}
+                          onChange={(e) => handleHoursChange(day.day_of_week, 'close_time', e.target.value)}
+                        />
+                      </div>
+                    </div>
+                  ))}
+                  
+                  <Button 
+                    onClick={saveBusinessHours} 
+                    disabled={loading}
+                    className="w-full"
+                  >
+                    {loading ? (
+                      <>
+                        <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+                        Saving...
+                      </>
+                    ) : (
+                      <>
+                        <Save className="mr-2 h-4 w-4" />
+                        Save Business Hours
+                      </>
+                    )}
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+          
+          <TabsContent value="ordering">
+            <Card>
+              <CardHeader>
+                <CardTitle>Ordering Settings</CardTitle>
+                <CardDescription>
+                  Configure how customers place orders
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <div className="flex items-center space-x-2">
+                    <Switch 
+                      id="table-required" 
+                      checked={orderingSettings.requireTableSelection}
+                      onCheckedChange={(checked) => handleOrderingSettingChange('requireTableSelection', checked)}
+                    />
+                    <Label htmlFor="table-required">Require table selection for eat-in orders</Label>
+                  </div>
+                  
+                  <Button 
+                    onClick={saveOrderingSettings} 
+                    disabled={loading}
+                    className="w-full"
+                  >
+                    {loading ? (
+                      <>
+                        <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+                        Saving...
+                      </>
+                    ) : (
+                      <>
+                        <Save className="mr-2 h-4 w-4" />
+                        Save Ordering Settings
+                      </>
+                    )}
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+          
+          <TabsContent value="notifications">
+            <Card>
+              <CardHeader>
+                <CardTitle>Notification Settings</CardTitle>
+                <CardDescription>
+                  Configure sounds and alerts for new orders
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <div className="flex items-center space-x-2">
+                    <Switch 
+                      id="sound-enabled" 
+                      checked={notificationSettings.soundEnabled}
+                      onCheckedChange={(checked) => handleNotificationSettingChange('soundEnabled', checked)}
+                    />
+                    <Label htmlFor="sound-enabled">Play sound on new order</Label>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label>Notification Sound</Label>
+                    <div className="flex items-center space-x-2">
+                      <div className="flex-1 p-2 border rounded bg-secondary/20 text-sm overflow-hidden overflow-ellipsis whitespace-nowrap">
+                        {notificationSettings.soundName || 'Default notification sound'}
+                      </div>
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        onClick={handleTestSound}
+                        disabled={testingSound || !notificationSettings.soundEnabled}
+                      >
+                        <Volume2 className="h-4 w-4" />
+                      </Button>
+                      <div className="relative">
+                        <input
+                          type="file"
+                          accept="audio/*"
+                          onChange={handleSoundUpload}
+                          className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
+                          disabled={uploadingSound}
+                        />
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          disabled={uploadingSound}
+                        >
+                          {uploadingSound ? (
+                            <RefreshCw className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <Upload className="h-4 w-4" />
+                          )}
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <Label htmlFor="volume">Volume</Label>
+                      <span className="text-sm text-muted-foreground">{Math.round(notificationSettings.volume * 100)}%</span>
+                    </div>
+                    <input
+                      id="volume"
+                      type="range"
+                      min="0"
+                      max="1"
+                      step="0.01"
+                      value={notificationSettings.volume}
+                      onChange={(e) => handleNotificationSettingChange('volume', parseFloat(e.target.value))}
+                      className="w-full"
+                    />
+                  </div>
+                  
+                  <Button 
+                    onClick={saveNotificationSettings} 
+                    disabled={loading}
+                    className="w-full"
+                  >
+                    {loading ? (
+                      <>
+                        <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+                        Saving...
+                      </>
+                    ) : (
+                      <>
+                        <Save className="mr-2 h-4 w-4" />
+                        Save Notification Settings
+                      </>
+                    )}
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+          
+          <TabsContent value="appearance">
+            <Card>
+              <CardHeader>
+                <CardTitle>Appearance Settings</CardTitle>
+                <CardDescription>
+                  Customize your restaurant's visual appearance
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-6">
+                  <div className="space-y-2">
+                    <Label>Restaurant Logo</Label>
+                    <div className="flex flex-col space-y-2">
+                      {appearanceSettings.logo && (
+                        <div className="border rounded overflow-hidden w-48 h-48 flex items-center justify-center bg-white">
+                          <img 
+                            src={appearanceSettings.logo} 
+                            alt="Restaurant logo"
+                            className="max-w-full max-h-full object-contain" 
+                          />
+                        </div>
+                      )}
+                      <div className="relative">
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={handleLogoUpload}
+                          className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
+                          disabled={uploadingLogo}
+                        />
+                        <Button 
+                          variant="outline"
+                          disabled={uploadingLogo}
+                        >
+                          {uploadingLogo ? (
+                            <>
+                              <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+                              Uploading...
+                            </>
+                          ) : (
+                            <>
+                              <Image className="mr-2 h-4 w-4" />
+                              {appearanceSettings.logo ? 'Change Logo' : 'Upload Logo'}
+                            </>
+                          )}
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label>Slideshow Images</Label>
+                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                      {appearanceSettings.slideshowImages.map((image, index) => (
+                        <div key={index} className="relative group">
+                          <div className="border rounded overflow-hidden aspect-video bg-white">
+                            <img 
+                              src={image} 
+                              alt={`Slideshow image ${index + 1}`}
+                              className="w-full h-full object-cover" 
+                            />
+                          </div>
+                          <Button
+                            variant="destructive"
+                            size="icon"
+                            className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                            onClick={() => handleRemoveSlideImage(index)}
+                          >
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4">
+                              <line x1="18" y1="6" x2="6" y2="18"></line>
+                              <line x1="6" y1="6" x2="18" y2="18"></line>
+                            </svg>
+                          </Button>
+                        </div>
+                      ))}
+                      <div className="border rounded border-dashed flex items-center justify-center aspect-video bg-muted/50">
+                        <div className="relative">
+                          <input
+                            type="file"
+                            accept="image/*"
+                            onChange={handleSlideImageUpload}
+                            className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
+                            disabled={uploadingImage}
+                          />
+                          <Button 
+                            variant="ghost"
+                            disabled={uploadingImage}
+                          >
+                            {uploadingImage ? (
+                              <RefreshCw className="h-5 w-5 animate-spin" />
+                            ) : (
+                              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5">
+                                <path d="M12 5v14"></path>
+                                <path d="M5 12h14"></path>
+                              </svg>
+                            )}
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <Button 
+                    onClick={saveAppearanceSettings} 
+                    disabled={loading}
+                    className="w-full"
+                  >
+                    {loading ? (
+                      <>
+                        <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+                        Saving...
+                      </>
+                    ) : (
+                      <>
+                        <Save className="mr-2 h-4 w-4" />
+                        Save Appearance Settings
+                      </>
+                    )}
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+          
+          <TabsContent value="printing">
+            <Card>
+              <CardHeader>
+                <CardTitle>Printing Settings</CardTitle>
+                <CardDescription>
+                  Configure receipt printing options
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-6">
+                  <div>
+                    <h3 className="text-lg font-medium mb-2">Browser Printing</h3>
+                    <div className="space-y-4">
+                      <div className="flex items-center space-x-2">
+                        <Switch 
+                          id="browser-printing" 
+                          checked={printSettings.browserPrintingEnabled}
+                          onCheckedChange={(checked) => handlePrintSettingChange('browserPrintingEnabled', checked)}
+                        />
+                        <Label htmlFor="browser-printing">Enable browser-based printing</Label>
+                      </div>
+                      
+                      <div>
+                        <Button 
+                          onClick={saveBrowserPrintSettings} 
+                          disabled={savingBrowserPrint}
+                          variant="outline"
+                          size="sm"
+                        >
+                          {savingBrowserPrint ? (
+                            <>
+                              <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+                              Saving...
+                            </>
+                          ) : (
+                            <>
+                              <Save className="mr-2 h-4 w-4" />
+                              Save Browser Print Settings
+                            </>
+                          )}
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div>
+                    <h3 className="text-lg font-medium mb-2">Thermal Printer Configuration</h3>
+                    <div className="space-y-4">
+                      <div className="flex items-center space-x-2">
+                        <Switch 
+                          id="printnode-enabled" 
+                          checked={printSettings.enabled}
+                          onCheckedChange={(checked) => handlePrintSettingChange('enabled', checked)}
+                        />
+                        <Label htmlFor="printnode-enabled">Enable PrintNode integration</Label>
+                      </div>
+                      
+                      <div className="space-y-2">
+                        <Label htmlFor="printnode-api-key">PrintNode API Key</Label>
+                        <Input 
+                          id="printnode-api-key"
+                          type="password"
+                          value={printSettings.apiKey}
+                          onChange={(e) => handlePrintSettingChange('apiKey', e.target.value)}
+                          placeholder="Enter your PrintNode API key"
+                        />
+                      </div>
+                      
+                      <div className="flex items-center space-x-2">
+                        <Button 
+                          onClick={handleTestConnection} 
+                          disabled={testingConnection || !printSettings.apiKey}
+                          variant="outline"
+                          size="sm"
+                        >
+                          {testingConnection ? (
+                            <>
+                              <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+                              Testing...
+                            </>
+                          ) : (
+                            <>Test Connection</>
+                          )}
+                        </Button>
+                        <Button 
+                          onClick={handleFetchPrinters} 
+                          disabled={fetchingPrinters || !printSettings.apiKey}
+                          variant="outline"
+                          size="sm"
+                        >
+                          {fetchingPrinters ? (
+                            <>
+                              <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+                              Fetching...
+                            </>
+                          ) : (
+                            <>Fetch Printers</>
+                          )}
+                        </Button>
+                      </div>
+                      
+                      {availablePrinters.length > 0 && (
+                        <div className="space-y-2">
+                          <Label>Available Printers (select up to 2)</Label>
+                          <Alert>
+                            <AlertDescription>
+                              Select up to 2 printers to use for receipt printing. Print jobs will be sent to all selected printers.
+                            </AlertDescription>
+                          </Alert>
+                          <div className="space-y-2 mt-4">
+                            {availablePrinters.map(printer => (
+                              <div key={printer.id} className="flex items-center justify-between border p-3 rounded-md">
+                                <div className="flex items-center space-x-2">
+                                  <Checkbox 
+                                    id={`printer-${printer.id}`}
+                                    checked={!!printSettings.printers.find(p => p.id === printer.id.toString())}
+                                    onCheckedChange={() => handleTogglePrinter(printer.id.toString(), printer.name)}
+                                    disabled={!printSettings.printers.find(p => p.id === printer.id.toString()) && printSettings.printers.length >= 2}
+                                  />
+                                  <Label htmlFor={`printer-${printer.id}`} className="flex-1">
+                                    <div>{printer.name}</div>
+                                    <div className="text-xs text-muted-foreground">{printer.description}</div>
+                                    {printer.state && (
+                                      <div className={`text-xs ${printer.state === 'online' ? 'text-green-600' : 'text-amber-600'}`}>
+                                        {printer.state === 'online' ? 'Online' : 'Offline'}
+                                      </div>
+                                    )}
+                                  </Label>
+                                </div>
+                                <Button 
+                                  onClick={() => handleTestPrinter(printer.id.toString())} 
+                                  disabled={testingPrinter || !printSettings.apiKey || printer.state === 'offline'}
+                                  variant="outline"
+                                  size="sm"
+                                >
+                                  {testingPrinter ? (
+                                    <RefreshCw className="h-4 w-4 animate-spin" />
+                                  ) : (
+                                    <Printer className="h-4 w-4" />
+                                  )}
+                                </Button>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                      
+                      <Button 
+                        onClick={savePrintSettings} 
+                        disabled={loading}
+                        className="w-full"
+                      >
+                        {loading ? (
+                          <>
+                            <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+                            Saving...
+                          </>
+                        ) : (
+                          <>
+                            <Save className="mr-2 h-4 w-4" />
+                            Save PrintNode Settings
+                          </>
+                        )}
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
+      </div>
+    </AdminLayout>
+  );
+};
+
+export default Settings;
