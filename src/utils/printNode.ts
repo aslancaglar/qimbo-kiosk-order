@@ -1,9 +1,10 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { CartItemType } from "../components/cart/types";
 
 interface PrintNodeCredentials {
   apiKey: string;
-  printerId: string | number;
+  printers: Array<{id: string; name: string}>;
   enabled: boolean;
 }
 
@@ -19,7 +20,7 @@ export const getPrintNodeCredentials = async (): Promise<PrintNodeCredentials> =
 
   if (error || !data) {
     console.error('Error fetching PrintNode credentials:', error);
-    return { apiKey: '', printerId: '', enabled: false };
+    return { apiKey: '', printers: [], enabled: false };
   }
 
   // Fix type issue by safely accessing properties
@@ -27,7 +28,7 @@ export const getPrintNodeCredentials = async (): Promise<PrintNodeCredentials> =
   
   return {
     apiKey: settings?.apiKey || '',
-    printerId: settings?.printerId || '',
+    printers: settings?.printers || [],
     enabled: !!settings?.enabled
   };
 };
@@ -126,7 +127,7 @@ export const formatTextReceipt = (
   let receipt = '\n';
   receipt += centerText('ORDER RECEIPT', lineWidth) + '\n\n';
   receipt += `Order #: ${orderNumber}\n`;
-  receipt += `Date: ${orderDate}\n`;
+  receipt += `Date: ${new Date().toLocaleString()}\n`;
   receipt += `Type: ${orderType === 'eat-in' ? 'Eat In' : 'Takeaway'}\n`;
   if (orderType === 'eat-in' && tableNumber) {
     receipt += `Table #: ${tableNumber}\n`;
@@ -178,7 +179,7 @@ function centerText(text: string, width: number): string {
  */
 export const testPrintNodeConnection = async (
   apiKey: string,
-  printerId: string | number
+  printerId?: string | number
 ): Promise<boolean> => {
   if (!apiKey) {
     console.error('PrintNode API key is missing');
