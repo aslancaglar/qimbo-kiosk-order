@@ -63,13 +63,13 @@ const CartSidebar: React.FC<CartSidebarProps> = ({
     onClose();
   };
 
-  const containerClassName = "h-full flex flex-col bg-white";
-
-  return <div className={containerClassName}>
+  return (
+    <div className="h-full flex flex-col bg-white relative">
+      {/* Mobile layout with relative positioning strategy */}
       {isMobile ? (
-        // Mobile layout with fixed header
-        <>
-          <div className="fixed top-0 left-0 right-0 z-10 bg-white border-b border-gray-100">
+        <div className="flex flex-col h-full">
+          {/* Header - Position absolute from top */}
+          <div className="absolute top-0 left-0 right-0 z-10 bg-white border-b border-gray-100">
             <div className="p-6 flex justify-between items-center">
               <div className="flex items-center gap-2">
                 <ShoppingBag className="h-5 w-5" />
@@ -90,14 +90,15 @@ const CartSidebar: React.FC<CartSidebarProps> = ({
               </div>}
           </div>
           
-          {items.length === 0 ? (
-            <div className="flex-1 flex flex-col items-center justify-center p-6 text-center mt-[72px]">
-              <ShoppingBag className="h-16 w-16 text-gray-300 mb-4" />
-              <h3 className="text-xl font-medium text-gray-900 mb-1">Your cart is empty</h3>
-              <p className="text-gray-500 mb-6">Add some delicious items to get started</p>
-            </div>
-          ) : (
-            <div className="flex-1 overflow-y-auto pt-[72px] pb-[180px]">
+          {/* Cart Items - Scrollable area with padding for header and footer */}
+          <div className="flex-1 overflow-y-auto pt-[120px] pb-[220px]">
+            {items.length === 0 ? (
+              <div className="flex flex-col items-center justify-center p-6 text-center h-full">
+                <ShoppingBag className="h-16 w-16 text-gray-300 mb-4" />
+                <h3 className="text-xl font-medium text-gray-900 mb-1">Your cart is empty</h3>
+                <p className="text-gray-500 mb-6">Add some delicious items to get started</p>
+              </div>
+            ) : (
               <div className="p-6">
                 <AnimatePresence initial={false}>
                   {items.map((item, index) => (
@@ -119,10 +120,11 @@ const CartSidebar: React.FC<CartSidebarProps> = ({
                   ))}
                 </AnimatePresence>
               </div>
-            </div>
-          )}
+            )}
+          </div>
           
-          <div className="fixed bottom-0 left-0 right-0 bg-white z-10 border-t border-gray-100 w-full">
+          {/* Footer - Position absolute from bottom */}
+          <div className="absolute bottom-0 left-0 right-0 bg-white z-10 border-t border-gray-100">
             <div className="px-6 pt-4">
               <div className="space-y-2 mb-4">
                 <div className="flex justify-between text-sm">
@@ -146,7 +148,7 @@ const CartSidebar: React.FC<CartSidebarProps> = ({
               </div>
             </div>
           </div>
-        </>
+        </div>
       ) : (
         // Desktop layout
         <>
@@ -220,7 +222,8 @@ const CartSidebar: React.FC<CartSidebarProps> = ({
             </>}
         </>
       )}
-    </div>;
+    </div>
+  );
 };
 
 export default CartSidebar;

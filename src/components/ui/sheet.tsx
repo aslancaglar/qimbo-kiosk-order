@@ -63,19 +63,10 @@ const SheetContent = React.forwardRef<
     <SheetOverlay />
     <SheetPrimitive.Content
       ref={ref}
-      className={cn(sheetVariants({ side }), "overflow-hidden", className)}
+      className={cn(sheetVariants({ side }), className)}
       {...props}
     >
-      {enableScrollArea ? (
-        <ScrollArea className="h-[calc(100vh-80px)] w-full pr-3 overflow-auto">
-          <div className="pr-2 pb-12">
-            {children}
-          </div>
-        </ScrollArea>
-      ) : (
-        children
-      )}
-      {/* Close button removed from here since we're managing it in the cart header */}
+      {children}
     </SheetPrimitive.Content>
   </SheetPortal>
 ))
