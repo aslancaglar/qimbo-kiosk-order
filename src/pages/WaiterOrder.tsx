@@ -354,22 +354,25 @@ const WaiterOrder: React.FC = () => {
           </div>
         </ScrollArea>
 
-        <div className="md:hidden overflow-x-auto whitespace-nowrap border-b border-gray-200 px-2">
-          <div className="inline-flex py-2 gap-2">
-            {categories.map((category) => (
-              <button
-                key={category.id}
-                onClick={() => setActiveCategory(category.name)}
-                className={`px-3 py-1.5 rounded-full text-sm whitespace-nowrap transition-colors ${
-                  activeCategory === category.name
-                    ? "bg-red-600 text-white"
-                    : "bg-gray-100 hover:bg-gray-200"
-                }`}
-              >
-                {category.name}
-              </button>
-            ))}
-          </div>
+        {/* Fixed: Using ScrollArea for the mobile categories to prevent horizontal scrolling */}
+        <div className="md:hidden border-b border-gray-200">
+          <ScrollArea className="py-2 px-2">
+            <div className="flex gap-2 pb-1">
+              {categories.map((category) => (
+                <button
+                  key={category.id}
+                  onClick={() => setActiveCategory(category.name)}
+                  className={`px-3 py-1.5 rounded-full text-sm whitespace-nowrap transition-colors ${
+                    activeCategory === category.name
+                      ? "bg-red-600 text-white"
+                      : "bg-gray-100 hover:bg-gray-200"
+                  }`}
+                >
+                  {category.name}
+                </button>
+              ))}
+            </div>
+          </ScrollArea>
         </div>
 
         <div className="flex-1 flex flex-col">
