@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useMenuData } from '@/hooks/use-menu-data';
 import { Product } from '@/components/menu/ProductCard';
 import { ToppingItem } from '@/components/cart/types';
@@ -11,6 +11,8 @@ import { useIsMobile } from '@/hooks/use-mobile';
 import { supabase } from '@/integrations/supabase/client';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import TableSelector from '@/components/common/TableSelector';
+import { useProductSelection } from '@/hooks/use-product-selection';
+import ProductToppingSelector from '@/components/waiter/ProductToppingSelector';
 
 // Custom hook for waiter cart functionality
 function useWaiterCart() {
@@ -190,6 +192,17 @@ const WaiterOrder: React.FC = () => {
     totalPrice
   } = useWaiterCart();
 
+  const {
+    isSelectionOpen,
+    setIsSelectionOpen,
+    isLoading: isToppingsLoading,
+    toppingCategories,
+    currentProduct,
+    openProductSelection,
+    closeProductSelection,
+    completeSelection
+  } = useProductSelection(addItem);
+
   // Set initial active category once categories are loaded
   useEffect(() => {
     if (categories.length > 0 && activeCategory === "") {
@@ -208,8 +221,12 @@ const WaiterOrder: React.FC = () => {
     return matchesCategory && matchesSearch;
   });
 
-  const handleProductSelect = (product: Product, selectedToppings?: ToppingItem[]) => {
-    addItem(product, selectedToppings);
+  const handleProductSelect = (product: Product) => {
+    if (product.hasToppings) {
+      openProductSelection(product);
+    } else {
+      addItem(product);
+    }
   };
 
   const handleTableSelection = (tableNumber: number) => {
@@ -217,15 +234,6 @@ const WaiterOrder: React.FC = () => {
   };
 
   const submitOrder = async () => {
-    if (!tableNumber) {
-      toast({
-        title: "Table required",
-        description: "Please select a table for this order",
-        variant: "destructive"
-      });
-      return;
-    }
-
     if (cartItems.length === 0) {
       toast({
         title: "Empty order",
@@ -244,7 +252,7 @@ const WaiterOrder: React.FC = () => {
         .from('orders')
         .insert({
           customer_type: 'Dine-in',
-          table_number: tableNumber,
+          table_number: tableNumber || null,
           status: 'New',
           total_amount: totalPrice,
           items_count: totalItems,
@@ -297,7 +305,7 @@ const WaiterOrder: React.FC = () => {
       // Show success toast
       toast({
         title: "Order submitted",
-        description: `Order placed for table ${tableNumber}`,
+        description: tableNumber ? `Order placed for table ${tableNumber}` : "Order placed successfully",
         variant: "default"
       });
 
@@ -335,15 +343,15 @@ const WaiterOrder: React.FC = () => {
               onClick={() => setIsTableSelectorOpen(true)}
             >
               <Table className="w-4 h-4" />
-              <span>Select Table</span>
+              <span>Select Table (Optional)</span>
             </button>
           )}
         </div>
       </div>
 
       {/* Main content area */}
-      <div className="flex flex-1 overflow-hidden">
-        {/* Categories sidebar */}
+      <div className="flex flex-1 flex-col md:flex-row overflow-hidden">
+        {/* Desktop Categories sidebar */}
         <ScrollArea className="hidden md:block w-32 border-r border-gray-200">
           <div className="p-2 space-y-2">
             {categories.map((category) => (
@@ -362,76 +370,74 @@ const WaiterOrder: React.FC = () => {
           </div>
         </ScrollArea>
 
-        {/* Mobile Categories horizontal scroll */}
-        <div className="md:hidden overflow-x-auto whitespace-nowrap border-b border-gray-200 px-2">
-          <div className="inline-flex py-2 gap-2">
-            {categories.map((category) => (
-              <button
-                key={category.id}
-                onClick={() => setActiveCategory(category.name)}
-                className={`px-3 py-1.5 rounded-full text-sm whitespace-nowrap transition-colors ${
-                  activeCategory === category.name
-                    ? "bg-red-600 text-white"
-                    : "bg-gray-100 hover:bg-gray-200"
-                }`}
-              >
-                {category.name}
-              </button>
-            ))}
+        <div className="flex flex-col flex-1 overflow-hidden">
+          {/* Mobile Categories horizontal scroll */}
+          <div className="md:hidden overflow-x-auto whitespace-nowrap border-b border-gray-200 px-2">
+            <div className="inline-flex py-2 gap-2">
+              {categories.map((category) => (
+                <button
+                  key={category.id}
+                  onClick={() => setActiveCategory(category.name)}
+                  className={`px-3 py-1.5 rounded-full text-sm whitespace-nowrap transition-colors ${
+                    activeCategory === category.name
+                      ? "bg-red-600 text-white"
+                      : "bg-gray-100 hover:bg-gray-200"
+                  }`}
+                >
+                  {category.name}
+                </button>
+              ))}
+            </div>
           </div>
-        </div>
 
-        {/* Products grid */}
-        <ScrollArea className="flex-1">
-          <div className="p-4">
-            <input
-              type="text"
-              placeholder="Search menu..."
-              className="w-full p-2 border rounded-lg mb-4"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-            />
+          {/* Products grid */}
+          <ScrollArea className="flex-1">
+            <div className="p-4">
+              <input
+                type="text"
+                placeholder="Search menu..."
+                className="w-full p-2 border rounded-lg mb-4"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
 
-            {isLoading ? (
-              <div className="flex justify-center py-12">
-                <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-red-600"></div>
-              </div>
-            ) : filteredProducts.length > 0 ? (
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                {filteredProducts.map((product) => (
-                  <div 
-                    key={product.id}
-                    className="bg-white rounded-lg border border-gray-200 p-3 cursor-pointer hover:shadow-md transition-shadow"
-                    onClick={() => handleProductSelect(product)}
-                  >
-                    <img 
-                      src={product.image} 
-                      alt={product.name}
-                      className="w-full h-24 object-cover rounded-md mb-2"
-                    />
-                    <h3 className="font-medium text-sm">{product.name}</h3>
-                    <div className="flex justify-between items-center mt-2">
-                      <span className="text-sm font-bold">{product.price.toFixed(2)} €</span>
-                      <button 
-                        className="bg-red-600 text-white p-1 rounded-full"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleProductSelect(product);
-                        }}
-                      >
-                        <Plus className="h-4 w-4" />
-                      </button>
+              {isLoading ? (
+                <div className="flex justify-center py-12">
+                  <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-red-600"></div>
+                </div>
+              ) : filteredProducts.length > 0 ? (
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                  {filteredProducts.map((product) => (
+                    <div 
+                      key={product.id}
+                      className="bg-white rounded-lg border border-gray-200 p-3 cursor-pointer hover:shadow-md transition-shadow"
+                    >
+                      <img 
+                        src={product.image} 
+                        alt={product.name}
+                        className="w-full h-24 object-cover rounded-md mb-2"
+                      />
+                      <h3 className="font-medium text-sm">{product.name}</h3>
+                      <div className="flex justify-between items-center mt-2">
+                        <span className="text-sm font-bold">{product.price.toFixed(2)} €</span>
+                        <button 
+                          className={`text-white p-1 rounded-full ${product.hasToppings ? 'bg-green-600' : 'bg-red-600'}`}
+                          onClick={() => handleProductSelect(product)}
+                        >
+                          <Plus className="h-4 w-4" />
+                        </button>
+                      </div>
                     </div>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="py-12 text-center">
-                <p className="text-gray-500">No products found</p>
-              </div>
-            )}
-          </div>
-        </ScrollArea>
+                  ))}
+                </div>
+              ) : (
+                <div className="py-12 text-center">
+                  <p className="text-gray-500">No products found</p>
+                </div>
+              )}
+            </div>
+          </ScrollArea>
+        </div>
       </div>
 
       {/* Cart summary */}
@@ -497,6 +503,21 @@ const WaiterOrder: React.FC = () => {
           />
         </div>
       )}
+
+      {/* Product topping selector */}
+      <AnimatePresence>
+        {isSelectionOpen && currentProduct && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+            <ProductToppingSelector
+              product={currentProduct}
+              toppingCategories={toppingCategories}
+              isLoading={isToppingsLoading}
+              onCancel={closeProductSelection}
+              onConfirm={completeSelection}
+            />
+          </div>
+        )}
+      </AnimatePresence>
     </motion.div>
   );
 };
