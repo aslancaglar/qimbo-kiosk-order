@@ -10,12 +10,65 @@ interface UseCartOptions {
   tableNumber?: number;
 }
 
+// Storage key for cart items
+const CART_STORAGE_KEY = 'restaurant_cart_items';
+const ORDER_TYPE_STORAGE_KEY = 'restaurant_order_type';
+const TABLE_NUMBER_STORAGE_KEY = 'restaurant_table_number';
+
 export function useCart({ orderType, tableNumber }: UseCartOptions) {
   const [cartItems, setCartItems] = useState<CartItemType[]>([]);
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [showCancelDialog, setShowCancelDialog] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
+
+  // Load cart items from localStorage on initial render
+  useEffect(() => {
+    try {
+      // Load saved cart items
+      const savedCartItems = localStorage.getItem(CART_STORAGE_KEY);
+      const savedOrderType = localStorage.getItem(ORDER_TYPE_STORAGE_KEY) as 'takeaway' | 'eat-in' | null;
+      const savedTableNumber = localStorage.getItem(TABLE_NUMBER_STORAGE_KEY);
+
+      // Check if saved order type matches current order type
+      const isOrderTypeMatch = savedOrderType === orderType;
+      const isTableNumberMatch = orderType === 'eat-in' 
+        ? savedTableNumber === String(tableNumber)
+        : true;
+
+      if (savedCartItems && isOrderTypeMatch && isTableNumberMatch) {
+        const parsedItems = JSON.parse(savedCartItems);
+        setCartItems(parsedItems);
+        if (parsedItems.length > 0) {
+          setIsCartOpen(true);
+        }
+      } else {
+        // Clear storage if order type or table number changed
+        localStorage.removeItem(CART_STORAGE_KEY);
+        localStorage.removeItem(ORDER_TYPE_STORAGE_KEY);
+        localStorage.removeItem(TABLE_NUMBER_STORAGE_KEY);
+      }
+
+      // Save current order type and table number
+      localStorage.setItem(ORDER_TYPE_STORAGE_KEY, orderType);
+      if (orderType === 'eat-in' && tableNumber) {
+        localStorage.setItem(TABLE_NUMBER_STORAGE_KEY, String(tableNumber));
+      } else {
+        localStorage.removeItem(TABLE_NUMBER_STORAGE_KEY);
+      }
+    } catch (error) {
+      console.error('Error loading cart from localStorage:', error);
+    }
+  }, [orderType, tableNumber]);
+
+  // Save cart items to localStorage whenever they change
+  useEffect(() => {
+    try {
+      localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(cartItems));
+    } catch (error) {
+      console.error('Error saving cart to localStorage:', error);
+    }
+  }, [cartItems]);
 
   useEffect(() => {
     if (cartItems.length > 0 && !isCartOpen) {
@@ -96,6 +149,9 @@ export function useCart({ orderType, tableNumber }: UseCartOptions) {
     setCartItems([]);
     setIsCartOpen(false);
     setShowCancelDialog(false);
+    
+    // Clear cart from localStorage
+    localStorage.removeItem(CART_STORAGE_KEY);
     
     toast({
       title: "Order Cancelled",
@@ -216,6 +272,9 @@ export function useCart({ orderType, tableNumber }: UseCartOptions) {
       
       setCartItems([]);
       setIsCartOpen(false);
+      
+      // Clear cart from localStorage after successful order
+      localStorage.removeItem(CART_STORAGE_KEY);
     } catch (error) {
       console.error('Checkout error:', error);
       toast({
