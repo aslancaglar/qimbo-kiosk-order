@@ -303,13 +303,22 @@ const ProductCard: React.FC<ProductCardProps> = ({
                 <Check className="h-5 w-5" />
               </motion.div>
             ) : (
-              <Button 
-                size="sm" 
-                onClick={handleAddToCart} 
-                className="bg-red-600 hover:bg-red-700 text-white text-xs py-1 px-2"
-              >
-                Ajouter au panier
-              </Button>
+              isMobile ? (
+                <button
+                  onClick={handleAddToCart}
+                  className="w-8 h-8 rounded-full bg-red-600 hover:bg-red-700 flex items-center justify-center text-white"
+                >
+                  <Plus className="h-5 w-5" />
+                </button>
+              ) : (
+                <Button 
+                  size="sm" 
+                  onClick={handleAddToCart} 
+                  className="bg-red-600 hover:bg-red-700 text-white text-xs py-1 px-2"
+                >
+                  Ajouter au panier
+                </Button>
+              )
             )}
           </AnimatePresence>
         </div>

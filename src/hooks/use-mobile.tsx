@@ -14,18 +14,32 @@ export function useIsMobile() {
       }
     }
     
+    // Debounce function to limit the number of resize event calls
+    const debounce = (func: Function, delay: number) => {
+      let timeoutId: ReturnType<typeof setTimeout>
+      return function(...args: any[]) {
+        clearTimeout(timeoutId)
+        timeoutId = setTimeout(() => {
+          func.apply(null, args)
+        }, delay)
+      }
+    }
+    
+    // Debounced version of checkIfMobile
+    const debouncedCheckIfMobile = debounce(checkIfMobile, 100)
+    
     // Run on mount
     checkIfMobile()
     
     // Set up the event listener for window resize
     if (typeof window !== 'undefined') {
-      window.addEventListener("resize", checkIfMobile)
+      window.addEventListener("resize", debouncedCheckIfMobile)
     }
     
     // Clean up
     return () => {
       if (typeof window !== 'undefined') {
-        window.removeEventListener("resize", checkIfMobile)
+        window.removeEventListener("resize", debouncedCheckIfMobile)
       }
     }
   }, [])
