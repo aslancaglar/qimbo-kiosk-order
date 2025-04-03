@@ -4,12 +4,17 @@ import ReactDOM from 'react-dom/client';
 import App from './App';
 import './index.css';
 import { registerServiceWorker, clearAppCache, checkForUpdates } from './utils/serviceWorker';
+import { registerPwaServiceWorker, registerInstallPrompt } from './utils/pwaUtils';
 
 // Make cache clearing and update checking functions available globally for debugging
 if (process.env.NODE_ENV !== 'production') {
   (window as any).clearAppCache = clearAppCache;
   (window as any).checkForUpdates = checkForUpdates;
 }
+
+// Initialize PWA functionality
+registerInstallPrompt();
+registerPwaServiceWorker().catch(console.error);
 
 // Performance measurements
 if (process.env.NODE_ENV !== 'production') {

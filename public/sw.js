@@ -1,14 +1,20 @@
 
 // Cache version - increment this when deploying new versions
-const CACHE_NAME = 'restaurant-app-v3';
+const CACHE_NAME = 'restaurant-app-v4';
 
 // Assets to cache on install
 const CACHE_ASSETS = [
   '/',
   '/index.html',
   '/favicon.ico',
+  '/favicon.svg',
+  '/manifest.json',
   '/notification.mp3',
-  '/placeholder.svg'
+  '/placeholder.svg',
+  '/icons/icon-192x192.png',
+  '/icons/icon-512x512.png',
+  '/icons/icon-192x192.svg',
+  '/icons/icon-512x512.svg'
 ];
 
 // Install event - cache core assets
@@ -86,7 +92,7 @@ self.addEventListener('fetch', (event) => {
   }
   
   // For HTML pages, use network-first strategy to ensure fresh content
-  if (event.request.headers.get('accept').includes('text/html')) {
+  if (event.request.headers.get('accept')?.includes('text/html')) {
     event.respondWith(
       fetch(event.request)
         .then(response => {
@@ -137,10 +143,24 @@ self.addEventListener('fetch', (event) => {
           .catch(err => {
             console.error('[ServiceWorker] Fetch failed:', err);
             // Offline fallback if available
-            if (event.request.headers.get('accept').includes('text/html')) {
+            if (event.request.headers.get('accept')?.includes('text/html')) {
               return caches.match('/');
             }
           });
       })
   );
+});
+
+// Add PWA offline page fetch capability
+self.addEventListener('fetch', function(event) {
+  if (event.request.mode === 'navigate' || 
+      (event.request.method === 'GET' && 
+       event.request.headers.get('accept')?.includes('text/html'))) {
+    event.respondWith(
+      fetch(event.request).catch(error => {
+        // Return the offline page
+        return caches.match('/');
+      })
+    );
+  }
 });
