@@ -1,4 +1,5 @@
-import { useState, useEffect } from 'react';
+
+import { useState, useEffect, useRef } from 'react';
 import { CartItemType, ToppingItem } from '@/components/cart/types';
 import { Product } from '@/components/menu/ProductCard';
 import { useToast } from '@/hooks/use-toast';
@@ -19,8 +20,12 @@ export function useCart({ orderType, tableNumber }: UseCartOptions) {
   const [cartItems, setCartItems] = useState<CartItemType[]>([]);
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [showCancelDialog, setShowCancelDialog] = useState(false);
+  const [isProcessingOrder, setIsProcessingOrder] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
+  
+  // Add a ref to track if an order is being processed
+  const orderBeingProcessed = useRef<boolean>(false);
 
   // Load cart items from localStorage on initial render
   useEffect(() => {
@@ -162,7 +167,19 @@ export function useCart({ orderType, tableNumber }: UseCartOptions) {
   const handleConfirmOrder = async () => {
     if (cartItems.length === 0) return;
     
+    // Prevent duplicate order creation with multiple safeguards
+    if (isProcessingOrder || orderBeingProcessed.current) {
+      console.log('Order already being processed, preventing duplicate order');
+      return;
+    }
+    
+    // Set the processing flags
+    setIsProcessingOrder(true);
+    orderBeingProcessed.current = true;
+    
     try {
+      console.log('Starting order confirmation process, preventing duplicates...');
+      
       const total = cartItems.reduce((sum, item) => {
         let itemTotal = item.product.price * item.quantity;
         if (item.selectedToppings && item.selectedToppings.length > 0) {
@@ -177,18 +194,6 @@ export function useCart({ orderType, tableNumber }: UseCartOptions) {
       const taxRate = 0.1;
       const taxAmount = total - (total / (1 + taxRate));
       const subtotal = total - taxAmount;
-      
-      const orderData = { 
-        items: cartItems, 
-        orderType, 
-        tableNumber,
-        subtotal,
-        taxAmount,
-        total,
-        taxIncluded: true
-      };
-      
-      console.log('Starting checkout process with order data:', orderData);
       
       const orderNumber = Math.floor(10000 + Math.random() * 90000).toString();
       console.log('Generated order number:', orderNumber);
@@ -249,32 +254,33 @@ export function useCart({ orderType, tableNumber }: UseCartOptions) {
         }
       }
       
-      console.log('Navigating to confirmation with data:', {
-        orderId: orderResult.id,
-        orderNumber,
-        itemsCount: cartItems.length,
-        orderType,
-        tableNumber
-      });
-      
+      // Navigate to confirmation page
       navigate('/confirmation', { 
         state: { 
-          ...orderData,
+          items: cartItems,
+          orderType,
+          tableNumber,
+          subtotal,
+          taxAmount,
+          total,
           orderId: orderResult.id,
-          orderNumber: orderNumber
-        } 
+          orderNumber
+        },
+        replace: true // Use replace to prevent back navigation to the order summary
       });
       
       toast({
         title: "Order Submitted",
-        description: `Your order #${orderResult.id} has been placed successfully!`,
+        description: `Your order #${orderNumber} has been placed successfully!`,
       });
       
+      // Clear cart
       setCartItems([]);
       setIsCartOpen(false);
       
       // Clear cart from localStorage after successful order
       localStorage.removeItem(CART_STORAGE_KEY);
+      
     } catch (error) {
       console.error('Checkout error:', error);
       toast({
@@ -282,6 +288,10 @@ export function useCart({ orderType, tableNumber }: UseCartOptions) {
         description: "Could not complete checkout. Please try again.",
         variant: "destructive",
       });
+    } finally {
+      // Clear the processing flags
+      setIsProcessingOrder(false);
+      orderBeingProcessed.current = false;
     }
   };
 
@@ -289,6 +299,7 @@ export function useCart({ orderType, tableNumber }: UseCartOptions) {
     cartItems,
     isCartOpen,
     showCancelDialog,
+    isProcessingOrder,
     setShowCancelDialog,
     handleProductSelect,
     handleRemoveItem,

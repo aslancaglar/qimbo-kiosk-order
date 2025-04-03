@@ -3,7 +3,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import Layout from '../layout/Layout';
 import Button from '../common/Button';
-import { Check, ArrowLeft, Printer } from 'lucide-react';
+import { Check, ArrowLeft } from 'lucide-react';
 import { CartItemType } from '../cart/types';
 import { useCart } from '@/hooks/use-cart';
 import { useToast } from '@/hooks/use-toast';
@@ -13,7 +13,7 @@ const OrderSummaryPage: React.FC = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { items, orderType, tableNumber, taxIncluded } = location.state || {};
-  const { handleConfirmOrder } = useCart({ orderType, tableNumber });
+  const { handleConfirmOrder, isProcessingOrder } = useCart({ orderType, tableNumber });
   
   React.useEffect(() => {
     if (!items || items.length === 0) {
@@ -40,6 +40,11 @@ const OrderSummaryPage: React.FC = () => {
 
   const handleConfirmOrderClick = async () => {
     try {
+      if (isProcessingOrder) {
+        console.log('Order is already being processed, preventing duplicate submission');
+        return;
+      }
+      
       await handleConfirmOrder();
     } catch (error) {
       console.error('Error during order confirmation:', error);
@@ -70,8 +75,7 @@ const OrderSummaryPage: React.FC = () => {
           animate={{ opacity: 1 }} 
           transition={{ duration: 0.4 }}
         >
-          <div className="w-full max-w-2xl mx-auto">
-            {orderType === 'eat-in' && tableNumber && <motion.div initial={{
+          {orderType === 'eat-in' && tableNumber && <motion.div initial={{
             y: 20,
             opacity: 0
           }} animate={{
@@ -140,9 +144,14 @@ const OrderSummaryPage: React.FC = () => {
               transition={{ delay: 0.4 }} 
               className="fixed bottom-0 left-0 right-0 p-6 bg-white border-t border-gray-200 shadow-lg"
             >
-              <Button size="full" onClick={handleConfirmOrderClick} className="text-white text-lg py-4 bg-green-900 hover:bg-green-800">
+              <Button 
+                size="full" 
+                onClick={handleConfirmOrderClick} 
+                className="text-white text-lg py-4 bg-green-900 hover:bg-green-800"
+                disabled={isProcessingOrder}
+              >
                 <Check className="w-5 h-5 mr-2" />
-                Confirmer la commande
+                {isProcessingOrder ? 'Traitement en cours...' : 'Confirmer la commande'}
               </Button>
             </motion.div>
           </div>

@@ -50,6 +50,7 @@ const CartSummary: React.FC<CartSummaryProps> = ({
 
   // Function to handle "See Order" button click
   const handleSeeOrder = () => {
+    // Pass all necessary data to the order summary page
     navigate('/order-summary', {
       state: {
         items: cartItems,
