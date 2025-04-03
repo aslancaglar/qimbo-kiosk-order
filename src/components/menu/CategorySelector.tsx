@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { motion } from 'framer-motion';
 import { Pizza, Coffee, Utensils } from 'lucide-react';
@@ -74,6 +73,33 @@ const CategoryButton: React.FC<CategoryButtonProps> = ({
     return '📋';
   };
   
+  // For mobile horizontal view, use the red rounded button style as shown in the image
+  if (!isVertical) {
+    return (
+      <button
+        onClick={() => onChange(category)}
+        className={`
+          px-4 py-2
+          rounded-full
+          ${isActive 
+            ? 'bg-[#ea384c] text-amber-300 font-bold' 
+            : 'bg-[#ea384c] text-white'
+          }
+          text-sm md:text-base
+          font-medium
+          uppercase
+          transition-colors
+          flex-shrink-0
+        `}
+      >
+        <span className="relative z-10">
+          {category}
+        </span>
+      </button>
+    );
+  }
+  
+  // Keep the original vertical style for desktop
   return (
     <button
       onClick={() => onChange(category)}
