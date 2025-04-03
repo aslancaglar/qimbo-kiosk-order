@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Button from '../common/Button';
@@ -9,7 +8,6 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/components/ui/use-toast';
 import { useIsMobile } from '@/hooks/use-mobile';
-
 interface CartSidebarProps {
   isOpen: boolean;
   onClose: () => void;
@@ -20,7 +18,6 @@ interface CartSidebarProps {
   orderType: 'takeaway' | 'eat-in';
   tableNumber?: number;
 }
-
 const CartSidebar: React.FC<CartSidebarProps> = ({
   isOpen,
   onClose,
@@ -33,7 +30,6 @@ const CartSidebar: React.FC<CartSidebarProps> = ({
 }) => {
   const navigate = useNavigate();
   const isMobile = useIsMobile();
-  
   const totalItems = items.reduce((sum, item) => sum + item.quantity, 0);
   const total = items.reduce((sum, item) => {
     let itemTotal = item.product.price * item.quantity;
@@ -43,11 +39,9 @@ const CartSidebar: React.FC<CartSidebarProps> = ({
     }
     return sum + itemTotal;
   }, 0);
-  
   const taxRate = 0.1;
   const taxAmount = total - total / (1 + taxRate);
   const subtotal = total - taxAmount;
-
   const handleSeeOrder = () => {
     navigate('/order-summary', {
       state: {
@@ -62,12 +56,9 @@ const CartSidebar: React.FC<CartSidebarProps> = ({
     });
     onClose();
   };
-
-  return (
-    <div className="h-full flex flex-col bg-white relative">
+  return <div className="h-full flex flex-col bg-white relative">
       {/* Mobile layout with relative positioning strategy */}
-      {isMobile ? (
-        <div className="flex flex-col h-full">
+      {isMobile ? <div className="flex flex-col h-full">
           {/* Header - Position absolute from top */}
           <div className="absolute top-0 left-0 right-0 z-10 bg-white border-b border-gray-100">
             <div className="p-6 flex justify-between items-center">
@@ -92,35 +83,26 @@ const CartSidebar: React.FC<CartSidebarProps> = ({
           
           {/* Cart Items - Scrollable area with padding for header and footer */}
           <div className="flex-1 overflow-y-auto pt-[120px] pb-[220px]">
-            {items.length === 0 ? (
-              <div className="flex flex-col items-center justify-center p-6 text-center h-full">
+            {items.length === 0 ? <div className="flex flex-col items-center justify-center p-6 text-center h-full">
                 <ShoppingBag className="h-16 w-16 text-gray-300 mb-4" />
                 <h3 className="text-xl font-medium text-gray-900 mb-1">Your cart is empty</h3>
                 <p className="text-gray-500 mb-6">Add some delicious items to get started</p>
-              </div>
-            ) : (
-              <div className="p-6">
+              </div> : <div className="p-6 py-0">
                 <AnimatePresence initial={false}>
-                  {items.map((item, index) => (
-                    <motion.div
-                      key={`${item.product.id}-${index}`}
-                      initial={{ opacity: 0, height: 0 }}
-                      animate={{ opacity: 1, height: 'auto' }}
-                      exit={{ opacity: 0, height: 0 }}
-                      className="mb-4 border-b pb-4 last:border-0 last:pb-0"
-                    >
-                      <CartItem 
-                        item={item} 
-                        onRemove={() => onRemoveItem(index)} 
-                        onIncrement={() => onIncrementItem(index)} 
-                        onDecrement={() => onDecrementItem(index)}
-                        isTablet={isMobile}
-                      />
-                    </motion.div>
-                  ))}
+                  {items.map((item, index) => <motion.div key={`${item.product.id}-${index}`} initial={{
+              opacity: 0,
+              height: 0
+            }} animate={{
+              opacity: 1,
+              height: 'auto'
+            }} exit={{
+              opacity: 0,
+              height: 0
+            }} className="mb-4 border-b pb-4 last:border-0 last:pb-0">
+                      <CartItem item={item} onRemove={() => onRemoveItem(index)} onIncrement={() => onIncrementItem(index)} onDecrement={() => onDecrementItem(index)} isTablet={isMobile} />
+                    </motion.div>)}
                 </AnimatePresence>
-              </div>
-            )}
+              </div>}
           </div>
           
           {/* Footer - Position absolute from bottom */}
@@ -148,10 +130,9 @@ const CartSidebar: React.FC<CartSidebarProps> = ({
               </div>
             </div>
           </div>
-        </div>
-      ) : (
-        // Desktop layout
-        <>
+        </div> :
+    // Desktop layout
+    <>
           <div className="p-6 border-b border-gray-100 flex justify-between items-center">
             <div className="flex items-center gap-2">
               <ShoppingBag className="h-5 w-5" />
@@ -180,15 +161,15 @@ const CartSidebar: React.FC<CartSidebarProps> = ({
                 <div className="p-6">
                   <AnimatePresence initial={false}>
                     {items.map((item, index) => <motion.div key={`${item.product.id}-${index}`} initial={{
-                  opacity: 0,
-                  height: 0
-                }} animate={{
-                  opacity: 1,
-                  height: 'auto'
-                }} exit={{
-                  opacity: 0,
-                  height: 0
-                }} className="mb-4 border-b pb-4 last:border-0 last:pb-0">
+                opacity: 0,
+                height: 0
+              }} animate={{
+                opacity: 1,
+                height: 'auto'
+              }} exit={{
+                opacity: 0,
+                height: 0
+              }} className="mb-4 border-b pb-4 last:border-0 last:pb-0">
                         <CartItem item={item} onRemove={() => onRemoveItem(index)} onIncrement={() => onIncrementItem(index)} onDecrement={() => onDecrementItem(index)} isTablet={isMobile} />
                       </motion.div>)}
                   </AnimatePresence>
@@ -220,10 +201,7 @@ const CartSidebar: React.FC<CartSidebarProps> = ({
                 </div>
               </div>
             </>}
-        </>
-      )}
-    </div>
-  );
+        </>}
+    </div>;
 };
-
 export default CartSidebar;
