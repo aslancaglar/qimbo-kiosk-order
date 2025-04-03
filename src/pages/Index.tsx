@@ -2,7 +2,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
-import { Carousel, CarouselContent, CarouselItem } from '@/components/ui/carousel';
 import Layout from '../components/layout/Layout';
 import { supabase } from '../integrations/supabase/client';
 import { getOptimizedImageUrl } from '../utils/imageOptimizer';
@@ -13,6 +12,7 @@ const Index: React.FC = () => {
   const [customImages, setCustomImages] = useState<string[]>([]);
   const [logoUrl, setLogoUrl] = useState('');
   const [loading, setLoading] = useState(true);
+  const [logoLoaded, setLogoLoaded] = useState(false);
 
   // Fetch appearance settings from database
   useEffect(() => {
@@ -33,7 +33,16 @@ const Index: React.FC = () => {
             setCustomImages(settings.slideshowImages);
           }
           if (settings.logo) {
+            console.log('Logo URL found:', settings.logo);
             setLogoUrl(settings.logo);
+            // Preload the logo image
+            const img = new Image();
+            img.onload = () => setLogoLoaded(true);
+            img.onerror = () => {
+              console.error('Failed to load logo image');
+              setLogoLoaded(false);
+            };
+            img.src = settings.logo;
           }
         }
       } catch (error) {
@@ -50,13 +59,16 @@ const Index: React.FC = () => {
     if (customImages.length === 0) return;
     const interval = setInterval(() => {
       setCurrentIndex(prevIndex => (prevIndex + 1) % customImages.length);
-    }, 5000); // Increased from 3000 to 5000 ms (5 seconds)
+    }, 5000); // 5 seconds
     return () => clearInterval(interval);
   }, [customImages]);
 
   const handleButtonClick = () => {
     navigate('/whereyoueat');
   };
+
+  // Default logo if none is provided from settings
+  const defaultLogoUrl = '/lovable-uploads/6837434a-e5ba-495a-b295-9638c9b5c27f.png';
 
   return <motion.div className="h-screen w-screen flex flex-col relative bg-black overflow-hidden" initial={{
     opacity: 0
@@ -65,10 +77,26 @@ const Index: React.FC = () => {
   }} transition={{
     duration: 0.5
   }}>
-      {/* Logo - Made bigger */}
+      {/* Logo - Made bigger and improved */}
       <div className="absolute top-6 right-6 z-10">
-        <div className="w-24 h-24 rounded-full bg-white/80 flex items-center justify-center">
-          {logoUrl ? <img src={logoUrl} alt="Restaurant Logo" className="w-18 h-18 object-contain" /> : <span className="text-primary font-bold text-base text-center">DUMMY<br />LOGO</span>}
+        <div className="w-28 h-28 rounded-full bg-white/80 flex items-center justify-center overflow-hidden shadow-lg">
+          {logoUrl ? (
+            <img 
+              src={logoUrl} 
+              alt="Restaurant Logo" 
+              className="w-22 h-22 object-contain" 
+              onError={(e) => {
+                console.error('Logo image failed to load, using default');
+                (e.target as HTMLImageElement).src = defaultLogoUrl;
+              }} 
+            />
+          ) : (
+            <img 
+              src={defaultLogoUrl} 
+              alt="Default Logo" 
+              className="w-20 h-20 object-contain" 
+            />
+          )}
         </div>
       </div>
       
