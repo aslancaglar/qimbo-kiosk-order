@@ -74,7 +74,7 @@ const CategoryButton: React.FC<CategoryButtonProps> = ({
     return '📋';
   };
   
-  // For mobile horizontal view, use the red rounded button style as shown in the image
+  // For mobile horizontal view, use the red background that matches the header
   if (!isVertical) {
     return (
       <button
@@ -83,8 +83,8 @@ const CategoryButton: React.FC<CategoryButtonProps> = ({
           px-4 py-2
           rounded-full
           ${isActive 
-            ? 'bg-[#ea384c] text-amber-300 font-bold' 
-            : 'bg-[#ea384c] text-white'
+            ? 'bg-red-600 text-amber-300 font-bold' 
+            : 'bg-red-600 text-white'
           }
           text-sm md:text-base
           font-bebas
