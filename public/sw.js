@@ -1,6 +1,6 @@
 
 // Cache version - increment this when deploying new versions
-const CACHE_NAME = 'restaurant-app-v4';
+const CACHE_NAME = 'restaurant-app-v5';
 
 // Assets to cache on install
 const CACHE_ASSETS = [
