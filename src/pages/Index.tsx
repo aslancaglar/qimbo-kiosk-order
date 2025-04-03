@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
@@ -5,6 +6,7 @@ import { Carousel, CarouselContent, CarouselItem } from '@/components/ui/carouse
 import Layout from '../components/layout/Layout';
 import { supabase } from '../integrations/supabase/client';
 import { getOptimizedImageUrl } from '../utils/imageOptimizer';
+
 const Index: React.FC = () => {
   const navigate = useNavigate();
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -48,12 +50,14 @@ const Index: React.FC = () => {
     if (customImages.length === 0) return;
     const interval = setInterval(() => {
       setCurrentIndex(prevIndex => (prevIndex + 1) % customImages.length);
-    }, 3000);
+    }, 5000); // Increased from 3000 to 5000 ms (5 seconds)
     return () => clearInterval(interval);
   }, [customImages]);
+
   const handleButtonClick = () => {
     navigate('/whereyoueat');
   };
+
   return <motion.div className="h-screen w-screen flex flex-col relative bg-black overflow-hidden" initial={{
     opacity: 0
   }} animate={{
@@ -61,10 +65,10 @@ const Index: React.FC = () => {
   }} transition={{
     duration: 0.5
   }}>
-      {/* Logo */}
-      <div className="absolute top-4 right-4 z-10">
-        <div className="w-16 h-16 rounded-full bg-white/80 flex items-center justify-center">
-          {logoUrl ? <img src={logoUrl} alt="Restaurant Logo" className="w-12 h-12 object-contain" /> : <span className="text-primary font-bold text-xs text-center">DUMMY<br />LOGO</span>}
+      {/* Logo - Made bigger */}
+      <div className="absolute top-6 right-6 z-10">
+        <div className="w-24 h-24 rounded-full bg-white/80 flex items-center justify-center">
+          {logoUrl ? <img src={logoUrl} alt="Restaurant Logo" className="w-18 h-18 object-contain" /> : <span className="text-primary font-bold text-base text-center">DUMMY<br />LOGO</span>}
         </div>
       </div>
       
@@ -114,4 +118,5 @@ const Index: React.FC = () => {
       </div>
     </motion.div>;
 };
+
 export default Index;
