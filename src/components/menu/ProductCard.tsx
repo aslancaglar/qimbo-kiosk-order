@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Button from '../common/Button';
@@ -326,11 +325,11 @@ const ProductCard: React.FC<ProductCardProps> = ({
       
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent 
-          className="sm:max-w-[80%] w-[95%] max-h-[90vh] p-0 overflow-hidden flex flex-col"
+          className="sm:max-w-[80%] w-[95%] max-h-[90vh] p-0 overflow-hidden flex flex-col rounded-xl border border-gray-200 shadow-lg"
           enableScrollArea={false}
         >
           <div className="flex flex-col h-full">
-            <DialogHeader className="p-6 border-b">
+            <DialogHeader className="p-6 border-b rounded-t-xl">
               <DialogTitle>Customize Your {product.name}</DialogTitle>
             </DialogHeader>
             
@@ -368,7 +367,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
                               const quantity = toppingInForm ? toppingInForm.quantity : 0;
                               
                               return (
-                                <div key={topping.id} className="flex justify-between items-center py-2 px-3 border rounded-md">
+                                <div key={topping.id} className="flex justify-between items-center py-2 px-3 border rounded-lg shadow-sm hover:shadow-md transition-shadow">
                                   <div>
                                     <p className="font-medium text-sm">{topping.name}</p>
                                     {topping.price > 0 && <p className="text-xs text-gray-500">{topping.price.toFixed(2)} €</p>}
@@ -413,8 +412,8 @@ const ProductCard: React.FC<ProductCardProps> = ({
                     </div>
                   </ScrollArea>
                   
-                  <DialogFooter className="p-6 border-t mt-auto">
-                    <Button type="submit" size="full" className="bg-green-800 hover:bg-green-700">
+                  <DialogFooter className="p-6 border-t mt-auto rounded-b-xl">
+                    <Button type="submit" size="full" className="bg-green-800 hover:bg-green-700 rounded-lg">
                       Ajouter au panier
                     </Button>
                   </DialogFooter>
