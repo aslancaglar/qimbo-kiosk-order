@@ -1,6 +1,7 @@
 
 import React from 'react';
 import { motion } from 'framer-motion';
+import { Pizza, Coffee, Utensils } from 'lucide-react';
 
 interface CategorySelectorProps {
   categories: string[];
@@ -27,7 +28,7 @@ const CategorySelector: React.FC<CategorySelectorProps> = ({
     >
       <div className={`${isVertical 
         ? 'flex flex-col gap-1 items-center' 
-        : 'flex flex-wrap gap-2 justify-center py-2'}`}>
+        : 'flex flex-nowrap gap-2 overflow-x-auto pb-1 hide-scrollbar'}`}>
         
         {categories.map((category) => (
           <CategoryButton
@@ -73,21 +74,25 @@ const CategoryButton: React.FC<CategoryButtonProps> = ({
     return '📋';
   };
   
-  // Apply different styles based on vertical/horizontal orientation
-  if (isVertical) {
-    return (
-      <button
-        onClick={() => onChange(category)}
-        className={`relative px-2 py-3 w-full text-center flex flex-col items-center justify-center text-base font-medium transition-colors`}
-      >
-        {isActive && (
-          <motion.div
-            layoutId="activeCategory-vertical"
-            className="absolute left-0 w-1 h-full bg-red-600 z-0"
-            transition={{ type: 'spring', duration: 0.5 }}
-          />
-        )}
-        
+  return (
+    <button
+      onClick={() => onChange(category)}
+      className={`relative ${isVertical 
+        ? 'px-2 py-3 w-full text-center flex flex-col items-center justify-center' 
+        : 'px-4 py-2 flex-none rounded-md whitespace-nowrap text-center'} text-base font-medium transition-colors`}
+    >
+      {isActive && (
+        <motion.div
+          layoutId={`activeCategory-${isVertical ? 'vertical' : 'horizontal'}`}
+          className={`absolute ${isVertical 
+            ? 'left-0 w-1 h-full bg-red-600' 
+            : 'inset-0 bg-red-100 rounded-md'} z-0`}
+          transition={{ type: 'spring', duration: 0.5 }}
+        />
+      )}
+      
+      {/* Icon for categories - only show in vertical mode */}
+      {isVertical && (
         <div className="mb-1 text-2xl">
           {icon ? (
             <div className="h-14 w-14 rounded-full overflow-hidden flex items-center justify-center">
@@ -96,8 +101,10 @@ const CategoryButton: React.FC<CategoryButtonProps> = ({
                 alt={category} 
                 className="h-full w-full object-cover"
                 onError={(e) => {
+                  // Fix TypeScript error by using the correct HTMLImageElement type
                   const imgElement = e.target as HTMLImageElement;
                   imgElement.style.display = 'none';
+                  // Use optional chaining and type assertion for the next element
                   const nextElement = imgElement.nextElementSibling as HTMLElement;
                   if (nextElement) {
                     nextElement.style.display = 'block';
@@ -110,31 +117,15 @@ const CategoryButton: React.FC<CategoryButtonProps> = ({
             <span>{getCategoryEmoji(category)}</span>
           )}
         </div>
-        
-        <span className={`relative z-10 text-sm font-bold ${
-          isActive ? 'text-red-600 font-bold' : 'text-gray-600 hover:text-gray-900'
-        }`}>
-          {category}
-        </span>
-      </button>
-    );
-  }
-  
-  // Mobile horizontal style matching the provided image
-  return (
-    <button
-      onClick={() => onChange(category)}
-      className={`
-        px-4 py-2 my-1
-        rounded-lg
-        uppercase text-sm font-bold tracking-wide
-        ${isActive
-          ? 'bg-red-800 text-yellow-300'
-          : 'bg-red-800 text-white hover:bg-red-700'}
-        transition-colors duration-200
-      `}
-    >
-      {category}
+      )}
+      
+      <span className={`relative z-10 ${isVertical ? 'text-sm font-bold' : ''} ${
+        isActive
+          ? isVertical ? 'text-red-600 font-bold' : 'text-red-700 font-bold' 
+          : 'text-gray-600 hover:text-gray-900'
+      }`}>
+        {category}
+      </span>
     </button>
   );
 };
