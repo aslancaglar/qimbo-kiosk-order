@@ -24,37 +24,62 @@ const WelcomePage: React.FC<WelcomePageProps> = ({ restaurantInfo }) => {
   const [orderingSettings, setOrderingSettings] = useState<OrderingSettings>({
     requireTableSelection: true
   });
+  const [logoUrl, setLogoUrl] = useState('');
+  const [logoLoaded, setLogoLoaded] = useState(false);
   const navigate = useNavigate();
   
-  // Fetch ordering settings when component mounts
+  // Fetch ordering settings and logo when component mounts
   useEffect(() => {
-    const fetchOrderingSettings = async () => {
+    const fetchSettings = async () => {
       try {
-        const { data, error } = await supabase
+        // Fetch ordering settings
+        const { data: orderData, error: orderError } = await supabase
           .from('settings')
           .select('*')
           .eq('key', 'ordering_settings')
           .maybeSingle();
 
-        if (error) {
-          console.error('Error fetching ordering settings:', error);
-          return;
-        }
-
-        if (data && data.value) {
-          const settings = data.value as Record<string, any>;
+        if (orderError) {
+          console.error('Error fetching ordering settings:', orderError);
+        } else if (orderData && orderData.value) {
+          const settings = orderData.value as Record<string, any>;
           setOrderingSettings({
             requireTableSelection: settings.requireTableSelection !== undefined 
               ? !!settings.requireTableSelection 
               : true
           });
         }
+        
+        // Fetch logo
+        const { data: appearanceData, error: appearanceError } = await supabase
+          .from('settings')
+          .select('value')
+          .eq('key', 'appearance_settings')
+          .maybeSingle();
+          
+        if (appearanceError) {
+          console.error('Error fetching appearance settings:', appearanceError);
+        } else if (appearanceData && appearanceData.value) {
+          const settings = appearanceData.value as Record<string, any>;
+          if (settings.logo) {
+            console.log('Logo URL found:', settings.logo);
+            setLogoUrl(settings.logo);
+            // Preload the logo image
+            const img = new Image();
+            img.onload = () => setLogoLoaded(true);
+            img.onerror = () => {
+              console.error('Failed to load logo image');
+              setLogoLoaded(false);
+            };
+            img.src = settings.logo;
+          }
+        }
       } catch (error) {
-        console.error('Unexpected error fetching ordering settings:', error);
+        console.error('Unexpected error fetching settings:', error);
       }
     };
 
-    fetchOrderingSettings();
+    fetchSettings();
   }, []);
   
   const handleTakeaway = () => {
@@ -73,6 +98,9 @@ const WelcomePage: React.FC<WelcomePageProps> = ({ restaurantInfo }) => {
   const handleTableSelected = (tableNumber: number) => {
     navigate('/menu', { state: { orderType: 'eat-in', tableNumber } });
   };
+  
+  // Default logo if none is provided from settings
+  const defaultLogoUrl = '/lovable-uploads/6837434a-e5ba-495a-b295-9638c9b5c27f.png';
   
   return (
     <div className="relative h-full w-full flex flex-col items-center justify-center bg-gradient-to-b from-gray-50 to-gray-100">
@@ -93,8 +121,24 @@ const WelcomePage: React.FC<WelcomePageProps> = ({ restaurantInfo }) => {
               transition={{ duration: 0.5, delay: 0.2 }}
               className="mb-12"
             >
-              <div className="w-40 h-40 rounded-full mx-auto mb-6 bg-primary flex items-center justify-center">
-                <span className="text-primary-foreground text-4xl font-bold">LOGO</span>
+              <div className="w-40 h-40 rounded-full mx-auto mb-6 bg-white/80 flex items-center justify-center overflow-hidden shadow-lg">
+                {logoUrl ? (
+                  <img 
+                    src={logoUrl} 
+                    alt="Restaurant Logo" 
+                    className="w-32 h-32 object-contain" 
+                    onError={(e) => {
+                      console.error('Logo image failed to load, using default');
+                      (e.target as HTMLImageElement).src = defaultLogoUrl;
+                    }} 
+                  />
+                ) : (
+                  <img 
+                    src={defaultLogoUrl} 
+                    alt="Default Logo" 
+                    className="w-32 h-32 object-contain" 
+                  />
+                )}
               </div>
               <h1 className="text-4xl font-bold mb-2 tracking-tight">
                 {restaurantInfo?.name || 'Nom du Restaurant'}
