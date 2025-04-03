@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { motion } from 'framer-motion';
 import { Pizza, Coffee, Utensils } from 'lucide-react';
@@ -86,7 +87,8 @@ const CategoryButton: React.FC<CategoryButtonProps> = ({
             : 'bg-[#ea384c] text-white'
           }
           text-sm md:text-base
-          font-medium
+          font-bebas
+          tracking-wider
           uppercase
           transition-colors
           flex-shrink-0
@@ -105,7 +107,7 @@ const CategoryButton: React.FC<CategoryButtonProps> = ({
       onClick={() => onChange(category)}
       className={`relative ${isVertical 
         ? 'px-2 py-3 w-full text-center flex flex-col items-center justify-center' 
-        : 'px-4 py-2 flex-none rounded-md whitespace-nowrap text-center'} text-base font-medium transition-colors`}
+        : 'px-4 py-2 flex-none rounded-md whitespace-nowrap text-center'} text-base font-bebas tracking-wider transition-colors`}
     >
       {isActive && (
         <motion.div

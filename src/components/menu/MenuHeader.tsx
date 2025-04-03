@@ -30,7 +30,7 @@ const MenuHeader: React.FC<MenuHeaderProps> = ({
         <Home size={24} />
       </Button>
       
-      <h1 className="text-2xl font-bold">{title}</h1>
+      <h1 className="text-2xl font-bebas tracking-wider">{title}</h1>
       
       {showCartIcon ? (
         <Button 

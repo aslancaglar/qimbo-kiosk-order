@@ -48,7 +48,7 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
         whileTap={{ scale: 0.98 }}
         whileHover={{ scale: 1.02 }}
         className={cn(
-          'relative flex items-center justify-center rounded-lg font-medium transition-colors',
+          'relative flex items-center justify-center rounded-lg font-bebas font-normal tracking-wider uppercase transition-colors',
           'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
           'disabled:pointer-events-none disabled:opacity-50',
           variants[variant],

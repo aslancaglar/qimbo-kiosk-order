@@ -67,7 +67,7 @@ const MenuContent: React.FC<MenuContentProps> = ({
         
         <div className="flex-1 overflow-y-auto p-4 md:pb-[60px]">
           <div className="mb-4">
-            <h2 className="text-xl font-bold text-red-700">{activeCategory}</h2>
+            <h2 className="text-xl font-bebas tracking-wider text-red-700">{activeCategory}</h2>
           </div>
           
           {isLoading ? (
