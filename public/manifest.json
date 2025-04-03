@@ -7,6 +7,8 @@
   "display": "standalone",
   "background_color": "#ffffff",
   "theme_color": "#FF5722",
+  "orientation": "portrait",
+  "scope": "/",
   "icons": [
     {
       "src": "/icons/icon-192x192.png",
@@ -20,5 +22,15 @@
       "type": "image/png",
       "purpose": "any"
     }
-  ]
+  ],
+  "shortcuts": [
+    {
+      "name": "Order Food",
+      "short_name": "Order",
+      "description": "Start a new food order",
+      "url": "/menu",
+      "icons": [{ "src": "/icons/icon-192x192.png", "sizes": "192x192" }]
+    }
+  ],
+  "categories": ["food", "restaurant", "kiosk"]
 }
