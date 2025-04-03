@@ -99,9 +99,6 @@ const WelcomePage: React.FC<WelcomePageProps> = ({ restaurantInfo }) => {
               <h1 className="text-4xl font-bold mb-2 tracking-tight">
                 {restaurantInfo?.name || 'Nom du Restaurant'}
               </h1>
-              <p className="text-gray-500">
-                {restaurantInfo?.description || 'Cuisine fraîche et délicieuse à portée de main'}
-              </p>
             </motion.div>
             
             <motion.h2 
