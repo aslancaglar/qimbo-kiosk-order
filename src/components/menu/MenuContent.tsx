@@ -40,7 +40,7 @@ const MenuContent: React.FC<MenuContentProps> = ({
     <div className="flex flex-col flex-1 overflow-hidden bg-amber-50">
       {/* Show horizontal category selector for mobile */}
       {isMobile && (
-        <div className="w-full overflow-x-auto bg-amber-100 sticky top-0 z-10 shadow-sm">
+        <div className="w-full bg-amber-100 sticky top-0 z-10 shadow-sm">
           <CategorySelector 
             categories={categories} 
             categoryIcons={categoryIcons}
