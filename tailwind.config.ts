@@ -22,6 +22,9 @@ export default {
         sans: ['Inter', '-apple-system', 'BlinkMacSystemFont', 'sans-serif'],
         bebas: ['Bebas Neue', 'sans-serif'],
       },
+      fontWeight: {
+        extrabold: '800',
+      },
       colors: {
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",

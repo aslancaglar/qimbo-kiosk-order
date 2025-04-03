@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
@@ -14,7 +13,6 @@ const Index: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [logoLoaded, setLogoLoaded] = useState(false);
 
-  // Fetch appearance settings from database
   useEffect(() => {
     const fetchAppearanceSettings = async () => {
       try {
@@ -35,7 +33,6 @@ const Index: React.FC = () => {
           if (settings.logo) {
             console.log('Logo URL found:', settings.logo);
             setLogoUrl(settings.logo);
-            // Preload the logo image
             const img = new Image();
             img.onload = () => setLogoLoaded(true);
             img.onerror = () => {
@@ -54,12 +51,11 @@ const Index: React.FC = () => {
     fetchAppearanceSettings();
   }, []);
 
-  // Auto-advance slideshow only if we have custom images
   useEffect(() => {
     if (customImages.length === 0) return;
     const interval = setInterval(() => {
       setCurrentIndex(prevIndex => (prevIndex + 1) % customImages.length);
-    }, 5000); // 5 seconds
+    }, 5000);
     return () => clearInterval(interval);
   }, [customImages]);
 
@@ -67,7 +63,6 @@ const Index: React.FC = () => {
     navigate('/whereyoueat');
   };
 
-  // Default logo if none is provided from settings
   const defaultLogoUrl = '/lovable-uploads/6837434a-e5ba-495a-b295-9638c9b5c27f.png';
 
   return <motion.div className="h-screen w-screen flex flex-col relative bg-black overflow-hidden" initial={{
@@ -77,7 +72,6 @@ const Index: React.FC = () => {
   }} transition={{
     duration: 0.5
   }}>
-      {/* Logo - Made bigger and improved */}
       <div className="absolute top-6 right-6 z-10">
         <div className="w-28 h-28 rounded-full bg-white/80 flex items-center justify-center overflow-hidden shadow-lg">
           {logoUrl ? (
@@ -100,7 +94,6 @@ const Index: React.FC = () => {
         </div>
       </div>
       
-      {/* Background slideshow - only shown if custom images exist */}
       {customImages.length > 0 && <div className="absolute inset-0 z-0">
           <AnimatePresence mode="wait">
             <motion.div key={currentIndex} initial={{
@@ -117,12 +110,9 @@ const Index: React.FC = () => {
           </AnimatePresence>
         </div>}
       
-      {/* Content overlay */}
       <div className="relative z-10 flex flex-col h-full">
-        {/* Spacer to push content to bottom */}
         <div className="flex-grow" />
         
-        {/* Button container */}
         <div className="w-full px-6 pb-12">
           <motion.button onClick={handleButtonClick} className="w-full bg-white rounded-lg py-4 px-6 text-center font-bold text-black shadow-lg" whileTap={{
           scale: 0.98
@@ -134,12 +124,11 @@ const Index: React.FC = () => {
                 <path d="M8 12.5L11 15.5L16 9.5" stroke="black" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
                 <path d="M12 22C17.5228 22 22 17.5228 22 12C22 6.47715 17.5228 2 12 2C6.47715 2 2 6.47715 2 12C2 17.5228 6.47715 22 12 22Z" stroke="black" strokeWidth="2" />
               </svg>
-              <span>TOUCHEZ POUR COMMANDER</span>
+              <span className="font-bebas font-extrabold tracking-wider text-lg">TOUCHEZ POUR COMMANDER</span>
             </div>
           </motion.button>
         </div>
         
-        {/* Indicator dots - only shown if custom images exist */}
         {customImages.length > 0 && <div className="absolute bottom-4 left-0 right-0 flex justify-center gap-2 pb-2">
             {customImages.map((_, index) => <div key={index} className={`w-2 h-2 rounded-full ${currentIndex === index ? 'bg-white' : 'bg-white/50'}`} />)}
           </div>}
