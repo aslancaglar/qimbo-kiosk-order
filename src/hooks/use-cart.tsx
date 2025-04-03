@@ -11,10 +11,11 @@ interface UseCartOptions {
   tableNumber?: number;
 }
 
-// Storage key for cart items
+// Storage keys for cart items
 const CART_STORAGE_KEY = 'restaurant_cart_items';
 const ORDER_TYPE_STORAGE_KEY = 'restaurant_order_type';
 const TABLE_NUMBER_STORAGE_KEY = 'restaurant_table_number';
+const ORDER_PROCESSING_KEY = 'restaurant_order_processing';
 
 export function useCart({ orderType, tableNumber }: UseCartOptions) {
   const [cartItems, setCartItems] = useState<CartItemType[]>([]);
@@ -27,6 +28,16 @@ export function useCart({ orderType, tableNumber }: UseCartOptions) {
   // Add a ref to track if an order is being processed
   const orderBeingProcessed = useRef<boolean>(false);
 
+  // Check for previously processing orders on component mount
+  useEffect(() => {
+    // Check if there was an unfinished order processing
+    const processingOrder = localStorage.getItem(ORDER_PROCESSING_KEY);
+    if (processingOrder) {
+      // Clear the processing marker, as we're starting fresh
+      localStorage.removeItem(ORDER_PROCESSING_KEY);
+    }
+  }, []);
+  
   // Load cart items from localStorage on initial render
   useEffect(() => {
     try {
@@ -167,15 +178,16 @@ export function useCart({ orderType, tableNumber }: UseCartOptions) {
   const handleConfirmOrder = async () => {
     if (cartItems.length === 0) return;
     
-    // Prevent duplicate order creation with multiple safeguards
+    // Check for in-progress orders or multiple submissions
     if (isProcessingOrder || orderBeingProcessed.current) {
       console.log('Order already being processed, preventing duplicate order');
       return;
     }
     
-    // Set the processing flags
+    // Set processing flags in both state and localStorage
     setIsProcessingOrder(true);
     orderBeingProcessed.current = true;
+    localStorage.setItem(ORDER_PROCESSING_KEY, 'true');
     
     try {
       console.log('Starting order confirmation process, preventing duplicates...');
@@ -254,7 +266,11 @@ export function useCart({ orderType, tableNumber }: UseCartOptions) {
         }
       }
       
-      // Navigate to confirmation page
+      // Clear cart from localStorage BEFORE navigation to prevent any chance of re-submission
+      localStorage.removeItem(CART_STORAGE_KEY);
+      localStorage.removeItem(ORDER_PROCESSING_KEY);
+      
+      // Navigate to confirmation page with replace:true to prevent back navigation
       navigate('/confirmation', { 
         state: { 
           items: cartItems,
@@ -278,9 +294,6 @@ export function useCart({ orderType, tableNumber }: UseCartOptions) {
       setCartItems([]);
       setIsCartOpen(false);
       
-      // Clear cart from localStorage after successful order
-      localStorage.removeItem(CART_STORAGE_KEY);
-      
     } catch (error) {
       console.error('Checkout error:', error);
       toast({
@@ -288,6 +301,10 @@ export function useCart({ orderType, tableNumber }: UseCartOptions) {
         description: "Could not complete checkout. Please try again.",
         variant: "destructive",
       });
+      
+      // Remove processing flag from localStorage on error
+      localStorage.removeItem(ORDER_PROCESSING_KEY);
+      
     } finally {
       // Clear the processing flags
       setIsProcessingOrder(false);

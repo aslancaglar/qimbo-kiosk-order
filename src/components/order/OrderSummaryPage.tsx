@@ -1,4 +1,5 @@
-import React from 'react';
+
+import React, { useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import Layout from '../layout/Layout';
@@ -12,6 +13,7 @@ const OrderSummaryPage: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const { toast } = useToast();
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const { items, orderType, tableNumber, taxIncluded } = location.state || {};
   const { handleConfirmOrder, isProcessingOrder } = useCart({ orderType, tableNumber });
   
@@ -39,13 +41,17 @@ const OrderSummaryPage: React.FC = () => {
   };
 
   const handleConfirmOrderClick = async () => {
+    // Prevent multiple submissions
+    if (isSubmitting || isProcessingOrder) {
+      console.log('Preventing duplicate submission - already processing');
+      return;
+    }
+    
     try {
-      if (isProcessingOrder) {
-        console.log('Order is already being processed, preventing duplicate submission');
-        return;
-      }
-      
+      setIsSubmitting(true);
+      console.log('Starting order confirmation from OrderSummaryPage');
       await handleConfirmOrder();
+      // No need to navigate here as handleConfirmOrder will handle navigation
     } catch (error) {
       console.error('Error during order confirmation:', error);
       toast({
@@ -53,8 +59,11 @@ const OrderSummaryPage: React.FC = () => {
         description: "Une erreur inattendue s'est produite. Veuillez réessayer.",
         variant: "destructive"
       });
+      setIsSubmitting(false);
     }
   };
+
+  const buttonDisabled = isSubmitting || isProcessingOrder;
 
   return (
     <Layout>
@@ -147,15 +156,14 @@ const OrderSummaryPage: React.FC = () => {
               <Button 
                 size="full" 
                 onClick={handleConfirmOrderClick} 
-                className="text-white text-lg py-4 bg-green-900 hover:bg-green-800"
-                disabled={isProcessingOrder}
+                className={`text-white text-lg py-4 ${buttonDisabled ? 'bg-green-700' : 'bg-green-900 hover:bg-green-800'}`}
+                disabled={buttonDisabled}
               >
                 <Check className="w-5 h-5 mr-2" />
-                {isProcessingOrder ? 'Traitement en cours...' : 'Confirmer la commande'}
+                {buttonDisabled ? 'Traitement en cours...' : 'Confirmer la commande'}
               </Button>
             </motion.div>
-          </div>
-        </motion.div>
+          </motion.div>
       </div>
     </Layout>
   );
