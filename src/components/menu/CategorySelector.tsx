@@ -83,8 +83,8 @@ const CategoryButton: React.FC<CategoryButtonProps> = ({
           px-4 py-2
           rounded-full
           ${isActive 
-            ? 'bg-red-600 text-amber-300 font-bold' 
-            : 'bg-red-600 text-white'
+            ? 'bg-[#ea384c] text-amber-300 font-bold' 
+            : 'bg-[#ea384c] text-white'
           }
           text-sm md:text-base
           font-bebas
