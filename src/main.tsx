@@ -30,6 +30,26 @@ root.render(
 // Register service worker
 registerServiceWorker().catch(console.error);
 
+// Prevent screen from sleeping - useful for kiosks
+if ('wakeLock' in navigator && document.visibilityState === 'visible') {
+  try {
+    // Request a screen wake lock
+    const wakeLock = navigator.wakeLock.request('screen')
+      .then(lock => {
+        console.log('Screen wake lock activated');
+        // Release on visibility change
+        document.addEventListener('visibilitychange', () => {
+          if (document.visibilityState !== 'visible' && lock) {
+            lock.release().then(() => console.log('Wake lock released'));
+          }
+        });
+      })
+      .catch(err => console.error('Wake lock error:', err));
+  } catch (err) {
+    console.error('Wake lock API not supported:', err);
+  }
+}
+
 // Setup periodic update checks in production
 if (process.env.NODE_ENV === 'production') {
   // Check for updates after initial load
