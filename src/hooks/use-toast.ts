@@ -1,13 +1,14 @@
-
 import * as React from "react"
 
 import type {
   ToastActionElement,
   ToastProps,
 } from "@/components/ui/toast"
+import { useIsMobile } from "./use-mobile"
 
 const TOAST_LIMIT = 1
-const TOAST_REMOVE_DELAY = 5000 // Changed to 5 seconds for better user experience
+const DESKTOP_TOAST_REMOVE_DELAY = 5000 // 5 seconds for desktop
+const MOBILE_TOAST_REMOVE_DELAY = 3000 // 3 seconds for mobile (40% faster)
 
 type ToasterToast = ToastProps & {
   id: string
@@ -56,10 +57,12 @@ interface State {
 
 const toastTimeouts = new Map<string, ReturnType<typeof setTimeout>>()
 
-const addToRemoveQueue = (toastId: string) => {
+const addToRemoveQueue = (toastId: string, isMobile: boolean) => {
   if (toastTimeouts.has(toastId)) {
     return
   }
+
+  const delay = isMobile ? MOBILE_TOAST_REMOVE_DELAY : DESKTOP_TOAST_REMOVE_DELAY;
 
   const timeout = setTimeout(() => {
     toastTimeouts.delete(toastId)
@@ -67,12 +70,12 @@ const addToRemoveQueue = (toastId: string) => {
       type: "REMOVE_TOAST",
       toastId: toastId,
     })
-  }, TOAST_REMOVE_DELAY)
+  }, delay)
 
   toastTimeouts.set(toastId, timeout)
 }
 
-export const reducer = (state: State, action: Action): State => {
+export const reducer = (state: State, action: Action, isMobile: boolean): State => {
   switch (action.type) {
     case "ADD_TOAST":
       return {
@@ -94,10 +97,10 @@ export const reducer = (state: State, action: Action): State => {
       // ! Side effects ! - This could be extracted into a dismissToast() action,
       // but I'll keep it here for simplicity
       if (toastId) {
-        addToRemoveQueue(toastId)
+        addToRemoveQueue(toastId, isMobile)
       } else {
         state.toasts.forEach((toast) => {
-          addToRemoveQueue(toast.id)
+          addToRemoveQueue(toast.id, isMobile)
         })
       }
 
@@ -132,7 +135,10 @@ const listeners: Array<(state: State) => void> = []
 let memoryState: State = { toasts: [] }
 
 function dispatch(action: Action) {
-  memoryState = reducer(memoryState, action)
+  // Get isMobile status from the use-mobile hook
+  const isMobile = window.innerWidth < 768; // Simple check for mobile viewport
+  
+  memoryState = reducer(memoryState, action, isMobile)
   listeners.forEach((listener) => {
     listener(memoryState)
   })
@@ -189,6 +195,7 @@ const infoToast = (message: string) => toast({
 
 function useToast() {
   const [state, setState] = React.useState<State>(memoryState)
+  const isMobile = useIsMobile();
 
   React.useEffect(() => {
     listeners.push(setState)
