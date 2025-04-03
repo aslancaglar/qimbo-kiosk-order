@@ -6,7 +6,6 @@ import Button from '../common/Button';
 import { Check, ArrowLeft, Printer } from 'lucide-react';
 import { CartItemType } from '../cart/types';
 import { useCart } from '@/hooks/use-cart';
-import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
 const OrderSummaryPage: React.FC = () => {
@@ -42,70 +41,6 @@ const OrderSummaryPage: React.FC = () => {
   const handleConfirmOrderClick = async () => {
     try {
       await handleConfirmOrder();
-      const {
-        data: orderResult,
-        error: orderError
-      } = await supabase.from('orders').insert({
-        customer_type: orderType === 'eat-in' ? 'Table' : 'Takeaway',
-        table_number: orderType === 'eat-in' ? tableNumber : null,
-        items_count: items.reduce((sum: number, item: CartItemType) => sum + item.quantity, 0),
-        total_amount: total,
-        status: 'New',
-        order_number: ''
-      }).select('id').single();
-      if (orderError) {
-        console.error('Error creating order:', orderError);
-        toast({
-          title: "Error",
-          description: "Could not process your order. Please try again.",
-          variant: "destructive"
-        });
-        return;
-      }
-      console.log('Order created successfully:', orderResult);
-      for (const item of items) {
-        const {
-          data: orderItemResult,
-          error: orderItemError
-        } = await supabase.from('order_items').insert({
-          order_id: orderResult.id,
-          menu_item_id: parseInt(item.product.id),
-          quantity: item.quantity,
-          price: item.product.price,
-          notes: item.notes || null
-        }).select('id').single();
-        if (orderItemError) {
-          console.error('Error creating order item:', orderItemError);
-          continue;
-        }
-        if (item.selectedToppings && item.selectedToppings.length > 0) {
-          for (const topping of item.selectedToppings) {
-            const {
-              error: toppingError
-            } = await supabase.from('order_item_toppings').insert({
-              order_item_id: orderItemResult.id,
-              topping_id: topping.id,
-              price: topping.price
-            });
-            if (toppingError) {
-              console.error('Error creating order item topping:', toppingError);
-              continue;
-            }
-          }
-        }
-      }
-      navigate('/confirmation', {
-        state: {
-          items,
-          orderType,
-          tableNumber,
-          subtotal,
-          taxAmount,
-          total,
-          orderId: orderResult.id,
-          orderNumber: orderResult.id
-        }
-      });
     } catch (error) {
       console.error('Error during order confirmation:', error);
       toast({
