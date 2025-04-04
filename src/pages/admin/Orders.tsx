@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import AdminLayout from '../../components/admin/AdminLayout';
@@ -27,6 +28,17 @@ import { supabase } from "@/integrations/supabase/client";
 import { Order, OrderItem } from '@/types/orders';
 import { toast } from "@/components/ui/use-toast";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import {
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+  PaginationEllipsis,
+} from "@/components/ui/pagination";
+
+const ORDERS_PER_PAGE = 50;
 
 const Orders = () => {
   const [searchTerm, setSearchTerm] = useState('');
@@ -34,6 +46,7 @@ const Orders = () => {
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [isOrderDetailsOpen, setIsOrderDetailsOpen] = useState(false);
   const [autoRefresh, setAutoRefresh] = useState(true);
+  const [currentPage, setCurrentPage] = useState(1);
   const queryClient = useQueryClient();
 
   useEffect(() => {
@@ -186,9 +199,29 @@ const Orders = () => {
     return matchesSearch && matchesStatus;
   });
 
+  // Pagination calculations
+  const totalOrders = filteredOrders.length;
+  const totalPages = Math.ceil(totalOrders / ORDERS_PER_PAGE);
+  const startIndex = (currentPage - 1) * ORDERS_PER_PAGE;
+  const endIndex = Math.min(startIndex + ORDERS_PER_PAGE, totalOrders);
+  
+  // Current page orders
+  const paginatedOrders = filteredOrders.slice(startIndex, endIndex);
+
   const handleViewOrder = (order: Order) => {
     setSelectedOrder(order);
     setIsOrderDetailsOpen(true);
+  };
+
+  const handlePageChange = (page: number) => {
+    if (page >= 1 && page <= totalPages) {
+      setCurrentPage(page);
+      // Scroll to top of the table
+      const tableElement = document.querySelector('.orders-table-container');
+      if (tableElement) {
+        tableElement.scrollTop = 0;
+      }
+    }
   };
 
   const getStatusClass = (status: string) => {
@@ -285,6 +318,84 @@ const Orders = () => {
     return `cursor-pointer ${isActive 
       ? 'bg-[hsl(215_50%_23%)] text-white' 
       : 'bg-[hsl(215_50%_40%)] text-white opacity-70'} hover:bg-[hsl(215_50%_30%)] hover:opacity-100 transition-colors`;
+  };
+
+  const renderPagination = () => {
+    if (totalPages <= 1) return null;
+    
+    const pageNumbers = [];
+    const maxPagesToShow = 5; // Show at most 5 page numbers
+    
+    let startPage = Math.max(1, currentPage - Math.floor(maxPagesToShow / 2));
+    let endPage = Math.min(totalPages, startPage + maxPagesToShow - 1);
+    
+    // Adjust if at the ends
+    if (endPage - startPage + 1 < maxPagesToShow) {
+      startPage = Math.max(1, endPage - maxPagesToShow + 1);
+    }
+    
+    for (let i = startPage; i <= endPage; i++) {
+      pageNumbers.push(i);
+    }
+    
+    return (
+      <Pagination className="mt-4">
+        <PaginationContent>
+          <PaginationItem>
+            <PaginationPrevious 
+              onClick={() => handlePageChange(currentPage - 1)}
+              className={currentPage === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
+            />
+          </PaginationItem>
+          
+          {startPage > 1 && (
+            <>
+              <PaginationItem>
+                <PaginationLink onClick={() => handlePageChange(1)}>1</PaginationLink>
+              </PaginationItem>
+              {startPage > 2 && (
+                <PaginationItem>
+                  <PaginationEllipsis />
+                </PaginationItem>
+              )}
+            </>
+          )}
+          
+          {pageNumbers.map(page => (
+            <PaginationItem key={page}>
+              <PaginationLink 
+                isActive={page === currentPage}
+                onClick={() => handlePageChange(page)}
+              >
+                {page}
+              </PaginationLink>
+            </PaginationItem>
+          ))}
+          
+          {endPage < totalPages && (
+            <>
+              {endPage < totalPages - 1 && (
+                <PaginationItem>
+                  <PaginationEllipsis />
+                </PaginationItem>
+              )}
+              <PaginationItem>
+                <PaginationLink onClick={() => handlePageChange(totalPages)}>
+                  {totalPages}
+                </PaginationLink>
+              </PaginationItem>
+            </>
+          )}
+          
+          <PaginationItem>
+            <PaginationNext 
+              onClick={() => handlePageChange(currentPage + 1)}
+              className={currentPage === totalPages ? "pointer-events-none opacity-50" : "cursor-pointer"}
+            />
+          </PaginationItem>
+        </PaginationContent>
+      </Pagination>
+    );
   };
 
   return (
@@ -385,7 +496,7 @@ const Orders = () => {
           </div>
         ) : (
           <div className="relative flex-1 overflow-hidden border rounded-md">
-            <ScrollArea className="h-[calc(100vh-280px)] min-h-[400px] w-full">
+            <ScrollArea className="h-[calc(100vh-280px)] min-h-[400px] w-full orders-table-container">
               <div className="min-w-full overflow-auto">
                 <Table>
                   <TableHeader>
@@ -400,7 +511,7 @@ const Orders = () => {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {filteredOrders.map((order) => (
+                    {paginatedOrders.map((order) => (
                       <TableRow key={order.id}>
                         <TableCell className="font-medium">#{order.id}</TableCell>
                         <TableCell>
@@ -432,6 +543,12 @@ const Orders = () => {
                 </Table>
               </div>
             </ScrollArea>
+            <div className="border-t bg-white p-2 flex justify-between items-center text-sm">
+              <div className="text-muted-foreground">
+                Showing {startIndex + 1}-{endIndex} of {totalOrders} orders
+              </div>
+              {renderPagination()}
+            </div>
           </div>
         )}
         
