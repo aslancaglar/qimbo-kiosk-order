@@ -1,8 +1,8 @@
 
 {
-  "name": "Foodie Kiosk Experience",
+  "name": "Foodie Kiosk - Self-Service Food Ordering",
   "short_name": "Foodie Kiosk",
-  "description": "A digital kiosk experience for food ordering",
+  "description": "Streamlined self-service food ordering kiosk system. Browse our menu, customize your order, and pay with ease.",
   "start_url": "/",
   "display": "fullscreen",
   "background_color": "#FFFFFF",
