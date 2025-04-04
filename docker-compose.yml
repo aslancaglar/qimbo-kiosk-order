@@ -1,0 +1,39 @@
+
+version: '3.8'
+
+services:
+  app:
+    build: .
+    container_name: qimbo-kiosk-app
+    ports:
+      - "8080:80"
+    depends_on:
+      - db
+    environment:
+      - VITE_SUPABASE_URL=${SUPABASE_URL:-http://db:8000}
+      - VITE_SUPABASE_ANON_KEY=${SUPABASE_ANON_KEY:-eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJkamZxZHBvZXNqdmJsdWZmd3ptIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDMwMjUwMzMsImV4cCI6MjA1ODYwMTAzM30.EZY4vaHzt11hJhV2MR8S1c9PJHhZpbv0NZIdBm24QZI}
+    networks:
+      - qimbo-network
+
+  db:
+    image: supabase/postgres:15.1.0.117
+    container_name: qimbo-kiosk-db
+    restart: always
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=postgres
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./supabase/migrations:/docker-entrypoint-initdb.d
+    networks:
+      - qimbo-network
+
+networks:
+  qimbo-network:
+    driver: bridge
+
+volumes:
+  postgres-data:
