@@ -1,9 +1,10 @@
+
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Button from '../common/Button';
 import { Plus, Minus, Check } from 'lucide-react';
 import { ToppingItem } from '../cart/types';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Form, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
@@ -267,6 +268,11 @@ const ProductCard: React.FC<ProductCardProps> = ({
           <div className="flex flex-col h-full">
             <DialogHeader className="p-6 border-b rounded-t-xl">
               <DialogTitle>Customize Your {product.name}</DialogTitle>
+              {product.description && (
+                <DialogDescription className="text-sm mt-2">
+                  {product.description}
+                </DialogDescription>
+              )}
             </DialogHeader>
             
             {isLoading ? <div className="flex justify-center p-8 flex-1">
