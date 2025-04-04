@@ -1,7 +1,7 @@
 
 {
-  "name": "Foodie Kiosk - Self-Service Food Ordering",
-  "short_name": "Foodie Kiosk",
+  "name": "Qimbo Kiosk Order App",
+  "short_name": "Qimbo Kiosk",
   "description": "Streamlined self-service food ordering kiosk system. Browse our menu, customize your order, and pay with ease.",
   "start_url": "/",
   "display": "fullscreen",
