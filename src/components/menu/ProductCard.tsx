@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import Button from '../common/Button';
 import { Plus, Minus, Check } from 'lucide-react';
 import { ToppingItem } from '../cart/types';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Form, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
@@ -15,7 +15,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Input } from "@/components/ui/input";
 import { useIsMobile } from '@/hooks/use-mobile';
-
 export interface Product {
   id: string;
   name: string;
@@ -26,7 +25,6 @@ export interface Product {
   hasToppings: boolean;
   availableToppingCategories?: number[];
 }
-
 interface ToppingCategory {
   id: number;
   name: string;
@@ -35,7 +33,6 @@ interface ToppingCategory {
   required: boolean;
   toppings: Topping[];
 }
-
 interface Topping {
   id: number;
   name: string;
@@ -43,12 +40,10 @@ interface Topping {
   categoryId: number;
   maxQuantity: number;
 }
-
 interface ProductCardProps {
   product: Product;
   onSelect: (product: Product, selectedToppings?: ToppingItem[]) => void;
 }
-
 const toppingsFormSchema = z.object({
   selectedToppings: z.array(z.object({
     id: z.number(),
@@ -59,9 +54,7 @@ const toppingsFormSchema = z.object({
     maxQuantity: z.number().optional()
   }))
 });
-
 type ToppingsFormValues = z.infer<typeof toppingsFormSchema>;
-
 const ProductCard: React.FC<ProductCardProps> = ({
   product,
   onSelect
@@ -80,7 +73,6 @@ const ProductCard: React.FC<ProductCardProps> = ({
       selectedToppings: []
     }
   });
-
   const handleAddToCart = () => {
     if (product.hasToppings && product.availableToppingCategories && product.availableToppingCategories.length > 0) {
       fetchToppingCategories();
@@ -90,14 +82,12 @@ const ProductCard: React.FC<ProductCardProps> = ({
       showAddedConfirmation();
     }
   };
-
   const showAddedConfirmation = () => {
     setShowAddedAnimation(true);
     setTimeout(() => {
       setShowAddedAnimation(false);
     }, 1500);
   };
-
   const fetchToppingCategories = async () => {
     if (!product.availableToppingCategories || product.availableToppingCategories.length === 0) {
       return;
@@ -120,7 +110,8 @@ const ProductCard: React.FC<ProductCardProps> = ({
           error: toppingsError
         } = await supabase.from('toppings').select('*').eq('category_id', category.id).eq('available', true).order('display_order', {
           ascending: true
-        }).order('name');
+        }) // Order by display_order first
+        .order('name');
         if (toppingsError) throw toppingsError;
         return {
           id: category.id,
@@ -157,7 +148,6 @@ const ProductCard: React.FC<ProductCardProps> = ({
       setIsLoading(false);
     }
   };
-
   const handleIncrementTopping = (toppingId: number) => {
     const currentToppings = [...form.getValues().selectedToppings];
     const toppingIndex = currentToppings.findIndex(t => t.id === toppingId);
@@ -185,7 +175,6 @@ const ProductCard: React.FC<ProductCardProps> = ({
       shouldValidate: true
     });
   };
-
   const handleDecrementTopping = (toppingId: number) => {
     const currentToppings = [...form.getValues().selectedToppings];
     const toppingIndex = currentToppings.findIndex(t => t.id === toppingId);
@@ -200,7 +189,6 @@ const ProductCard: React.FC<ProductCardProps> = ({
       shouldValidate: true
     });
   };
-
   const handleToppingSubmit = (data: ToppingsFormValues) => {
     const selectedToppings = data.selectedToppings.filter(topping => topping.quantity > 0).map(topping => ({
       id: topping.id,
@@ -230,14 +218,12 @@ const ProductCard: React.FC<ProductCardProps> = ({
     setIsDialogOpen(false);
     showAddedConfirmation();
   };
-
   const isCategoryValid = (categoryId: number): boolean => {
     const category = toppingCategories.find(c => c.id === categoryId);
     if (!category || !category.required) return true;
     const selectedCount = form.getValues().selectedToppings.filter(t => t.categoryId === categoryId && t.quantity > 0).length;
     return selectedCount >= category.minSelection;
   };
-
   return <motion.div initial={{
     opacity: 0,
     y: 20
@@ -281,11 +267,6 @@ const ProductCard: React.FC<ProductCardProps> = ({
           <div className="flex flex-col h-full">
             <DialogHeader className="p-6 border-b rounded-t-xl">
               <DialogTitle>Customize Your {product.name}</DialogTitle>
-              {product.description && (
-                <p className="text-sm text-gray-600 mt-2">
-                  {product.description}
-                </p>
-              )}
             </DialogHeader>
             
             {isLoading ? <div className="flex justify-center p-8 flex-1">
@@ -352,5 +333,4 @@ const ProductCard: React.FC<ProductCardProps> = ({
       </Dialog>
     </motion.div>;
 };
-
 export default ProductCard;

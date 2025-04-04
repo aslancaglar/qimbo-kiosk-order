@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import AdminLayout from '../../components/admin/AdminLayout';
 import { Input } from "@/components/ui/input";
@@ -508,6 +509,7 @@ const MenuItems = () => {
                   <TableHead>ID</TableHead>
                   <TableHead>Image</TableHead>
                   <TableHead>Name</TableHead>
+                  <TableHead>Description</TableHead>
                   <TableHead>Category</TableHead>
                   <TableHead>Price</TableHead>
                   <TableHead>Status</TableHead>
@@ -518,7 +520,7 @@ const MenuItems = () => {
               <TableBody>
                 {isLoading ? (
                   <TableRow>
-                    <TableCell colSpan={8} className="text-center py-8">
+                    <TableCell colSpan={9} className="text-center py-8">
                       <div className="flex justify-center">
                         <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary"></div>
                       </div>
@@ -544,6 +546,11 @@ const MenuItems = () => {
                         )}
                       </TableCell>
                       <TableCell>{item.name}</TableCell>
+                      <TableCell>
+                        <div className="max-w-xs truncate">
+                          {item.description || <span className="text-gray-400 italic">No description</span>}
+                        </div>
+                      </TableCell>
                       <TableCell>{item.category}</TableCell>
                       <TableCell>{item.price}</TableCell>
                       <TableCell>
@@ -577,7 +584,7 @@ const MenuItems = () => {
                   ))
                 ) : (
                   <TableRow>
-                    <TableCell colSpan={8} className="text-center py-8">
+                    <TableCell colSpan={9} className="text-center py-8">
                       No menu items found
                     </TableCell>
                   </TableRow>
