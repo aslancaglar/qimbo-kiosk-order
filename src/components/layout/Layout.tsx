@@ -1,13 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Menu } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { 
-  Sheet, 
-  SheetContent, 
-  SheetTrigger 
-} from '@/components/ui/sheet';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -47,20 +40,7 @@ const Layout: React.FC<LayoutProps> = ({ children, className = '' }) => {
         <div className="bg-background border-b sticky top-0 z-10">
           <div className="container mx-auto px-4 py-2 flex justify-between items-center">
             <h1 className="text-lg font-medium">Qimbo Kiosk</h1>
-            <Sheet>
-              <SheetTrigger asChild>
-                <Button variant="ghost" size="icon" aria-label="Menu">
-                  <Menu className="h-6 w-6" />
-                </Button>
-              </SheetTrigger>
-              <SheetContent>
-                <nav className="flex flex-col gap-4 mt-8">
-                  <a href="/" className="text-lg py-2 border-b border-gray-100">Home</a>
-                  <a href="/menu" className="text-lg py-2 border-b border-gray-100">Menu</a>
-                  <a href="/orders" className="text-lg py-2 border-b border-gray-100">My Orders</a>
-                </nav>
-              </SheetContent>
-            </Sheet>
+            <div className="w-10"></div> {/* Empty div to maintain layout balance */}
           </div>
         </div>
       )}
