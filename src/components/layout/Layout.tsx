@@ -36,14 +36,6 @@ const Layout: React.FC<LayoutProps> = ({ children, className = '' }) => {
       animate={{ opacity: 1 }}
       transition={{ duration: 0.3 }}
     >
-      {isStandalone && (
-        <div className="bg-background border-b sticky top-0 z-10">
-          <div className="container mx-auto px-4 py-2 flex justify-between items-center">
-            <h1 className="text-lg font-medium">Qimbo Kiosk</h1>
-            <div className="w-10"></div> {/* Empty div to maintain layout balance */}
-          </div>
-        </div>
-      )}
       {children}
       <div className="md:h-[60px] bg-red-600 w-full" />
     </motion.div>
