@@ -1,6 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
+import { useLocation } from 'react-router-dom';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -9,6 +10,10 @@ interface LayoutProps {
 
 const Layout: React.FC<LayoutProps> = ({ children, className = '' }) => {
   const [isStandalone, setIsStandalone] = useState(false);
+  const location = useLocation();
+  
+  // Check if current route is menu or order-summary
+  const hideFooter = location.pathname === '/menu' || location.pathname === '/order-summary';
   
   useEffect(() => {
     // Check if app is running in standalone mode (added to home screen)
@@ -37,7 +42,7 @@ const Layout: React.FC<LayoutProps> = ({ children, className = '' }) => {
       transition={{ duration: 0.3 }}
     >
       {children}
-      <div className="md:h-[60px] bg-red-600 w-full" />
+      {!hideFooter && <div className="md:h-[60px] bg-red-600 w-full" />}
     </motion.div>
   );
 };
