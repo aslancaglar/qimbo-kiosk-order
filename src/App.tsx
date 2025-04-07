@@ -1,14 +1,16 @@
+
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, useLocation, Navigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
 import { lazy, Suspense, useEffect } from "react";
 import { AnimatePresence } from "framer-motion";
 import { enableRealtimeForTables } from "./utils/enableRealtimeForTables";
 import { startMeasure, endMeasure } from "./utils/performanceMonitor";
 
-// Eagerly load pages for fast initial load
+// Eagerly load the Index page for fast initial load
+import Index from "./pages/Index";
 import WhereYouEat from "./pages/WhereYouEat";
 
 // Lazy load other pages to reduce initial bundle size
@@ -105,8 +107,8 @@ const App = () => {
           <AnimatePresence mode="wait">
             <Suspense fallback={<LoadingFallback />}>
               <Routes>
-                {/* Customer-facing routes - route / directly to whereyoueat to skip logo splash */}
-                <Route path="/" element={<Navigate to="/whereyoueat" replace />} />
+                {/* Customer-facing routes */}
+                <Route path="/" element={<Index />} />
                 <Route path="/whereyoueat" element={<WhereYouEat />} />
                 <Route path="/menu" element={<MenuPage />} />
                 <Route path="/order-summary" element={<OrderSummaryPage />} />

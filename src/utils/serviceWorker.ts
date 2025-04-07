@@ -14,11 +14,6 @@ export const registerServiceWorker = async (): Promise<void> => {
       const registration = await navigator.serviceWorker.register('/sw.js');
       console.log('ServiceWorker registration successful with scope:', registration.scope);
       
-      // Direct PWA to whereyoueat page on startup
-      if (window.matchMedia('(display-mode: standalone)').matches && window.location.pathname === '/') {
-        window.location.href = '/whereyoueat';
-      }
-      
       // Set up periodic update checks in production
       if (process.env.NODE_ENV === 'production') {
         setInterval(() => {
