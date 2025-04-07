@@ -13,7 +13,7 @@ const Layout: React.FC<LayoutProps> = ({ children, className = '' }) => {
   const location = useLocation();
   
   // Check if current route is menu or order-summary
-  const hideFooter = location.pathname === '/menu' || location.pathname === '/order-summary';
+  const hideFooter = location.pathname === '/menu' || location.pathname === '/order-summary' || location.pathname === '/confirmation';
   
   useEffect(() => {
     // Check if app is running in standalone mode (added to home screen)
