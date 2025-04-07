@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Button from '../common/Button';
@@ -79,14 +80,20 @@ const ProductCard: React.FC<ProductCardProps> = ({
       setIsDialogOpen(true);
     } else {
       onSelect(product);
-      showAddedConfirmation();
+      // Only show the added confirmation if NOT on mobile
+      if (!isMobile) {
+        showAddedConfirmation();
+      }
     }
   };
   const showAddedConfirmation = () => {
-    setShowAddedAnimation(true);
-    setTimeout(() => {
-      setShowAddedAnimation(false);
-    }, 1500);
+    // Only show animation if NOT on mobile
+    if (!isMobile) {
+      setShowAddedAnimation(true);
+      setTimeout(() => {
+        setShowAddedAnimation(false);
+      }, 1500);
+    }
   };
   const fetchToppingCategories = async () => {
     if (!product.availableToppingCategories || product.availableToppingCategories.length === 0) {
@@ -216,7 +223,10 @@ const ProductCard: React.FC<ProductCardProps> = ({
     }
     onSelect(product, selectedToppings);
     setIsDialogOpen(false);
-    showAddedConfirmation();
+    // Only show confirmation if NOT on mobile
+    if (!isMobile) {
+      showAddedConfirmation();
+    }
   };
   const isCategoryValid = (categoryId: number): boolean => {
     const category = toppingCategories.find(c => c.id === categoryId);
