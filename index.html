@@ -11,7 +11,7 @@
     <!-- PWA/Fullscreen meta tags -->
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
-    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="Qimbo Kiosk" />
     <meta name="theme-color" content="#FF5722" />
     
@@ -42,15 +42,6 @@
     
     <!-- Add manifest link for PWA -->
     <link rel="manifest" href="/manifest.json" />
-    
-    <!-- Additional startup handling -->
-    <script>
-      // Check if running as installed PWA
-      if (window.matchMedia('(display-mode: standalone)').matches) {
-        // Skip splash screen by storing a flag
-        localStorage.setItem('pwa_direct_start', 'true');
-      }
-    </script>
     
     <script>
       // Enhanced cache clearing utility

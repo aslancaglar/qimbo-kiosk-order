@@ -4,7 +4,7 @@
   "short_name": "Qimbo Kiosk",
   "description": "Streamlined self-service food ordering kiosk system. Browse our menu, customize your order, and pay with ease.",
   "start_url": "/",
-  "display": "standalone",
+  "display": "fullscreen",
   "background_color": "#FFFFFF",
   "theme_color": "#FF5722",
   "icons": [
