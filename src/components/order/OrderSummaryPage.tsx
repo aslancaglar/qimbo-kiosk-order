@@ -92,7 +92,7 @@ const OrderSummaryPage: React.FC = () => {
             opacity: 1
           }} transition={{
             delay: 0.2
-          }} className="bg-blue-50 text-blue-800 font-medium rounded-md py-3 px-4 mb-6 flex items-center justify-center">
+          }} className="bg-blue-50 text-blue-800 font-medium rounded-md py-3 px-4 mb-6 flex items-center justify-center w-full max-w-md">
                 Table #{tableNumber} • Sur place
               </motion.div>}
             
@@ -100,7 +100,7 @@ const OrderSummaryPage: React.FC = () => {
               initial={{ y: 20, opacity: 0 }} 
               animate={{ y: 0, opacity: 1 }} 
               transition={{ delay: 0.3 }} 
-              className="bg-white rounded-xl shadow-lg overflow-hidden mb-8"
+              className="bg-white rounded-xl shadow-lg overflow-hidden mb-8 w-full max-w-md"
             >
               <div className="p-6 border-b border-gray-100">
                 <h3 className="font-semibold text-lg mb-4">Articles commandés</h3>
