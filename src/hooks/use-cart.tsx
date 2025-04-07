@@ -1,10 +1,10 @@
-
 import { useState, useEffect, useRef } from 'react';
 import { CartItemType, ToppingItem } from '@/components/cart/types';
 import { Product } from '@/components/menu/ProductCard';
 import { useToast } from '@/hooks/use-toast';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from "@/integrations/supabase/client";
+import { useIsMobile } from '@/hooks/use-mobile';
 
 interface UseCartOptions {
   orderType: 'takeaway' | 'eat-in';
@@ -24,6 +24,7 @@ export function useCart({ orderType, tableNumber }: UseCartOptions) {
   const [isProcessingOrder, setIsProcessingOrder] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
+  const isMobile = useIsMobile();
   
   // Add a ref to track if an order is being processed
   const orderBeingProcessed = useRef<boolean>(false);
@@ -114,10 +115,13 @@ export function useCart({ orderType, tableNumber }: UseCartOptions) {
       updatedItems[existingItemIndex].quantity += 1;
       setCartItems(updatedItems);
       
-      toast({
-        title: "Item Updated",
-        description: `${product.name} quantity increased`,
-      });
+      // Only show toast on non-mobile devices
+      if (!isMobile) {
+        toast({
+          title: "Item Updated",
+          description: `${product.name} quantity increased`,
+        });
+      }
     } else {
       const newItem: CartItemType = {
         product,
@@ -126,10 +130,13 @@ export function useCart({ orderType, tableNumber }: UseCartOptions) {
       };
       setCartItems([...cartItems, newItem]);
       
-      toast({
-        title: "Added to Cart",
-        description: `${product.name} added to your order`,
-      });
+      // Only show toast on non-mobile devices
+      if (!isMobile) {
+        toast({
+          title: "Added to Cart",
+          description: `${product.name} added to your order`,
+        });
+      }
     }
   };
   
