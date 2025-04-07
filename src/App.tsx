@@ -3,8 +3,8 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
-import { lazy, Suspense, useEffect } from "react";
+import { BrowserRouter, Routes, Route, useLocation, Navigate } from "react-router-dom";
+import { lazy, Suspense, useEffect, useState } from "react";
 import { AnimatePresence } from "framer-motion";
 import { enableRealtimeForTables } from "./utils/enableRealtimeForTables";
 import { startMeasure, endMeasure } from "./utils/performanceMonitor";
@@ -34,6 +34,33 @@ const LoadingFallback = () => (
     <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-red-600"></div>
   </div>
 );
+
+// PWA Detection component to handle direct start
+const PWARedirect = () => {
+  const [shouldRedirect, setShouldRedirect] = useState(false);
+  
+  useEffect(() => {
+    // Check if this is a PWA and should skip index
+    const isPWA = window.matchMedia('(display-mode: standalone)').matches || 
+                 (window.navigator as any).standalone || 
+                 document.referrer.includes('android-app://');
+    
+    // Get direct start preference (if set)
+    const directStart = localStorage.getItem('pwa_direct_start');
+    
+    if (isPWA && directStart === 'true') {
+      setShouldRedirect(true);
+      // Clear the flag to not interfere with manual navigation later
+      localStorage.removeItem('pwa_direct_start');
+    }
+  }, []);
+  
+  if (shouldRedirect) {
+    return <Navigate to="/whereyoueat" replace />;
+  }
+  
+  return <Index />;
+};
 
 // Performance optimized QueryClient
 const queryClient = new QueryClient({
@@ -108,7 +135,7 @@ const App = () => {
             <Suspense fallback={<LoadingFallback />}>
               <Routes>
                 {/* Customer-facing routes */}
-                <Route path="/" element={<Index />} />
+                <Route path="/" element={<PWARedirect />} />
                 <Route path="/whereyoueat" element={<WhereYouEat />} />
                 <Route path="/menu" element={<MenuPage />} />
                 <Route path="/order-summary" element={<OrderSummaryPage />} />

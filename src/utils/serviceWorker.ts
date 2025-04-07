@@ -10,6 +10,16 @@ export const registerServiceWorker = async (): Promise<void> => {
   // Only register if service workers are supported
   if ('serviceWorker' in navigator) {
     try {
+      // Check if app is running as PWA
+      const isPWA = window.matchMedia('(display-mode: standalone)').matches || 
+                   (window.navigator as any).standalone || 
+                   document.referrer.includes('android-app://');
+      
+      // Set direct start flag if this is a PWA
+      if (isPWA) {
+        localStorage.setItem('pwa_direct_start', 'true');
+      }
+      
       // Register the service worker
       const registration = await navigator.serviceWorker.register('/sw.js');
       console.log('ServiceWorker registration successful with scope:', registration.scope);
