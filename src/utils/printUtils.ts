@@ -1,9 +1,8 @@
-
 import { CartItemType } from "../components/cart/types";
 import { getPrintNodeCredentials, sendToPrintNode, formatTextReceipt } from "./printNode";
 import { supabase } from "../integrations/supabase/client";
 
-// Format order for printing
+// Format order for printing - Updated to match PrintNode thermal printer style
 export const formatOrderReceipt = (
   orderNumber: string | number,
   items: CartItemType[],
@@ -14,115 +13,153 @@ export const formatOrderReceipt = (
   total: number
 ): string => {
   const orderDate = new Date().toLocaleString();
+  const lineWidth = 48; // Characters per line similar to thermal printers
   
+  // HTML version of the thermal receipt look
   return `
     <html>
       <head>
         <title>Order #${orderNumber}</title>
         <style>
-          body {
-            font-family: Arial, sans-serif;
-            padding: 20px;
-            max-width: 400px;
-            margin: 0 auto;
+          @media print {
+            @page {
+              margin: 0;
+              size: 80mm auto;  /* Thermal printer width */
+            }
+            body {
+              margin: 0;
+              padding: 5mm;
+            }
           }
-          h1, h2 {
+          
+          body {
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            line-height: 1.2;
+            width: 80mm;
+            max-width: 80mm;
+            margin: 0 auto;
+            padding: 5mm;
+            background-color: white;
+            color: black;
+          }
+          
+          .center {
             text-align: center;
           }
-          .order-details {
-            margin-bottom: 20px;
+          
+          .header, .footer {
+            text-align: center;
+            font-weight: bold;
+            margin: 8px 0;
           }
-          .order-item {
-            display: flex;
-            justify-content: space-between;
+          
+          .divider {
+            border-top: 1px dashed #000;
+            margin: 8px 0;
+          }
+          
+          .order-info {
             margin-bottom: 8px;
           }
-          .topping-item {
+          
+          .order-items {
+            width: 100%;
+          }
+          
+          .item {
             display: flex;
             justify-content: space-between;
-            margin-left: 20px;
-            font-size: 0.9em;
-            color: #666;
+            margin: 3px 0;
           }
-          .divider {
-            border-top: 1px dashed #ccc;
-            margin: 15px 0;
+          
+          .item-details {
+            flex: 1;
           }
+          
+          .topping {
+            padding-left: 10px;
+            display: flex;
+            justify-content: space-between;
+          }
+          
+          .item-price {
+            text-align: right;
+            white-space: nowrap;
+          }
+          
           .totals {
-            margin-top: 20px;
+            margin-top: 8px;
           }
+          
           .total-row {
             display: flex;
             justify-content: space-between;
-            margin-bottom: 5px;
+            margin: 2px 0;
           }
-          .final-total {
+          
+          .grand-total {
             font-weight: bold;
-            font-size: 1.2em;
-            margin-top: 10px;
-            border-top: 1px solid black;
-            padding-top: 10px;
-          }
-          .footer {
-            margin-top: 30px;
-            text-align: center;
-            font-size: 0.9em;
-            color: #666;
+            border-top: 1px solid #000;
+            padding-top: 5px;
+            margin-top: 5px;
           }
         </style>
       </head>
       <body>
-        <h1>Order Receipt</h1>
-        <div class="order-details">
-          <p><strong>Order #:</strong> ${orderNumber}</p>
-          <p><strong>Date:</strong> ${orderDate}</p>
-          <p><strong>Order Type:</strong> ${orderType === 'eat-in' ? 'Eat In' : 'Takeaway'}</p>
-          ${orderType === 'eat-in' && tableNumber ? `<p><strong>Table #:</strong> ${tableNumber}</p>` : ''}
+        <div class="header">ORDER RECEIPT</div>
+        
+        <div class="order-info">
+          <div>Order #: ${orderNumber}</div>
+          <div>Date: ${orderDate}</div>
+          <div>Type: ${orderType === 'eat-in' ? 'Eat In' : 'Takeaway'}</div>
+          ${orderType === 'eat-in' && tableNumber ? `<div>Table #: ${tableNumber}</div>` : ''}
         </div>
         
         <div class="divider"></div>
         
-        <h2>Items</h2>
-        ${items.map((item) => `
-          <div class="order-item">
-            <div>
-              <span>${item.quantity} x ${item.product.name}</span>
-              ${item.options && item.options.length > 0 ? 
-                `<br><small>${item.options.map((o) => o.value).join(', ')}</small>` : 
-                ''}
+        <div class="center">ITEMS</div>
+        
+        <div class="order-items">
+          ${items.map(item => `
+            <div class="item">
+              <div class="item-details">${item.quantity}x ${item.product.name}</div>
+              <div class="item-price">${(item.product.price * item.quantity).toFixed(2)} €</div>
             </div>
-            <span>${(item.product.price * item.quantity).toFixed(2)} €</span>
-          </div>
-          ${item.selectedToppings && item.selectedToppings.length > 0 ? 
-            item.selectedToppings.map((topping) => `
-              <div class="topping-item">
-                <span>+ ${topping.name}</span>
-                <span>${topping.price.toFixed(2)} €</span>
-              </div>
-            `).join('') : 
-            ''}
-        `).join('')}
+            ${item.options && item.options.length > 0 ? 
+              `<div style="padding-left: 10px; font-size: 11px;">${item.options.map(o => o.value).join(', ')}</div>` : 
+              ''}
+            ${item.selectedToppings && item.selectedToppings.length > 0 ? 
+              item.selectedToppings.map(topping => `
+                <div class="topping">
+                  <div>+ ${topping.name}</div>
+                  <div>${topping.price.toFixed(2)} €</div>
+                </div>
+              `).join('') : 
+              ''}
+          `).join('<div style="margin: 4px 0;"></div>')}
+        </div>
         
         <div class="divider"></div>
         
         <div class="totals">
           <div class="total-row">
-            <span>Subtotal:</span>
-            <span>${subtotal?.toFixed(2) || '0.00'} €</span>
+            <div>Subtotal:</div>
+            <div>${subtotal?.toFixed(2) || '0.00'} €</div>
           </div>
           <div class="total-row">
-            <span>Tax:</span>
-            <span>${tax?.toFixed(2) || '0.00'} €</span>
+            <div>Tax:</div>
+            <div>${tax?.toFixed(2) || '0.00'} €</div>
           </div>
-          <div class="total-row final-total">
-            <span>Total:</span>
-            <span>${total?.toFixed(2) || '0.00'} €</span>
+          <div class="total-row grand-total">
+            <div>TOTAL:</div>
+            <div>${total?.toFixed(2) || '0.00'} €</div>
           </div>
         </div>
         
-        <div class="footer">
-          <p>Thank you for your order!</p>
-        </div>
+        <div class="divider"></div>
+        
+        <div class="footer">Merci!</div>
       </body>
     </html>
   `;
