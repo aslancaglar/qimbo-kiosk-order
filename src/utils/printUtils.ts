@@ -188,15 +188,13 @@ export const printToThermalPrinter = async (
 
 // Browser printing settings
 let _browserPrintingEnabled = true;
-let _silentPrintingEnabled = false; // Default to false for silent printing
 
 /**
  * Enable or disable browser printing
  */
-export const saveBrowserPrintSettings = async (enabled: boolean, silent: boolean = false): Promise<boolean> => {
+export const saveBrowserPrintSettings = async (enabled: boolean): Promise<boolean> => {
   try {
     _browserPrintingEnabled = enabled;
-    _silentPrintingEnabled = silent;
     
     // Store this in database with proper settings key
     const { data: existingData, error: checkError } = await supabase
@@ -213,8 +211,7 @@ export const saveBrowserPrintSettings = async (enabled: boolean, silent: boolean
     let saveError;
     
     const settingsValue = {
-      enabled: enabled,
-      silent: silent
+      enabled: enabled
     };
     
     if (existingData) {
@@ -245,7 +242,7 @@ export const saveBrowserPrintSettings = async (enabled: boolean, silent: boolean
       return false;
     }
     
-    console.log('Browser printing settings updated in database:', { enabled, silent });
+    console.log('Browser printing settings updated in database:', { enabled });
     return true;
   } catch (error) {
     console.error('Error saving browser print settings:', error);
@@ -256,7 +253,7 @@ export const saveBrowserPrintSettings = async (enabled: boolean, silent: boolean
 /**
  * Check if browser printing is enabled
  */
-export const getBrowserPrintSettings = async (): Promise<{enabled: boolean, silent: boolean}> => {
+export const isBrowserPrintingEnabled = async (): Promise<boolean> => {
   try {
     // First try to fetch settings from database
     const { data, error } = await supabase
@@ -267,50 +264,25 @@ export const getBrowserPrintSettings = async (): Promise<{enabled: boolean, sile
       
     if (error) {
       console.error('Error fetching browser print settings:', error);
-      return { enabled: _browserPrintingEnabled, silent: _silentPrintingEnabled }; // Fall back to in-memory value
+      return _browserPrintingEnabled; // Fall back to in-memory value
     }
     
     // Check if data exists and has the right structure
     if (data && data.value && typeof data.value === 'object') {
-      // Type-safe way to access the properties
+      // Type-safe way to access the 'enabled' property
       const settingsObj = data.value as Record<string, any>;
-      const enabled = 'enabled' in settingsObj && typeof settingsObj.enabled === 'boolean' 
-        ? settingsObj.enabled 
-        : _browserPrintingEnabled;
-      
-      const silent = 'silent' in settingsObj && typeof settingsObj.silent === 'boolean'
-        ? settingsObj.silent
-        : _silentPrintingEnabled;
-      
-      // Update local cache
-      _browserPrintingEnabled = enabled;
-      _silentPrintingEnabled = silent;
-      
-      console.log('Retrieved browser printing settings from database:', { enabled, silent });
-      return { enabled, silent };
+      if ('enabled' in settingsObj && typeof settingsObj.enabled === 'boolean') {
+        _browserPrintingEnabled = settingsObj.enabled; // Update local cache
+        console.log('Retrieved browser printing setting from database:', settingsObj.enabled);
+        return settingsObj.enabled;
+      }
     }
     
-    return { enabled: _browserPrintingEnabled, silent: _silentPrintingEnabled }; // Fall back to in-memory value
+    return _browserPrintingEnabled; // Fall back to in-memory value
   } catch (error) {
     console.error('Error checking browser print settings:', error);
-    return { enabled: _browserPrintingEnabled, silent: _silentPrintingEnabled }; // Fall back to in-memory value
+    return _browserPrintingEnabled; // Fall back to in-memory value
   }
-};
-
-/**
- * Check if browser printing is enabled (simplified version)
- */
-export const isBrowserPrintingEnabled = async (): Promise<boolean> => {
-  const settings = await getBrowserPrintSettings();
-  return settings.enabled;
-};
-
-/**
- * Check if silent printing is enabled
- */
-export const isSilentPrintingEnabled = async (): Promise<boolean> => {
-  const settings = await getBrowserPrintSettings();
-  return settings.enabled && settings.silent;
 };
 
 /**
@@ -327,8 +299,8 @@ export const printToBrowser = async (
 ): Promise<boolean> => {
   try {
     // Check if browser printing is enabled - use await as it's now async
-    const settings = await getBrowserPrintSettings();
-    if (!settings.enabled) {
+    const browserPrintingEnabled = await isBrowserPrintingEnabled();
+    if (!browserPrintingEnabled) {
       console.log('Browser printing is disabled');
       return false;
     }
@@ -365,38 +337,8 @@ export const printToBrowser = async (
         document.body.removeChild(iframe);
       };
       
-      // Wait for content to load before printing
       setTimeout(() => {
-        if (iframe.contentWindow) {
-          try {
-            // Check if silent printing is enabled
-            if (settings.silent) {
-              console.log('Using silent printing mode');
-              
-              // For silent printing in modern browsers
-              const printOptions = { 
-                silent: true,
-                printBackground: true
-              };
-              
-              // If browser supports silent printing (Chromium-based browsers on Windows)
-              if (iframe.contentWindow.print && 'showPrintDialog' in (window as any)) {
-                const printContext = iframe.contentWindow;
-                (printContext as any).print(printOptions);
-              } else {
-                // Fallback to regular print
-                iframe.contentWindow.print();
-              }
-            } else {
-              // Regular print with dialog
-              iframe.contentWindow.print();
-            }
-          } catch (e) {
-            console.error('Error during print operation:', e);
-            // Fallback to regular print if silent fails
-            iframe.contentWindow.print();
-          }
-        }
+        iframe.contentWindow?.print();
       }, 500);
       
       return true;

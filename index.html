@@ -14,12 +14,6 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="Qimbo Kiosk" />
     <meta name="theme-color" content="#FF5722" />
-    <meta name="application-name" content="Qimbo Kiosk" />
-    
-    <!-- Windows PWA related tags -->
-    <meta name="msapplication-TileColor" content="#FF5722" />
-    <meta name="msapplication-tap-highlight" content="no" />
-    <meta name="msapplication-config" content="none" />
     
     <!-- Favicon -->
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
@@ -100,36 +94,6 @@
               window.clearCache();
             }, 1000); // Delay slightly to allow page to render first
           }
-        }
-      });
-
-      // Add Windows PWA detection
-      document.addEventListener('DOMContentLoaded', function() {
-        // Check if running as a PWA on Windows
-        const isPwa = window.matchMedia('(display-mode: standalone)').matches || 
-                     window.matchMedia('(display-mode: fullscreen)').matches || 
-                     (window.navigator.standalone === true);
-                     
-        const isWindows = navigator.userAgent.includes('Windows');
-        
-        if (isPwa && isWindows) {
-          console.log('Running as Windows PWA');
-          document.documentElement.classList.add('windows-pwa');
-          
-          // Set up F11 listener for true fullscreen toggle
-          window.addEventListener('keydown', function(e) {
-            if (e.key === 'F11') {
-              if (!document.fullscreenElement) {
-                document.documentElement.requestFullscreen().catch(err => {
-                  console.error(`Error attempting to enable fullscreen: ${err.message}`);
-                });
-              } else {
-                if (document.exitFullscreen) {
-                  document.exitFullscreen();
-                }
-              }
-            }
-          });
         }
       });
     </script>
