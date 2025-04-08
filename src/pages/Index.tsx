@@ -64,8 +64,6 @@ const Index: React.FC = () => {
     navigate('/whereyoueat');
   };
 
-  const defaultLogoUrl = '/lovable-uploads/6837434a-e5ba-495a-b295-9638c9b5c27f.png';
-
   return <motion.div className="h-screen w-screen flex flex-col relative bg-black overflow-hidden" initial={{
     opacity: 0
   }} animate={{
@@ -74,25 +72,20 @@ const Index: React.FC = () => {
     duration: 0.5
   }}>
       <div className="absolute top-6 right-6 z-10">
-        <div className="w-28 h-28 rounded-full bg-white/80 flex items-center justify-center overflow-hidden shadow-lg">
-          {logoUrl ? (
+        {logoUrl && (
+          <div className="w-28 h-28 rounded-full bg-white/80 flex items-center justify-center overflow-hidden shadow-lg">
             <img 
               src={logoUrl} 
               alt="Restaurant Logo" 
               className="w-22 h-22 object-contain" 
               onError={(e) => {
-                console.error('Logo image failed to load, using default');
-                (e.target as HTMLImageElement).src = defaultLogoUrl;
+                console.error('Logo image failed to load');
+                // Remove the broken image instead of showing a fallback
+                e.currentTarget.style.display = 'none';
               }} 
             />
-          ) : (
-            <img 
-              src={defaultLogoUrl} 
-              alt="Default Logo" 
-              className="w-20 h-20 object-contain" 
-            />
-          )}
-        </div>
+          </div>
+        )}
       </div>
       
       {customImages.length > 0 && <div className="absolute inset-0 z-0">
