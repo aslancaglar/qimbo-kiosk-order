@@ -6,7 +6,7 @@ import Button from '../common/Button';
 import { Check, Home, Printer, Plus } from 'lucide-react';
 import { CartItemType } from '../cart/types';
 import { toast } from '@/components/ui/use-toast';
-import { printOrder } from '@/utils/printUtils';
+import { printOrder, isSilentPrintingEnabled } from '@/utils/printUtils';
 
 interface OrderConfirmationProps {}
 
@@ -25,6 +25,7 @@ const OrderConfirmation: React.FC<OrderConfirmationProps> = () => {
   
   const [printed, setPrinted] = useState(false);
   const [redirecting, setRedirecting] = useState(false);
+  const [isSilentMode, setIsSilentMode] = useState(false);
   
   const total = providedTotal || items?.reduce((sum: number, item: CartItemType) => {
     let itemTotal = item.product.price * item.quantity;
@@ -39,6 +40,17 @@ const OrderConfirmation: React.FC<OrderConfirmationProps> = () => {
   const taxAmount = providedTax || total - (total / (1 + taxRate));
   const subtotal = providedSubtotal || total - taxAmount;
   const orderNumber = orderId; // Use order ID as order number
+  
+  // Check if silent printing is enabled
+  useEffect(() => {
+    const checkSilentPrinting = async () => {
+      const silentMode = await isSilentPrintingEnabled();
+      setIsSilentMode(silentMode);
+      console.log('Silent printing mode:', silentMode);
+    };
+    
+    checkSilentPrinting();
+  }, []);
   
   // Ensure we have order items before proceeding
   useEffect(() => {
@@ -89,10 +101,12 @@ const OrderConfirmation: React.FC<OrderConfirmationProps> = () => {
         subtotal,
         taxAmount,
         total,
-        itemsCount: items?.length
+        itemsCount: items?.length,
+        silentMode: isSilentMode
       });
       
       // Use both PrintNode and browser printing
+      // If in silent mode, we use browser printing with silent option
       await printOrder(
         orderNumber,
         items,
@@ -104,20 +118,27 @@ const OrderConfirmation: React.FC<OrderConfirmationProps> = () => {
         { usePrintNode: true, useBrowserPrint: true, fallbackToBrowser: false }
       );
       
-      toast({
-        title: "Receipt Sent",
-        description: "The receipt has been sent to the printer",
-      });
+      // Only show toast in non-silent mode
+      if (!isSilentMode) {
+        toast({
+          title: "Receipt Sent",
+          description: "The receipt has been sent to the printer",
+        });
+      }
       
       setPrinted(true);
       return true;
     } catch (error) {
       console.error('Error printing receipt:', error);
-      toast({
-        title: "Error",
-        description: "Failed to print the receipt",
-        variant: "destructive",
-      });
+      
+      // Only show toast in non-silent mode
+      if (!isSilentMode) {
+        toast({
+          title: "Error",
+          description: "Failed to print the receipt",
+          variant: "destructive",
+        });
+      }
       return false;
     }
   };

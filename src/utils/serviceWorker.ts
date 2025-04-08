@@ -43,6 +43,31 @@ export const registerServiceWorker = async (): Promise<void> => {
           console.log('Cache has been cleared by service worker');
         }
       });
+      
+      // Check if it's a PWA environment (standalone or fullscreen mode)
+      const isPwa = window.matchMedia('(display-mode: standalone)').matches || 
+                   window.matchMedia('(display-mode: fullscreen)').matches || 
+                   (window.navigator as any).standalone === true;
+                   
+      if (isPwa) {
+        console.log('Running in PWA mode');
+        
+        // In PWA mode, enable silent printing by default for Windows
+        if (navigator.userAgent.includes('Windows')) {
+          console.log('Windows PWA detected, enabling silent printing');
+          
+          // We need to import the utilities dynamically to avoid circular dependencies
+          import('./printUtils').then(utils => {
+            utils.saveBrowserPrintSettings(true, true).then(success => {
+              if (success) {
+                console.log('Silent printing enabled for Windows PWA');
+              }
+            });
+          }).catch(err => {
+            console.error('Failed to import print utilities:', err);
+          });
+        }
+      }
     } catch (error) {
       console.error('ServiceWorker registration failed:', error);
     }
