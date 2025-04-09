@@ -1,4 +1,3 @@
-
 import { CartItemType } from "../components/cart/types";
 import { getPrintNodeCredentials, sendToPrintNode, formatTextReceipt } from "./printNode";
 import { supabase } from "../integrations/supabase/client";
@@ -186,6 +185,20 @@ export const printToThermalPrinter = async (
   }
 };
 
+// Device detection helper
+export const isMobileOrTablet = (): boolean => {
+  // Use a simple user agent detection for mobile and tablet devices
+  if (typeof navigator !== 'undefined' && navigator.userAgent) {
+    const userAgent = navigator.userAgent.toLowerCase();
+    
+    // Check for common mobile/tablet indicators in user agent
+    return /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini|mobile|tablet|ipad|playbook|silk|android|mobile|tablet/i.test(userAgent);
+  }
+  
+  // Default to false if navigator or userAgent is not available
+  return false;
+};
+
 // Browser printing settings
 let _browserPrintingEnabled = true;
 
@@ -211,7 +224,9 @@ export const saveBrowserPrintSettings = async (enabled: boolean): Promise<boolea
     let saveError;
     
     const settingsValue = {
-      enabled: enabled
+      enabled: enabled,
+      lastUpdated: new Date().toISOString(),
+      disableOnMobile: true // New setting to disable on mobile by default
     };
     
     if (existingData) {
@@ -264,13 +279,24 @@ export const isBrowserPrintingEnabled = async (): Promise<boolean> => {
       
     if (error) {
       console.error('Error fetching browser print settings:', error);
-      return _browserPrintingEnabled; // Fall back to in-memory value
+      // Fall back to in-memory value with mobile detection
+      return isMobileOrTablet() ? false : _browserPrintingEnabled;
     }
     
     // Check if data exists and has the right structure
     if (data && data.value && typeof data.value === 'object') {
       // Type-safe way to access the 'enabled' property
       const settingsObj = data.value as Record<string, any>;
+      
+      // Check if we're on mobile/tablet and if the disableOnMobile setting is true
+      if (
+        isMobileOrTablet() && 
+        settingsObj.disableOnMobile === true
+      ) {
+        console.log('Browser printing disabled on mobile/tablet device');
+        return false;
+      }
+      
       if ('enabled' in settingsObj && typeof settingsObj.enabled === 'boolean') {
         _browserPrintingEnabled = settingsObj.enabled; // Update local cache
         console.log('Retrieved browser printing setting from database:', settingsObj.enabled);
@@ -278,10 +304,12 @@ export const isBrowserPrintingEnabled = async (): Promise<boolean> => {
       }
     }
     
-    return _browserPrintingEnabled; // Fall back to in-memory value
+    // Fall back to in-memory value with mobile detection
+    return isMobileOrTablet() ? false : _browserPrintingEnabled;
   } catch (error) {
     console.error('Error checking browser print settings:', error);
-    return _browserPrintingEnabled; // Fall back to in-memory value
+    // Fall back to in-memory value with mobile detection
+    return isMobileOrTablet() ? false : _browserPrintingEnabled;
   }
 };
 
@@ -300,6 +328,13 @@ export const printToBrowser = async (
   try {
     // Check if browser printing is enabled - use await as it's now async
     const browserPrintingEnabled = await isBrowserPrintingEnabled();
+    
+    // First check if we should print on this device type
+    if (isMobileOrTablet()) {
+      console.log('Browser printing skipped on mobile/tablet device');
+      return false;
+    }
+    
     if (!browserPrintingEnabled) {
       console.log('Browser printing is disabled');
       return false;
