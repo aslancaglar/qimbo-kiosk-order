@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
@@ -139,7 +140,7 @@ const OrderConfirmation: React.FC<OrderConfirmationProps> = () => {
             <Home size={24} />
           </Button>
           
-          <h1 className="text-2xl font-semibold">Order Confirmation</h1>
+          <h1 className="text-2xl font-semibold">Confirmation de Commande</h1>
           
           <Button
             variant="ghost"
@@ -175,7 +176,7 @@ const OrderConfirmation: React.FC<OrderConfirmationProps> = () => {
                 animate={{ y: 0, opacity: 1 }}
                 transition={{ delay: 0.3 }}
               >
-                Thank You!
+                Merci!
               </motion.h2>
               
               <motion.p 
@@ -184,7 +185,7 @@ const OrderConfirmation: React.FC<OrderConfirmationProps> = () => {
                 animate={{ y: 0, opacity: 1 }}
                 transition={{ delay: 0.4 }}
               >
-                Your order #{orderNumber} has been placed
+                Votre commande #{orderNumber} a été passée
               </motion.p>
               
               {orderType === 'eat-in' && tableNumber && (
@@ -204,7 +205,7 @@ const OrderConfirmation: React.FC<OrderConfirmationProps> = () => {
                 transition={{ delay: 0.6 }}
                 className="text-gray-500 mt-4"
               >
-                Printing your receipt...
+                Impression de votre reçu...
               </motion.p>
               
               <motion.p
@@ -213,7 +214,7 @@ const OrderConfirmation: React.FC<OrderConfirmationProps> = () => {
                 transition={{ delay: 0.7 }}
                 className="text-gray-500 mt-2"
               >
-                Redirecting to home page in a few seconds...
+                Redirection vers la page d'accueil dans quelques secondes...
               </motion.p>
             </div>
             
@@ -224,7 +225,7 @@ const OrderConfirmation: React.FC<OrderConfirmationProps> = () => {
               className="bg-white rounded-xl shadow-card overflow-hidden mb-8"
             >
               <div className="p-6 border-b border-gray-100">
-                <h3 className="font-semibold text-lg mb-4">Order Summary</h3>
+                <h3 className="font-semibold text-lg mb-4">Résumé de la commande</h3>
                 
                 <div className="space-y-4">
                   {items && items.map((item: CartItemType, index: number) => (
@@ -290,7 +291,7 @@ const OrderConfirmation: React.FC<OrderConfirmationProps> = () => {
                 onClick={() => navigate('/')}
                 className="min-w-[200px]"
               >
-                Place New Order
+                Nouvelle Commande
               </Button>
             </motion.div>
           </div>
