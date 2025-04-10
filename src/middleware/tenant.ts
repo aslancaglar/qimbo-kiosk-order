@@ -36,15 +36,16 @@ export const initRestaurantContext = async (): Promise<RestaurantContext> => {
       
       // Try to get the restaurant name if not provided
       if (!envRestaurantName) {
+        // Use the settings table instead of restaurant_settings
         const { data } = await supabase
-          .from('restaurant_settings')
-          .select('setting_value')
+          .from('settings')
+          .select('value')
           .eq('restaurant_id', envRestaurantId)
-          .eq('setting_key', 'general_settings')
+          .eq('key', 'general_settings')
           .single();
           
-        if (data?.setting_value?.name) {
-          currentRestaurant.name = data.setting_value.name;
+        if (data?.value && typeof data.value === 'object' && 'name' in data.value) {
+          currentRestaurant.name = data.value.name as string;
         }
       }
       
