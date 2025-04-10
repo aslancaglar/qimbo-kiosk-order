@@ -4,7 +4,7 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
-import { lazy, Suspense, useEffect, useState } from "react";
+import { lazy, Suspense, useEffect } from "react";
 import { AnimatePresence } from "framer-motion";
 import { enableRealtimeForTables } from "./utils/enableRealtimeForTables";
 import { startMeasure, endMeasure } from "./utils/performanceMonitor";
@@ -66,14 +66,11 @@ const RouteChangeTracker = () => {
 };
 
 const App = () => {
-  const [appInitialized, setAppInitialized] = useState(false);
-  
   // Initialize performance monitoring
   useEffect(() => {
     startMeasure('App initialization');
     
     console.log('Initializing app with performance monitoring...');
-    console.log('Current hostname:', window.location.hostname);
     
     // Initialize realtime subscriptions when the app starts
     const initializeRealtime = async () => {
@@ -82,11 +79,8 @@ const App = () => {
         const channels = await enableRealtimeForTables();
         endMeasure('Realtime initialization');
         console.log('Realtime subscriptions initialized successfully', channels);
-        setAppInitialized(true);
       } catch (error) {
         console.error('Failed to initialize realtime:', error);
-        // Still mark as initialized even if there's an error
-        setAppInitialized(true);
       }
     };
     
@@ -102,10 +96,6 @@ const App = () => {
       clearTimeout(timeout);
     };
   }, []);
-
-  if (!appInitialized) {
-    return <LoadingFallback />;
-  }
 
   return (
     <QueryClientProvider client={queryClient}>
