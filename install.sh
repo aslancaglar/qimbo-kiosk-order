@@ -30,11 +30,22 @@ find . -type f -exec chmod 644 {} \;
 find . -type d -exec chmod 755 {} \;
 chmod 755 *.sh
 
-# Make config directory if it doesn't exist
+# Make config directory if it doesn't exist and ensure it's writable
+echo "Setting up config directory..."
 if [ ! -d "config" ]; then
     echo "Creating config directory..."
     mkdir -p config
-    chmod 755 config
+fi
+
+# Always ensure config is writable - this is critical for setup.php
+chmod 777 config
+echo "Made config directory writable (permission 777)"
+
+# Create public directory if it doesn't exist
+if [ ! -d "public" ]; then
+    echo "Creating public directory..."
+    mkdir -p public
+    chmod 755 public
 fi
 
 # Check for PHP
@@ -61,6 +72,10 @@ fi
 echo
 echo "Installation Preparation Complete!"
 echo "=================================="
+echo
+echo "If you still encounter permission issues during setup, run these commands:"
+echo "chmod -R 777 config"
+echo "chmod -R 755 public"
 echo
 echo "Next steps:"
 echo "1. Create a PostgreSQL database using phpPgAdmin in your o2switch control panel"

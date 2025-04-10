@@ -36,24 +36,23 @@ export const initRestaurantContext = async (): Promise<RestaurantContext> => {
       
       // Try to get the restaurant name if not provided
       if (!envRestaurantName) {
-        // Use typed query to avoid excessive type instantiation
-        const { data, error } = await supabase
-          .from('settings')
-          .select('value')
-          .eq('restaurant_id', envRestaurantId)
-          .eq('key', 'general_settings')
-          .maybeSingle();
-          
-        if (!error && data?.value) {
-          try {
-            // Safely access the name property with explicit type casting
-            const settingsValue = data.value as { name?: string };
+        try {
+          // Avoid deep type instantiation by using simpler query
+          const { data, error } = await supabase
+            .from('settings')
+            .select('value')
+            .eq('restaurant_id', envRestaurantId)
+            .eq('key', 'general_settings')
+            .single();
+            
+          if (!error && data && data.value) {
+            const settingsValue = data.value as any;
             if (settingsValue && typeof settingsValue === 'object' && settingsValue.name) {
-              currentRestaurant.name = settingsValue.name;
+              currentRestaurant.name = String(settingsValue.name);
             }
-          } catch (parseError) {
-            console.error('Error parsing settings value:', parseError);
           }
+        } catch (error) {
+          console.error('Error fetching restaurant name:', error);
         }
       }
       

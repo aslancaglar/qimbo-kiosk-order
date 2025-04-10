@@ -45,7 +45,19 @@ chmod +x install.sh
 ./install.sh
 ```
 
-### 3. Run the Setup Wizard
+### 3. Set Directory Permissions
+
+Ensure the following directories have the proper permissions:
+
+```bash
+# Make config directory writable
+chmod -R 777 config
+
+# Set permissions for public directory
+chmod -R 755 public
+```
+
+### 4. Run the Setup Wizard
 
 1. In your web browser, navigate to the setup page:
    ```
@@ -59,7 +71,7 @@ chmod +x install.sh
    - Configure your restaurant information
    - Complete the installation
 
-### 4. Post-Installation
+### 5. Post-Installation
 
 After successful installation:
 
@@ -69,12 +81,26 @@ After successful installation:
    https://your-domain.com/admin
    ```
 3. **Configure your menu**: Add categories, items, and customize the appearance
+4. **Adjust permissions**: For security, change the config directory permissions to 755 after setup is complete:
+   ```
+   chmod 755 config
+   ```
 
 ### Troubleshooting
 
 If you encounter issues during installation:
 
-1. **Check permissions**: Make sure the 'config' directory is writable
+1. **Permission errors**: 
+   - If you see "Directory not writable: ./config" or similar errors, run:
+   ```
+   chmod -R 777 config
+   chmod -R 755 public
+   ```
+   - After installation, for security, reduce permissions:
+   ```
+   chmod 755 config
+   ```
+
 2. **Verify database credentials**: Double-check your PostgreSQL connection details
 3. **Check server requirements**: Ensure PHP version 7.4+ and required extensions are available
 4. **Review error logs**: Check the o2switch error logs in your control panel
