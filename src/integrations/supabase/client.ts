@@ -3,14 +3,8 @@
 import { createClient } from '@supabase/supabase-js';
 import type { Database } from './types';
 
-// Get environment variables from window.env (set during installation) or fallback to defaults
-const envVars = (window as any).env || {};
-
-const SUPABASE_URL = envVars.SUPABASE_URL || "https://rdjfqdpoesjvbluffwzm.supabase.co";
-const SUPABASE_PUBLISHABLE_KEY = envVars.SUPABASE_ANON_KEY || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJkamZxZHBvZXNqdmJsdWZmd3ptIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDMwMjUwMzMsImV4cCI6MjA1ODYwMTAzM30.EZY4vaHzt11hJhV2MR8S1c9PJHhZpbv0NZIdBm24QZI";
-
-// Store restaurant ID for use in queries
-export const RESTAURANT_ID = envVars.RESTAURANT_ID || 'default';
+const SUPABASE_URL = "https://rdjfqdpoesjvbluffwzm.supabase.co";
+const SUPABASE_PUBLISHABLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJkamZxZHBvZXNqdmJsdWZmd3ptIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDMwMjUwMzMsImV4cCI6MjA1ODYwMTAzM30.EZY4vaHzt11hJhV2MR8S1c9PJHhZpbv0NZIdBm24QZI";
 
 // Import the supabase client like this:
 // import { supabase } from "@/integrations/supabase/client";
@@ -24,15 +18,6 @@ export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABL
     fetch: (url, options) => fetch(url, options),
   },
 });
-
-/**
- * Add restaurant_id to a Supabase query
- * Use this helper to ensure multi-tenancy in all database operations
- */
-export const withRestaurantId = <T extends any>(query: T): T => {
-  // @ts-ignore - We know the query has an eq method
-  return query.eq('restaurant_id', RESTAURANT_ID);
-};
 
 /**
  * Initialize storage bucket for menu images
@@ -73,9 +58,9 @@ export const initializeStorage = async () => {
  */
 export const uploadImage = async (file: File, bucketName: string = 'menu-images'): Promise<string | null> => {
   try {
-    // Create a unique file name with restaurant ID prefix for multi-tenancy
+    // Create a unique file name
     const fileExt = file.name.split('.').pop();
-    const fileName = `${RESTAURANT_ID}/${Date.now()}-${Math.random().toString(36).substring(2, 15)}.${fileExt}`;
+    const fileName = `${Date.now()}-${Math.random().toString(36).substring(2, 15)}.${fileExt}`;
     
     console.log(`Uploading file ${fileName} to ${bucketName} bucket...`);
     

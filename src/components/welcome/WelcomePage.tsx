@@ -4,8 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import Button from '../common/Button';
 import TableSelector from '../common/TableSelector';
 import { useNavigate } from 'react-router-dom';
-import { supabase, withRestaurantId } from '../../integrations/supabase/client';
-import { getRestaurantContext } from '../../middleware/tenant';
+import { supabase } from '../../integrations/supabase/client';
 
 interface RestaurantInfoProps {
   name: string;
@@ -27,24 +26,18 @@ const WelcomePage: React.FC<WelcomePageProps> = ({ restaurantInfo }) => {
   });
   const [logoUrl, setLogoUrl] = useState('');
   const [logoLoaded, setLogoLoaded] = useState(false);
-  const [restaurantName, setRestaurantName] = useState('');
   const navigate = useNavigate();
   
   // Fetch ordering settings and logo when component mounts
   useEffect(() => {
     const fetchSettings = async () => {
       try {
-        // Get the restaurant context
-        const restaurantContext = getRestaurantContext();
-        setRestaurantName(restaurantContext.name);
-        
         // Fetch ordering settings
-        const { data: orderData, error: orderError } = await withRestaurantId(
-          supabase
-            .from('settings')
-            .select('*')
-            .eq('key', 'ordering_settings')
-        ).maybeSingle();
+        const { data: orderData, error: orderError } = await supabase
+          .from('settings')
+          .select('*')
+          .eq('key', 'ordering_settings')
+          .maybeSingle();
 
         if (orderError) {
           console.error('Error fetching ordering settings:', orderError);
@@ -58,12 +51,11 @@ const WelcomePage: React.FC<WelcomePageProps> = ({ restaurantInfo }) => {
         }
         
         // Fetch logo
-        const { data: appearanceData, error: appearanceError } = await withRestaurantId(
-          supabase
-            .from('settings')
-            .select('value')
-            .eq('key', 'appearance_settings')
-        ).maybeSingle();
+        const { data: appearanceData, error: appearanceError } = await supabase
+          .from('settings')
+          .select('value')
+          .eq('key', 'appearance_settings')
+          .maybeSingle();
           
         if (appearanceError) {
           console.error('Error fetching appearance settings:', appearanceError);
@@ -149,7 +141,7 @@ const WelcomePage: React.FC<WelcomePageProps> = ({ restaurantInfo }) => {
                 )}
               </div>
               <h1 className="text-4xl font-bold mb-2 tracking-tight">
-                {restaurantName || restaurantInfo?.name || 'Nom du Restaurant'}
+                {restaurantInfo?.name || 'Nom du Restaurant'}
               </h1>
             </motion.div>
             
