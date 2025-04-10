@@ -1,3 +1,4 @@
+
 import { CartItemType } from "../components/cart/types";
 import { getPrintNodeCredentials, sendToPrintNode, formatTextReceipt } from "./printNode";
 import { supabase } from "../integrations/supabase/client";
@@ -17,7 +18,7 @@ export const formatOrderReceipt = (
   return `
     <html>
       <head>
-        <title>Order #${orderNumber}</title>
+        <title>Commande #${orderNumber}</title>
         <style>
           body {
             font-family: Arial, sans-serif;
@@ -71,17 +72,17 @@ export const formatOrderReceipt = (
         </style>
       </head>
       <body>
-        <h1>Order Receipt</h1>
+        <h1>Votre Commande</h1>
         <div class="order-details">
-          <p><strong>Order #:</strong> ${orderNumber}</p>
+          <p><strong>Numéro de Commande #:</strong> ${orderNumber}</p>
           <p><strong>Date:</strong> ${orderDate}</p>
-          <p><strong>Order Type:</strong> ${orderType === 'eat-in' ? 'Eat In' : 'Takeaway'}</p>
+          <p><strong>Type de Commande:</strong> ${orderType === 'eat-in' ? 'Sur Place' : 'À Emporter'}</p>
           ${orderType === 'eat-in' && tableNumber ? `<p><strong>Table #:</strong> ${tableNumber}</p>` : ''}
         </div>
         
         <div class="divider"></div>
         
-        <h2>Items</h2>
+        <h2>Produits</h2>
         ${items.map((item) => `
           <div class="order-item">
             <div>
@@ -106,11 +107,11 @@ export const formatOrderReceipt = (
         
         <div class="totals">
           <div class="total-row">
-            <span>Subtotal:</span>
+            <span>Sous-total:</span>
             <span>${subtotal?.toFixed(2) || '0.00'} €</span>
           </div>
           <div class="total-row">
-            <span>Tax:</span>
+            <span>TVA:</span>
             <span>${tax?.toFixed(2) || '0.00'} €</span>
           </div>
           <div class="total-row final-total">
@@ -120,7 +121,7 @@ export const formatOrderReceipt = (
         </div>
         
         <div class="footer">
-          <p>Thank you for your order!</p>
+          <p>Bon Appétit</p>
         </div>
       </body>
     </html>
