@@ -36,19 +36,23 @@ export const initRestaurantContext = async (): Promise<RestaurantContext> => {
       
       // Try to get the restaurant name if not provided
       if (!envRestaurantName) {
-        // Use the settings table instead of restaurant_settings
-        const { data } = await supabase
+        // Use typed query to avoid excessive type instantiation
+        const { data, error } = await supabase
           .from('settings')
           .select('value')
           .eq('restaurant_id', envRestaurantId)
           .eq('key', 'general_settings')
-          .single();
+          .maybeSingle();
           
-        if (data?.value && typeof data.value === 'object') {
-          // Safely access the name property
-          const settingsValue = data.value as Record<string, any>;
-          if ('name' in settingsValue) {
-            currentRestaurant.name = settingsValue.name as string;
+        if (!error && data?.value) {
+          try {
+            // Safely access the name property with explicit type casting
+            const settingsValue = data.value as { name?: string };
+            if (settingsValue && typeof settingsValue === 'object' && settingsValue.name) {
+              currentRestaurant.name = settingsValue.name;
+            }
+          } catch (parseError) {
+            console.error('Error parsing settings value:', parseError);
           }
         }
       }
