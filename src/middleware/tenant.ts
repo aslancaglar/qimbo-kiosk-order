@@ -44,8 +44,12 @@ export const initRestaurantContext = async (): Promise<RestaurantContext> => {
           .eq('key', 'general_settings')
           .single();
           
-        if (data?.value && typeof data.value === 'object' && 'name' in data.value) {
-          currentRestaurant.name = data.value.name as string;
+        if (data?.value && typeof data.value === 'object') {
+          // Safely access the name property
+          const settingsValue = data.value as Record<string, any>;
+          if ('name' in settingsValue) {
+            currentRestaurant.name = settingsValue.name as string;
+          }
         }
       }
       
