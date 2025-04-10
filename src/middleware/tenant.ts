@@ -37,17 +37,18 @@ export const initRestaurantContext = async (): Promise<RestaurantContext> => {
       // Try to get the restaurant name if not provided
       if (!envRestaurantName) {
         try {
-          // Avoid deep type instantiation by using simpler query
-          const { data, error } = await supabase
+          // Use a simplified approach to avoid deep type instantiation
+          const { data } = await supabase
             .from('settings')
             .select('value')
             .eq('restaurant_id', envRestaurantId)
             .eq('key', 'general_settings')
-            .single();
+            .limit(1);
             
-          if (!error && data && data.value) {
-            const settingsValue = data.value as any;
-            if (settingsValue && typeof settingsValue === 'object' && settingsValue.name) {
+          if (data && data.length > 0) {
+            // Use type assertion with a simpler type
+            const settingsValue = data[0].value as Record<string, unknown>;
+            if (settingsValue && 'name' in settingsValue) {
               currentRestaurant.name = String(settingsValue.name);
             }
           }
