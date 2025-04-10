@@ -12,10 +12,8 @@ services:
     environment:
       - VITE_SUPABASE_URL=${SUPABASE_URL:-http://db:8000}
       - VITE_SUPABASE_ANON_KEY=${SUPABASE_ANON_KEY:-eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJkamZxZHBvZXNqdmJsdWZmd3ptIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDMwMjUwMzMsImV4cCI6MjA1ODYwMTAzM30.EZY4vaHzt11hJhV2MR8S1c9PJHhZpbv0NZIdBm24QZI}
-      - RESTAURANT_ID=${RESTAURANT_ID:-default}  # New environment variable for multi-tenant setup
     networks:
       - qimbo-network
-    restart: always
 
   db:
     image: supabase/postgres:15.1.0.117
