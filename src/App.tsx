@@ -8,6 +8,7 @@ import { lazy, Suspense, useEffect } from "react";
 import { AnimatePresence } from "framer-motion";
 import { enableRealtimeForTables } from "./utils/enableRealtimeForTables";
 import { startMeasure, endMeasure } from "./utils/performanceMonitor";
+import { initRestaurantContext } from "./middleware/tenant";
 
 // Eagerly load the Index page for fast initial load
 import Index from "./pages/Index";
@@ -66,11 +67,23 @@ const RouteChangeTracker = () => {
 };
 
 const App = () => {
-  // Initialize performance monitoring
+  // Initialize performance monitoring and restaurant context
   useEffect(() => {
     startMeasure('App initialization');
     
     console.log('Initializing app with performance monitoring...');
+    
+    // Initialize restaurant context
+    const initTenant = async () => {
+      try {
+        startMeasure('Restaurant context initialization');
+        const restaurant = await initRestaurantContext();
+        endMeasure('Restaurant context initialization');
+        console.log('Restaurant context initialized:', restaurant);
+      } catch (error) {
+        console.error('Failed to initialize restaurant context:', error);
+      }
+    };
     
     // Initialize realtime subscriptions when the app starts
     const initializeRealtime = async () => {
@@ -84,12 +97,22 @@ const App = () => {
       }
     };
     
-    initializeRealtime();
+    // Initialize everything in sequence
+    Promise.all([initTenant(), initializeRealtime()])
+      .then(() => {
+        console.log('All initializations complete');
+      })
+      .catch(error => {
+        console.error('Error during initialization:', error);
+      })
+      .finally(() => {
+        endMeasure('App initialization');
+      });
     
-    // End initial measure
+    // End initial measure if something goes wrong
     const timeout = setTimeout(() => {
       endMeasure('App initialization');
-    }, 500);
+    }, 1000);
     
     // Clean up
     return () => {
