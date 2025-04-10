@@ -10,16 +10,27 @@ const RESTAURANT_CONFIGS = {
     url: "https://rdjfqdpoesjvbluffwzm.supabase.co",
     key: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJkamZxZHBvZXNqdmJsdWZmd3ptIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDMwMjUwMzMsImV4cCI6MjA1ODYwMTAzM30.EZY4vaHzt11hJhV2MR8S1c9PJHhZpbv0NZIdBm24QZI"
   },
-  // Add more restaurants with their own Supabase credentials
+  // Add more restaurants with their own Supabase credentials - ensure they have valid URLs
   'restaurant1.yourdomain.com': {
-    url: "https://your-restaurant1-supabase-url.supabase.co",
+    url: "https://example-restaurant1-supabase.supabase.co", // Example valid URL format
     key: "your-restaurant1-supabase-anon-key"
   },
   'restaurant2.yourdomain.com': {
-    url: "https://your-restaurant2-supabase-url.supabase.co",
+    url: "https://example-restaurant2-supabase.supabase.co", // Example valid URL format
     key: "your-restaurant2-supabase-anon-key"
-  },
+  }
   // Add more configurations as needed
+};
+
+// Helper function to validate URL
+const isValidUrl = (urlString: string): boolean => {
+  try {
+    new URL(urlString);
+    return true;
+  } catch (e) {
+    console.error(`Invalid Supabase URL: ${urlString}`);
+    return false;
+  }
 };
 
 // Helper function to get the current hostname
@@ -44,8 +55,18 @@ const getSupabaseConfig = () => {
 
 // Get the configuration based on the current hostname
 const config = getSupabaseConfig();
+
+// Validate URL before creating client
+if (!isValidUrl(config.url)) {
+  console.error("Invalid Supabase URL in config. Using fallback URL.");
+  // Fallback to default config's URL if the selected URL is invalid
+  config.url = RESTAURANT_CONFIGS.default.url;
+}
+
 const SUPABASE_URL = config.url;
 const SUPABASE_PUBLISHABLE_KEY = config.key;
+
+console.log(`Initializing Supabase client with URL: ${SUPABASE_URL}`);
 
 export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
   auth: {
