@@ -26,6 +26,12 @@ COPY --from=builder /app/dist /usr/share/nginx/html
 # Copy nginx configuration
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 
+# Copy .htaccess for non-Docker deployments
+COPY public/.htaccess /usr/share/nginx/html/.htaccess
+
+# Copy a simple PHP script to test database connectivity (useful for o2switch)
+RUN echo '<?php phpinfo(); ?>' > /usr/share/nginx/html/info.php
+
 # Expose port 80
 EXPOSE 80
 
