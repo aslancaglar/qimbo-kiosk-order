@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -27,6 +26,9 @@ const Categories = lazy(() => import("./pages/admin/Categories"));
 const Toppings = lazy(() => import("./pages/admin/Toppings"));
 const Settings = lazy(() => import("./pages/admin/Settings"));
 const KitchenDisplay = lazy(() => import("./pages/admin/KitchenDisplay"));
+
+// Lazy load the Installation page
+import Installation from './pages/Installation';
 
 // Loading fallback component
 const LoadingFallback = () => (
@@ -122,6 +124,9 @@ const App = () => {
                 <Route path="/admin/toppings" element={<Toppings />} />
                 <Route path="/admin/settings" element={<Settings />} />
                 <Route path="/admin/kitchen" element={<KitchenDisplay />} />
+                
+                {/* Installation route */}
+                <Route path="/installation" element={<Installation />} />
                 
                 {/* 404 route */}
                 <Route path="*" element={<NotFound />} />

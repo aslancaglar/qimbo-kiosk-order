@@ -1,10 +1,11 @@
-
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Button from '../common/Button';
 import TableSelector from '../common/TableSelector';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../../integrations/supabase/client';
+import { Link } from 'react-router-dom';
+import Database from '../common/Database';
 
 interface RestaurantInfoProps {
   name: string;
@@ -28,11 +29,9 @@ const WelcomePage: React.FC<WelcomePageProps> = ({ restaurantInfo }) => {
   const [logoLoaded, setLogoLoaded] = useState(false);
   const navigate = useNavigate();
   
-  // Fetch ordering settings and logo when component mounts
   useEffect(() => {
     const fetchSettings = async () => {
       try {
-        // Fetch ordering settings
         const { data: orderData, error: orderError } = await supabase
           .from('settings')
           .select('*')
@@ -50,7 +49,6 @@ const WelcomePage: React.FC<WelcomePageProps> = ({ restaurantInfo }) => {
           });
         }
         
-        // Fetch logo
         const { data: appearanceData, error: appearanceError } = await supabase
           .from('settings')
           .select('value')
@@ -64,7 +62,6 @@ const WelcomePage: React.FC<WelcomePageProps> = ({ restaurantInfo }) => {
           if (settings.logo) {
             console.log('Logo URL found:', settings.logo);
             setLogoUrl(settings.logo);
-            // Preload the logo image
             const img = new Image();
             img.onload = () => setLogoLoaded(true);
             img.onerror = () => {
@@ -87,7 +84,6 @@ const WelcomePage: React.FC<WelcomePageProps> = ({ restaurantInfo }) => {
   };
   
   const handleEatIn = () => {
-    // If table selection is not required, go directly to menu
     if (!orderingSettings.requireTableSelection) {
       navigate('/menu', { state: { orderType: 'eat-in' } });
     } else {
@@ -99,7 +95,6 @@ const WelcomePage: React.FC<WelcomePageProps> = ({ restaurantInfo }) => {
     navigate('/menu', { state: { orderType: 'eat-in', tableNumber } });
   };
   
-  // Default logo if none is provided from settings
   const defaultLogoUrl = '/lovable-uploads/6837434a-e5ba-495a-b295-9638c9b5c27f.png';
   
   return (
@@ -114,7 +109,6 @@ const WelcomePage: React.FC<WelcomePageProps> = ({ restaurantInfo }) => {
             transition={{ duration: 0.4 }}
             className="w-full max-w-3xl mx-auto text-center px-6"
           >
-            {/* Logo and branding */}
             <motion.div 
               initial={{ scale: 0.9, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
@@ -186,6 +180,16 @@ const WelcomePage: React.FC<WelcomePageProps> = ({ restaurantInfo }) => {
           </motion.div>
         )}
       </AnimatePresence>
+      
+      <div className="mt-8 flex flex-col md:flex-row gap-4 justify-center">
+        <Link 
+          to="/installation" 
+          className="px-6 py-3 text-lg rounded-lg border border-gray-300 hover:border-gray-400 transition-all text-center flex items-center justify-center gap-2"
+        >
+          <Database className="h-5 w-5" />
+          <span>Installation Guide</span>
+        </Link>
+      </div>
     </div>
   );
 };
