@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import AdminLayout from '../../components/admin/AdminLayout';
 import { Input } from "@/components/ui/input";
@@ -44,7 +43,8 @@ import { Separator } from "@/components/ui/separator";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
-import { supabase, uploadImage } from "@/integrations/supabase/client";
+import { supabase } from "@/integrations/supabase/client";
+import { uploadFile } from "@/utils/fileUpload";
 import { useToast } from "@/hooks/use-toast";
 import { useMenuData } from "@/hooks/use-menu-data";
 
@@ -397,7 +397,7 @@ const MenuItems = () => {
       
       if (imageFile) {
         console.log("Uploading new image");
-        imageUrl = await uploadImage(imageFile);
+        imageUrl = await uploadFile(imageFile, 'menu-images');
         
         if (!imageUrl) {
           toast({
