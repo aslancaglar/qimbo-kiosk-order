@@ -73,11 +73,11 @@ const Index: React.FC = () => {
   }}>
       <div className="absolute top-6 right-6 z-10">
         {logoUrl && (
-          <div className="w-28 h-28 rounded-full bg-white/80 flex items-center justify-center overflow-hidden shadow-lg">
+          <div className="w-32 h-32 rounded-full bg-white/80 flex items-center justify-center overflow-hidden shadow-lg">
             <img 
               src={logoUrl} 
               alt="Restaurant Logo" 
-              className="w-22 h-22 object-contain" 
+              className="w-26 h-26 object-contain" 
               onError={(e) => {
                 console.error('Logo image failed to load');
                 // Remove the broken image instead of showing a fallback
