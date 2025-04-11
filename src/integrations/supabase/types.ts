@@ -232,6 +232,7 @@ export type Database = {
           status: string
           table_number: number | null
           total_amount: number
+          updated_at: string | null
         }
         Insert: {
           created_at?: string
@@ -243,6 +244,7 @@ export type Database = {
           status?: string
           table_number?: number | null
           total_amount: number
+          updated_at?: string | null
         }
         Update: {
           created_at?: string
@@ -254,6 +256,7 @@ export type Database = {
           status?: string
           table_number?: number | null
           total_amount?: number
+          updated_at?: string | null
         }
         Relationships: []
       }
